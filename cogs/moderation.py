@@ -1,4 +1,5 @@
 import discord
+from datetime import timedelta
 from discord import app_commands
 from discord.ext import commands
 
@@ -25,7 +26,7 @@ class Moderation(commands.Cog):
         return True
 
     # =========================================================
-    # التحقق من الصلاحية
+    # التحقق من الصلاحيات
     # =========================================================
 
     async def check_permission(
@@ -48,7 +49,7 @@ class Moderation(commands.Cog):
         return True
 
     # =========================================================
-    # /kick
+    # KICK
     # =========================================================
 
     @app_commands.command(
@@ -95,10 +96,9 @@ class Moderation(commands.Cog):
             )
             return
 
-        if (
-            self.bot.user
-            and member.top_role >= interaction.guild.me.top_role
-        ):
+        bot_member = interaction.guild.me
+
+        if bot_member and member.top_role >= bot_member.top_role:
             await interaction.response.send_message(
                 "❌ ما أقدر أطرد هذا العضو بسبب ترتيب الرتب.",
                 ephemeral=True
@@ -144,7 +144,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /ban
+    # BAN
     # =========================================================
 
     @app_commands.command(
@@ -191,10 +191,9 @@ class Moderation(commands.Cog):
             )
             return
 
-        if (
-            self.bot.user
-            and member.top_role >= interaction.guild.me.top_role
-        ):
+        bot_member = interaction.guild.me
+
+        if bot_member and member.top_role >= bot_member.top_role:
             await interaction.response.send_message(
                 "❌ ما أقدر أحظر هذا العضو بسبب ترتيب الرتب.",
                 ephemeral=True
@@ -240,7 +239,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /unban
+    # UNBAN
     # =========================================================
 
     @app_commands.command(
@@ -299,7 +298,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /clear
+    # CLEAR
     # =========================================================
 
     @app_commands.command(
@@ -353,7 +352,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /timeout
+    # TIMEOUT
     # =========================================================
 
     @app_commands.command(
@@ -402,17 +401,16 @@ class Moderation(commands.Cog):
             )
             return
 
-        if (
-            self.bot.user
-            and member.top_role >= interaction.guild.me.top_role
-        ):
+        bot_member = interaction.guild.me
+
+        if bot_member and member.top_role >= bot_member.top_role:
             await interaction.response.send_message(
                 "❌ ما أقدر أعطي هذا العضو تايم أوت بسبب ترتيب الرتب.",
                 ephemeral=True
             )
             return
 
-        duration = discord.utils.utcnow() + discord.timedelta(
+        duration = discord.utils.utcnow() + timedelta(
             minutes=minutes
         )
 
@@ -433,7 +431,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /untimeout
+    # UNTIMEOUT
     # =========================================================
 
     @app_commands.command(
@@ -471,7 +469,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /lock
+    # LOCK
     # =========================================================
 
     @app_commands.command(
@@ -524,7 +522,7 @@ class Moderation(commands.Cog):
             )
 
     # =========================================================
-    # /unlock
+    # UNLOCK
     # =========================================================
 
     @app_commands.command(
