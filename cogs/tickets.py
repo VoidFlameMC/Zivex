@@ -1,4 +1,6 @@
 import asyncio
+import re
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -8,184 +10,138 @@ from database import db
 
 
 # =========================================================
-# أدوات التذاكر
+# Helpers
 # =========================================================
 
-class TicketCloseView(discord.ui.View):
-    def __init__(self, cog):
-        super().__init__(timeout=None)
-        self.cog = cog
+def clean_channel_name(name: str) -> str:
+    name = name.lower()
+    name = re.sub(r"[^a-z0-9\u0600-\u06ff\s-]", "", name)
+    name = re.sub(r"\s+", "-", name)
+    name = re.sub(r"-+", "-", name).strip("-")
 
-    @discord.ui.button(
-        label="إغلاق التذكرة",
-        emoji="🔒",
-        style=discord.ButtonStyle.danger,
-        custom_id="zivex_ticket_close",
-    )
-    async def close_ticket(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ):
-        channel = interaction.channel
+    if not name:
+        name = "ticket"
 
-        if not isinstance(channel, discord.TextChannel):
-            await interaction.response.send_message(
-                "❌ هذه ليست تذكرة.",
-                ephemeral=True,
-            )
-            return
+    return name[:70]
 
-        if not channel.name.startswith("ticket-"):
-            await interaction.response.send_message(
-                "❌ هذه القناة ليست تذكرة Zivex.",
-                ephemeral=True,
-            )
-            return
 
-        member = interaction.user
+def parse_color(value):
+    if not value:
+        return discord.Color.blurple()
 
-        if (
-            not member.guild_permissions.manage_channels
-            and not channel.permissions_for(member).manage_channels
-        ):
-            await interaction.response.send_message(
-                "❌ ما عندك صلاحية إغلاق التذكرة.",
-                ephemeral=True,
-            )
-            return
+    try:
+        value = str(value).strip().replace("#", "")
 
-        await interaction.response.send_message(
-            "🔒 سيتم إغلاق التذكرة خلال 5 ثوانٍ..."
-        )
+        if value.lower().startswith("0x"):
+            value = value[2:]
 
-        await self.cog.close_ticket_after_delay(channel)
+        return discord.Color(int(value, 16))
+
+    except (ValueError, TypeError):
+        return discord.Color.blurple()
 
 
 # =========================================================
-# قائمة أنواع التذاكر
-# =========================================================
-
-class TicketTypeSelect(discord.ui.Select):
-    def __init__(self, cog):
-        self.cog = cog
-
-        options = [
-            discord.SelectOption(
-                label="الدعم الفني",
-                description="إذا كنت تحتاج مساعدة من الإدارة",
-                emoji="🛠️",
-                value="support",
-            ),
-            discord.SelectOption(
-                label="شكوى",
-                description="لتقديم شكوى للإدارة",
-                emoji="⚠️",
-                value="complaint",
-            ),
-            discord.SelectOption(
-                label="شراكة",
-                description="لطلب شراكة مع السيرفر",
-                emoji="🤝",
-                value="partnership",
-            ),
-        ]
-
-        super().__init__(
-            placeholder="اختر نوع التذكرة",
-            min_values=1,
-            max_values=1,
-            options=options,
-            custom_id="zivex_ticket_type",
-        )
-
-    async def callback(
-        self,
-        interaction: discord.Interaction,
-    ):
-        await self.cog.create_ticket(
-            interaction,
-            self.values[0],
-        )
-
-
-# =========================================================
-# لوحة التذاكر
-# =========================================================
-
-class TicketPanelView(discord.ui.View):
-    def __init__(self, cog):
-        super().__init__(timeout=None)
-
-        self.add_item(
-            TicketTypeSelect(cog)
-        )
-
-
-# =========================================================
-# نظام التذاكر
+# Ticket Cog
 # =========================================================
 
 class Tickets(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
-    TICKET_NAMES = {
-        "support": "الدعم الفني",
-        "complaint": "شكوى",
-        "partnership": "شراكة",
-    }
+        self.ready = False
 
     # =========================================================
-    # إعدادات السيرفر
+    # Database
     # =========================================================
 
-    async def ensure_guild(
-        self,
-        guild: discord.Guild,
-    ):
-        settings = await db.get_guild(guild.id)
+    async def get_settings(self, guild):
+        try:
+            settings = await db.get_guild(guild.id)
 
-        if settings:
-            return settings
+            if settings:
+                return settings
 
-        await db.ensure_guild(
-            guild_id=guild.id,
-            guild_name=guild.name,
-            guild_icon=(
-                str(guild.icon.url)
-                if guild.icon
-                else ""
-            ),
+            await db.ensure_guild(
+                guild_id=guild.id,
+                guild_name=guild.name,
+                guild_icon=(
+                    str(guild.icon.url)
+                    if guild.icon
+                    else None
+                ),
+            )
+
+            return await db.get_guild(guild.id)
+
+        except Exception as error:
+            print(
+                f"❌ [TICKETS] Database error: {error}"
+            )
+            return None
+
+    # =========================================================
+    # Permissions
+    # =========================================================
+
+    async def is_owner(self, user):
+        try:
+            return await self.bot.is_owner(user)
+        except Exception:
+            return False
+
+    async def can_manage(self, member):
+        if await self.is_owner(member):
+            return True
+
+        return (
+            isinstance(member, discord.Member)
+            and (
+                member.guild_permissions.manage_guild
+                or member.guild_permissions.manage_channels
+            )
         )
 
-        return await db.get_guild(guild.id)
-
     # =========================================================
-    # البحث عن تذكرة العضو
+    # Ticket Detection
     # =========================================================
 
-    def find_member_ticket(
+    def is_ticket_channel(
         self,
-        guild: discord.Guild,
-        member: discord.Member,
+        channel: discord.TextChannel,
     ):
-        for channel in guild.text_channels:
-            if not channel.name.startswith("ticket-"):
-                continue
+        return (
+            channel.name.startswith("ticket-")
+            or channel.topic
+            and channel.topic.startswith("ZIVEX_TICKET:")
+        )
 
-            if channel.permissions_for(member).view_channel:
-                return channel
-
-        return None
-
-    # =========================================================
-    # الحصول على كاتيجوري التذاكر
-    # =========================================================
-
-    async def get_ticket_category(
+    def get_ticket_owner_id(
         self,
-        guild: discord.Guild,
+        channel: discord.TextChannel,
+    ):
+        if not channel.topic:
+            return None
+
+        match = re.search(
+            r"ZIVEX_TICKET:(\d+)",
+            channel.topic,
+        )
+
+        if not match:
+            return None
+
+        try:
+            return int(match.group(1))
+        except ValueError:
+            return None
+
+    # =========================================================
+    # Category
+    # =========================================================
+
+    async def get_category(
+        self,
+        guild,
         settings,
     ):
         category_id = settings.get(
@@ -205,99 +161,650 @@ class Tickets(commands.Cog):
                     return category
 
             except (
-                TypeError,
                 ValueError,
+                TypeError,
             ):
                 pass
 
-        # البحث عن كاتيجوري موجودة
-        category_names = [
-            "🎫・𝗦𝚞𝚙𝚙𝚘𝚛𝚝",
-            "🎫・Support",
-            "Support",
-        ]
+        category = discord.utils.get(
+            guild.categories,
+            name="🎫・𝗦𝚞𝚙𝚙𝚘𝚛𝚝",
+        )
 
-        for name in category_names:
-            category = discord.utils.get(
-                guild.categories,
-                name=name,
-            )
-
-            if category:
-                await db.set_channel(
-                    guild.id,
-                    "ticket",
-                    category.id,
-                )
-                return category
-
-        # إنشاء كاتيجوري جديدة
-        try:
-            category = await guild.create_category(
-                "🎫・𝗦𝚞𝚙𝚙𝚘𝚛𝚝",
-                reason="إنشاء كاتيجوري تذاكر Zivex",
-            )
-
-            await db.set_channel(
-                guild.id,
-                "ticket",
-                category.id,
-            )
-
+        if category:
             return category
 
+        try:
+            return await guild.create_category(
+                "🎫・𝗦𝚞𝚙𝚙𝚘𝚛𝚝",
+                reason="Zivex Ticket System",
+            )
         except discord.Forbidden:
             return None
 
-        except discord.HTTPException:
-            return None
-
     # =========================================================
-    # إنشاء التذكرة
+    # Create Ticket
     # =========================================================
 
     async def create_ticket(
         self,
-        interaction: discord.Interaction,
-        ticket_type: str,
+        guild,
+        member,
+        ticket_type="support",
     ):
-        if interaction.guild is None:
-            await interaction.response.send_message(
-                "❌ هذا النظام يعمل داخل السيرفر فقط.",
-                ephemeral=True,
+        settings = await self.get_settings(
+            guild
+        )
+
+        if not settings:
+            return None, "❌ تعذر تحميل إعدادات التذاكر."
+
+        if not bool(
+            settings.get(
+                "tickets_enabled",
+                0,
             )
-            return
-
-        guild = interaction.guild
-        member = interaction.user
-
-        if not isinstance(member, discord.Member):
-            await interaction.response.send_message(
-                "❌ تعذر التحقق من العضو.",
-                ephemeral=True,
-            )
-            return
-
-        settings = await self.ensure_guild(guild)
-
-        if not settings.get(
-            "tickets_enabled",
-            0,
         ):
-            await interaction.response.send_message(
-                "❌ نظام التذاكر غير مفعل في هذا السيرفر.",
-                ephemeral=True,
+            return None, "❌ نظام التذاكر غير مفعل."
+
+        # Prevent duplicate tickets
+        for channel in guild.text_channels:
+            if not self.is_ticket_channel(channel):
+                continue
+
+            owner_id = self.get_ticket_owner_id(
+                channel
+            )
+
+            if owner_id == member.id:
+                return (
+                    channel,
+                    "⚠️ عندك تذكرة مفتوحة بالفعل.",
+                )
+
+        category = await self.get_category(
+            guild,
+            settings,
+        )
+
+        if not category:
+            return (
+                None,
+                "❌ ما قدرت أحدد كاتيجوري التذاكر.",
+            )
+
+        staff_role = None
+
+        role_names = (
+            "Support",
+            "𝗦𝚞𝚙𝚙𝚘𝚛𝚝",
+            "Helper",
+            "𝗛𝚎𝚕𝚙𝚎𝚛",
+        )
+
+        for role_name in role_names:
+            staff_role = discord.utils.get(
+                guild.roles,
+                name=role_name,
+            )
+
+            if staff_role:
+                break
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
+            member: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True,
+            ),
+            guild.me: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True,
+                manage_messages=True,
+            ),
+        }
+
+        if staff_role:
+            overwrites[staff_role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_messages=True,
+            )
+
+        safe_name = clean_channel_name(
+            member.display_name
+        )
+
+        channel_name = (
+            f"ticket-{safe_name}"
+        )
+
+        try:
+            channel = await guild.create_text_channel(
+                channel_name,
+                category=category,
+                overwrites=overwrites,
+                topic=f"ZIVEX_TICKET:{member.id}",
+                reason=(
+                    f"Ticket opened by {member}"
+                ),
+            )
+
+        except discord.Forbidden:
+            return (
+                None,
+                "❌ البوت ما عنده صلاحية إنشاء الرومات.",
+            )
+
+        except discord.HTTPException:
+            return (
+                None,
+                "❌ حدث خطأ أثناء إنشاء التذكرة.",
+            )
+
+        title = (
+            settings.get(
+                "tickets_title"
+            )
+            or "🎫 تذكرتك"
+        )
+
+        message = (
+            settings.get(
+                "tickets_message"
+            )
+            or (
+                "مرحبًا {user}!\n\n"
+                "اكتب مشكلتك أو طلبك هنا، "
+                "وسيتم الرد عليك من فريق الدعم."
+            )
+        )
+
+        message = (
+            message
+            .replace(
+                "{user}",
+                member.mention,
+            )
+            .replace(
+                "{username}",
+                member.display_name,
+            )
+            .replace(
+                "{server}",
+                guild.name,
+            )
+        )
+
+        embed = discord.Embed(
+            title=title,
+            description=message,
+            color=parse_color(
+                settings.get(
+                    "tickets_color"
+                )
+            ),
+            timestamp=discord.utils.utcnow(),
+        )
+
+        if bool(
+            settings.get(
+                "tickets_thumbnail",
+                1,
+            )
+        ):
+            embed.set_thumbnail(
+                url=member.display_avatar.url
+            )
+
+        footer = (
+            settings.get(
+                "tickets_footer"
+            )
+            or "Zivex • Ticket System"
+        )
+
+        if guild.icon:
+            embed.set_footer(
+                text=footer,
+                icon_url=guild.icon.url,
+            )
+        else:
+            embed.set_footer(
+                text=footer
+            )
+
+        view = TicketCloseView(
+            self,
+            member.id,
+        )
+
+        try:
+            await channel.send(
+                content=member.mention,
+                embed=embed,
+                view=view,
+                allowed_mentions=discord.AllowedMentions(
+                    users=True,
+                    roles=False,
+                    everyone=False,
+                ),
+            )
+
+            logs = self.bot.get_cog("Logs")
+
+            if logs:
+                try:
+                    await logs.ticket_created(
+                        member,
+                        channel,
+                    )
+                except Exception as error:
+                    print(
+                        f"⚠️ [TICKETS] Log error: {error}"
+                    )
+
+            return (
+                channel,
+                "✅ تم إنشاء تذكرتك بنجاح.",
+            )
+
+        except discord.HTTPException:
+            try:
+                await channel.delete(
+                    reason="Ticket setup failed"
+                )
+            except Exception:
+                pass
+
+            return (
+                None,
+                "❌ حدث خطأ أثناء تجهيز التذكرة.",
+            )
+
+    # =========================================================
+    # Close Ticket
+    # =========================================================
+
+    async def close_ticket(
+        self,
+        channel,
+        closed_by,
+    ):
+        if not isinstance(
+            channel,
+            discord.TextChannel,
+        ):
+            return False, "❌ هذا ليس روم تذكرة."
+
+        if not self.is_ticket_channel(channel):
+            return False, "❌ هذا ليس روم تذكرة."
+
+        settings = await self.get_settings(
+            channel.guild
+        )
+
+        reason = "تم إغلاق التذكرة"
+
+        try:
+            await channel.edit(
+                name=(
+                    f"closed-{channel.name}"
+                )[:100],
+                reason=(
+                    f"Ticket closed by "
+                    f"{closed_by}"
+                ),
+            )
+
+            overwrites = channel.overwrites_for(
+                channel.guild.default_role
+            )
+
+            overwrites.view_channel = False
+
+            await channel.set_permissions(
+                channel.guild.default_role,
+                overwrite=overwrites,
+            )
+
+            owner_id = self.get_ticket_owner_id(
+                channel
+            )
+
+            if owner_id:
+                owner = channel.guild.get_member(
+                    owner_id
+                )
+
+                if owner:
+                    owner_overwrite = (
+                        channel.overwrites_for(
+                            owner
+                        )
+                    )
+
+                    owner_overwrite.view_channel = False
+                    owner_overwrite.send_messages = False
+
+                    await channel.set_permissions(
+                        owner,
+                        overwrite=owner_overwrite,
+                    )
+
+            if settings:
+                close_message = (
+                    settings.get(
+                        "tickets_close_message"
+                    )
+                    or "🔒 تم إغلاق التذكرة."
+                )
+            else:
+                close_message = (
+                    "🔒 تم إغلاق التذكرة."
+                )
+
+            await channel.send(
+                close_message
+            )
+
+            logs = self.bot.get_cog("Logs")
+
+            if logs:
+                try:
+                    await logs.ticket_closed(
+                        channel.guild,
+                        channel.name,
+                        closed_by,
+                    )
+                except Exception as error:
+                    print(
+                        f"⚠️ [TICKETS] Log error: {error}"
+                    )
+
+            await asyncio.sleep(3)
+
+            try:
+                await channel.delete(
+                    reason=reason
+                )
+            except discord.Forbidden:
+                return (
+                    True,
+                    "⚠️ تم إغلاق التذكرة، لكن البوت لا يستطيع حذف الروم.",
+                )
+
+            return (
+                True,
+                "✅ تم إغلاق التذكرة.",
+            )
+
+        except discord.Forbidden:
+            return (
+                False,
+                "❌ ما عندي صلاحية تعديل أو حذف التذكرة.",
+            )
+
+        except discord.HTTPException:
+            return (
+                False,
+                "❌ حدث خطأ أثناء إغلاق التذكرة.",
+            )
+
+    # =========================================================
+    # Add Member
+    # =========================================================
+
+    async def add_member(
+        self,
+        channel,
+        member,
+    ):
+        if not self.is_ticket_channel(channel):
+            return False, "❌ هذا ليس روم تذكرة."
+
+        try:
+            await channel.set_permissions(
+                member,
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True,
+            )
+
+            return (
+                True,
+                f"✅ تمت إضافة {member.mention} للتذكرة.",
+            )
+
+        except discord.Forbidden:
+            return (
+                False,
+                "❌ ما عندي صلاحية تعديل صلاحيات الروم.",
+            )
+
+    # =========================================================
+    # Remove Member
+    # =========================================================
+
+    async def remove_member(
+        self,
+        channel,
+        member,
+    ):
+        if not self.is_ticket_channel(channel):
+            return False, "❌ هذا ليس روم تذكرة."
+
+        owner_id = self.get_ticket_owner_id(
+            channel
+        )
+
+        if owner_id == member.id:
+            return (
+                False,
+                "❌ ما تقدر تحذف صاحب التذكرة.",
+            )
+
+        try:
+            await channel.set_permissions(
+                member,
+                overwrite=None,
+            )
+
+            return (
+                True,
+                f"✅ تمت إزالة {member.mention} من التذكرة.",
+            )
+
+        except discord.Forbidden:
+            return (
+                False,
+                "❌ ما عندي صلاحية تعديل صلاحيات الروم.",
+            )
+
+    # =========================================================
+    # Persistent Views
+    # =========================================================
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        if self.ready:
+            return
+
+        self.ready = True
+
+        try:
+            await self.bot.tree.sync()
+        except Exception as error:
+            print(
+                f"⚠️ [TICKETS] Slash sync error: {error}"
+            )
+
+        print("🎫 Ticket System: Ready")
+
+    # =========================================================
+    # Prefix: إنشاء تذكرة
+    # =========================================================
+
+    @commands.command(
+        name="تذكرة",
+    )
+    async def prefix_ticket(
+        self,
+        ctx,
+    ):
+        channel, message = await self.create_ticket(
+            ctx.guild,
+            ctx.author,
+        )
+
+        if channel:
+            await ctx.send(
+                f"{message}\n{channel.mention}",
+                delete_after=10,
+            )
+        else:
+            await ctx.send(
+                message,
+                delete_after=8,
+            )
+
+    # =========================================================
+    # Prefix: إغلاق
+    # =========================================================
+
+    @commands.command(
+        name="اغلاق",
+    )
+    async def prefix_close(
+        self,
+        ctx,
+    ):
+        if not self.is_ticket_channel(
+            ctx.channel
+        ):
+            await ctx.send(
+                "❌ هذا الأمر يستخدم داخل التذاكر فقط."
             )
             return
 
-        existing_ticket = self.find_member_ticket(
-            guild,
+        owner_id = self.get_ticket_owner_id(
+            ctx.channel
+        )
+
+        if (
+            owner_id != ctx.author.id
+            and not await self.can_manage(
+                ctx.author
+            )
+        ):
+            await ctx.send(
+                "❌ فقط صاحب التذكرة أو الإدارة يستطيع إغلاقها."
+            )
+            return
+
+        success, message = await self.close_ticket(
+            ctx.channel,
+            ctx.author,
+        )
+
+        if not success:
+            await ctx.send(message)
+
+    # =========================================================
+    # Prefix: إضافة
+    # =========================================================
+
+    @commands.command(
+        name="اضافة",
+    )
+    async def prefix_add(
+        self,
+        ctx,
+        member: discord.Member,
+    ):
+        if not self.is_ticket_channel(
+            ctx.channel
+        ):
+            await ctx.send(
+                "❌ هذا الأمر يستخدم داخل التذاكر فقط."
+            )
+            return
+
+        if not await self.can_manage(
+            ctx.author
+        ):
+            await ctx.send(
+                "❌ تحتاج صلاحية إدارة السيرفر أو الرومات."
+            )
+            return
+
+        success, message = await self.add_member(
+            ctx.channel,
             member,
         )
 
-        if existing_ticket:
+        await ctx.send(message)
+
+    # =========================================================
+    # Prefix: حذف عضو
+    # =========================================================
+
+    @commands.command(
+        name="حذف",
+    )
+    async def prefix_remove(
+        self,
+        ctx,
+        member: discord.Member,
+    ):
+        if not self.is_ticket_channel(
+            ctx.channel
+        ):
+            await ctx.send(
+                "❌ هذا الأمر يستخدم داخل التذاكر فقط."
+            )
+            return
+
+        if not await self.can_manage(
+            ctx.author
+        ):
+            await ctx.send(
+                "❌ تحتاج صلاحية إدارة السيرفر أو الرومات."
+            )
+            return
+
+        success, message = await self.remove_member(
+            ctx.channel,
+            member,
+        )
+
+        await ctx.send(message)
+
+    # =========================================================
+    # Slash: Ticket
+    # =========================================================
+
+    @app_commands.command(
+        name="ticket",
+        description="إنشاء تذكرة دعم",
+    )
+    async def slash_ticket(
+        self,
+        interaction: discord.Interaction,
+    ):
+        if not interaction.guild:
             await interaction.response.send_message(
-                f"❌ عندك تذكرة مفتوحة بالفعل: {existing_ticket.mention}",
+                "❌ هذا الأمر داخل السيرفر فقط.",
                 ephemeral=True,
             )
             return
@@ -306,590 +813,285 @@ class Tickets(commands.Cog):
             ephemeral=True
         )
 
-        # -----------------------------------------------------
-        # الكاتيجوري
-        # -----------------------------------------------------
-
-        category = await self.get_ticket_category(
-            guild,
-            settings,
+        channel, message = await self.create_ticket(
+            interaction.guild,
+            interaction.user,
         )
 
-        if category is None:
+        if channel:
             await interaction.followup.send(
-                "❌ ما قدرت أجد أو أنشئ كاتيجوري التذاكر.\n"
-                "تأكد أن البوت عنده صلاحية **Manage Channels**.",
+                f"{message}\n{channel.mention}",
                 ephemeral=True,
             )
-            return
-
-        # -----------------------------------------------------
-        # رقم التذكرة
-        # -----------------------------------------------------
-
-        ticket_number = 1
-        existing_numbers = []
-
-        for channel in guild.text_channels:
-            if not channel.name.startswith("ticket-"):
-                continue
-
-            try:
-                number = int(
-                    channel.name.split("-")[-1]
-                )
-                existing_numbers.append(number)
-
-            except ValueError:
-                continue
-
-        if existing_numbers:
-            ticket_number = max(
-                existing_numbers
-            ) + 1
-
-        ticket_name = f"ticket-{ticket_number}"
-
-        # -----------------------------------------------------
-        # الصلاحيات
-        # -----------------------------------------------------
-
-        overwrites = {
-            guild.default_role:
-                discord.PermissionOverwrite(
-                    view_channel=False
-                ),
-
-            member:
-                discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True,
-                    attach_files=True,
-                    embed_links=True,
-                ),
-        }
-
-        bot_member = guild.me
-
-        if bot_member:
-            overwrites[bot_member] = (
-                discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True,
-                    manage_channels=True,
-                    manage_messages=True,
-                    attach_files=True,
-                    embed_links=True,
-                )
-            )
-
-        # الإدارة
-        for role in guild.roles:
-            if role.is_default():
-                continue
-
-            if (
-                role.permissions.administrator
-                or role.permissions.manage_channels
-                or role.permissions.manage_guild
-            ):
-                overwrites[role] = (
-                    discord.PermissionOverwrite(
-                        view_channel=True,
-                        send_messages=True,
-                        read_message_history=True,
-                        attach_files=True,
-                        embed_links=True,
-                    )
-                )
-
-        # -----------------------------------------------------
-        # إنشاء الروم
-        # -----------------------------------------------------
-
-        try:
-            channel = await guild.create_text_channel(
-                ticket_name,
-                category=category,
-                overwrites=overwrites,
-                reason=(
-                    f"تذكرة "
-                    f"{self.TICKET_NAMES.get(ticket_type, 'الدعم الفني')}"
-                ),
-            )
-
-        except discord.Forbidden:
+        else:
             await interaction.followup.send(
-                "❌ ما قدرت أنشئ التذكرة.\n"
-                "تأكد أن البوت عنده صلاحية **Manage Channels**.",
+                message,
                 ephemeral=True,
             )
-            return
-
-        except discord.HTTPException:
-            await interaction.followup.send(
-                "❌ حدث خطأ من Discord أثناء إنشاء التذكرة.",
-                ephemeral=True,
-            )
-            return
-
-        # -----------------------------------------------------
-        # بيانات الرسالة من Dashboard
-        # -----------------------------------------------------
-
-        ticket_title = (
-            settings.get("tickets_title")
-            or "🎫 تذاكر الدعم"
-        )
-
-        ticket_message = (
-            settings.get("tickets_message")
-            or (
-                "أهلًا {user} 👋\n\n"
-                "تم إنشاء تذكرتك بنجاح.\n"
-                "اكتب تفاصيل طلبك هنا وانتظر رد الإدارة."
-            )
-        )
-
-        ticket_button_text = (
-            settings.get("tickets_close_message")
-            or "إغلاق التذكرة"
-        )
-
-        ticket_color = self.parse_color(
-            settings.get("tickets_color")
-        )
-
-        ticket_title = self.replace_variables(
-            ticket_title,
-            member,
-        )
-
-        ticket_message = self.replace_variables(
-            ticket_message,
-            member,
-        )
-
-        # -----------------------------------------------------
-        # Embed
-        # -----------------------------------------------------
-
-        embed = discord.Embed(
-            title=ticket_title,
-            description=ticket_message,
-            color=ticket_color,
-            timestamp=discord.utils.utcnow(),
-        )
-
-        embed.add_field(
-            name="📌 النوع",
-            value=(
-                f"`{self.TICKET_NAMES.get(ticket_type, 'الدعم الفني')}`"
-            ),
-            inline=True,
-        )
-
-        embed.add_field(
-            name="👤 صاحب التذكرة",
-            value=member.mention,
-            inline=True,
-        )
-
-        if guild.icon:
-            embed.set_thumbnail(
-                url=guild.icon.url
-            )
-
-        embed.set_footer(
-            text=(
-                settings.get("tickets_name")
-                or f"Zivex • {guild.name}"
-            )
-        )
-
-        # -----------------------------------------------------
-        # زر الإغلاق
-        # -----------------------------------------------------
-
-        view = TicketCloseView(self)
-
-        button = view.children[0]
-
-        if isinstance(button, discord.ui.Button):
-            if ticket_button_text:
-                button.label = ticket_button_text
-
-        # -----------------------------------------------------
-        # إرسال التذكرة
-        # -----------------------------------------------------
-
-        try:
-            await channel.send(
-                content=member.mention,
-                embed=embed,
-                view=view,
-            )
-
-        except discord.Forbidden:
-            try:
-                await channel.delete(
-                    reason="فشل إرسال رسالة التذكرة"
-                )
-            except Exception:
-                pass
-
-            await interaction.followup.send(
-                "❌ تم إنشاء الروم لكن ما قدرت أرسل رسالة التذكرة.",
-                ephemeral=True,
-            )
-            return
-
-        # -----------------------------------------------------
-        # الرد للعضو
-        # -----------------------------------------------------
-
-        await interaction.followup.send(
-            f"✅ تم إنشاء تذكرتك: {channel.mention}",
-            ephemeral=True,
-        )
-
-        # -----------------------------------------------------
-        # Logs
-        # -----------------------------------------------------
-
-        logs = self.bot.get_cog("Logs")
-
-        if logs:
-            try:
-                await logs.ticket_created(
-                    member,
-                    channel,
-                )
-            except Exception as error:
-                print(
-                    f"⚠️ Ticket log error: {error}"
-                )
-
-    # =========================================================
-    # إغلاق بعد 5 ثواني
-    # =========================================================
-
-    async def close_ticket_after_delay(
-        self,
-        channel: discord.TextChannel,
-    ):
-        await asyncio.sleep(5)
-
-        await self.close_ticket(channel)
-
-    # =========================================================
-    # إغلاق التذكرة
-    # =========================================================
-
-    async def close_ticket(
-        self,
-        channel: discord.TextChannel,
-    ):
-        guild = channel.guild
-
-        # محاولة معرفة صاحب التذكرة
-        ticket_owner = None
-
-        for member in guild.members:
-            if channel.permissions_for(
-                member
-            ).view_channel:
-                if (
-                    not member.bot
-                    and not member.guild_permissions.manage_channels
-                    and not member.guild_permissions.administrator
-                ):
-                    ticket_owner = member
-                    break
-
-        # Logs
-        logs = self.bot.get_cog("Logs")
-
-        if logs:
-            try:
-                await logs.ticket_closed(
-                    guild,
-                    channel.name,
-                    ticket_owner,
-                )
-            except Exception as error:
-                print(
-                    f"⚠️ Ticket close log error: {error}"
-                )
-
-        try:
-            await channel.delete(
-                reason="إغلاق تذكرة Zivex",
-            )
-
-        except discord.NotFound:
-            pass
-
-        except discord.Forbidden:
-            print(
-                f"⚠️ No permission to delete "
-                f"ticket {channel.id}"
-            )
-
-        except discord.HTTPException as error:
-            print(
-                f"⚠️ Ticket delete error: {error}"
-            )
-
-    # =========================================================
-    # الألوان
-    # =========================================================
-
-    def parse_color(self, value):
-        try:
-            if not value:
-                return discord.Color.blurple()
-
-            value = str(value).strip().replace(
-                "#",
-                "",
-            )
-
-            if len(value) != 6:
-                return discord.Color.blurple()
-
-            return discord.Color(
-                int(value, 16)
-            )
-
-        except (
-            ValueError,
-            TypeError,
-        ):
-            return discord.Color.blurple()
-
-    # =========================================================
-    # المتغيرات
-    # =========================================================
-
-    def replace_variables(
-        self,
-        text: str,
-        member: discord.Member,
-    ):
-        if not text:
-            return ""
-
-        guild = member.guild
-
-        replacements = {
-            "{user}": member.mention,
-            "{username}": member.display_name,
-            "{server}": guild.name,
-            "{member_count}": str(
-                guild.member_count or 0
-            ),
-        }
-
-        for key, value in replacements.items():
-            text = text.replace(
-                key,
-                str(value),
-            )
-
-        return text
-
-    # =========================================================
-    # /ticket
-    # =========================================================
 
     @app_commands.command(
-        name="ticket",
-        description="إرسال لوحة التذاكر",
+        name="ticket-close",
+        description="إغلاق التذكرة الحالية",
     )
-    async def slash_ticket(
+    async def slash_close(
         self,
         interaction: discord.Interaction,
     ):
-        if interaction.guild is None:
+        if not interaction.guild:
             await interaction.response.send_message(
-                "❌ هذا الأمر يعمل داخل السيرفر فقط.",
+                "❌ هذا الأمر داخل السيرفر فقط.",
                 ephemeral=True,
             )
             return
 
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message(
-                "❌ تحتاج صلاحية إدارة السيرفر.",
-                ephemeral=True,
-            )
-            return
-
-        settings = await self.ensure_guild(
-            interaction.guild
-        )
-
-        if not settings.get(
-            "tickets_enabled",
-            0,
+        if not self.is_ticket_channel(
+            interaction.channel
         ):
             await interaction.response.send_message(
-                "❌ نظام التذاكر غير مفعل.",
+                "❌ هذا الأمر يستخدم داخل التذاكر فقط.",
                 ephemeral=True,
             )
             return
 
-        title = (
-            settings.get("tickets_title")
-            or "🎫 تذاكر الدعم"
+        owner_id = self.get_ticket_owner_id(
+            interaction.channel
         )
 
-        message = (
-            settings.get("tickets_message")
-            or (
-                "مرحبًا بك في نظام التذاكر.\n\n"
-                "اختر نوع التذكرة من القائمة بالأسفل."
+        if (
+            owner_id != interaction.user.id
+            and not await self.can_manage(
+                interaction.user
             )
+        ):
+            await interaction.response.send_message(
+                "❌ فقط صاحب التذكرة أو الإدارة يستطيع إغلاقها.",
+                ephemeral=True,
+            )
+            return
+
+        await interaction.response.send_message(
+            "🔒 جاري إغلاق التذكرة..."
         )
 
-        embed = discord.Embed(
-            title=title,
-            description=message,
-            color=self.parse_color(
-                settings.get("tickets_color")
-            ),
+        await self.close_ticket(
+            interaction.channel,
+            interaction.user,
         )
 
-        if interaction.guild.icon:
-            embed.set_thumbnail(
-                url=interaction.guild.icon.url
+    @app_commands.command(
+        name="ticket-add",
+        description="إضافة عضو إلى التذكرة",
+    )
+    @app_commands.describe(
+        member="العضو",
+    )
+    async def slash_add(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member,
+    ):
+        if not await self.can_manage(
+            interaction.user
+        ):
+            await interaction.response.send_message(
+                "❌ تحتاج صلاحية إدارة السيرفر أو الرومات.",
+                ephemeral=True,
             )
+            return
 
-        embed.set_footer(
-            text=(
-                settings.get("tickets_name")
-                or f"Zivex • {interaction.guild.name}"
+        if not self.is_ticket_channel(
+            interaction.channel
+        ):
+            await interaction.response.send_message(
+                "❌ هذا الأمر يستخدم داخل التذاكر فقط.",
+                ephemeral=True,
             )
+            return
+
+        success, message = await self.add_member(
+            interaction.channel,
+            member,
         )
 
         await interaction.response.send_message(
-            embed=embed,
-            view=TicketPanelView(self),
+            message
         )
 
-    # =========================================================
-    # !تذكرة
-    # =========================================================
-
-    @commands.command(
-        name="تذكرة"
+    @app_commands.command(
+        name="ticket-remove",
+        description="إزالة عضو من التذكرة",
     )
-    @commands.guild_only()
-    async def prefix_ticket(
-        self,
-        ctx: commands.Context,
-    ):
-        if not ctx.author.guild_permissions.manage_guild:
-            await ctx.send(
-                "❌ تحتاج صلاحية إدارة السيرفر."
-            )
-            return
-
-        settings = await self.ensure_guild(
-            ctx.guild
-        )
-
-        if not settings.get(
-            "tickets_enabled",
-            0,
-        ):
-            await ctx.send(
-                "❌ نظام التذاكر غير مفعل."
-            )
-            return
-
-        title = (
-            settings.get("tickets_title")
-            or "🎫 تذاكر الدعم"
-        )
-
-        message = (
-            settings.get("tickets_message")
-            or (
-                "مرحبًا بك في نظام التذاكر.\n\n"
-                "اختر نوع التذكرة من القائمة بالأسفل."
-            )
-        )
-
-        embed = discord.Embed(
-            title=title,
-            description=message,
-            color=self.parse_color(
-                settings.get("tickets_color")
-            ),
-        )
-
-        if ctx.guild.icon:
-            embed.set_thumbnail(
-                url=ctx.guild.icon.url
-            )
-
-        embed.set_footer(
-            text=(
-                settings.get("tickets_name")
-                or f"Zivex • {ctx.guild.name}"
-            )
-        )
-
-        await ctx.send(
-            embed=embed,
-            view=TicketPanelView(self),
-        )
-
-    # =========================================================
-    # معالجة أخطاء الأوامر
-    # =========================================================
-
-    @slash_ticket.error
-    async def slash_ticket_error(
+    @app_commands.describe(
+        member="العضو",
+    )
+    async def slash_remove(
         self,
         interaction: discord.Interaction,
-        error,
+        member: discord.Member,
     ):
-        if isinstance(
-            error,
-            app_commands.errors.MissingPermissions,
+        if not await self.can_manage(
+            interaction.user
         ):
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    "❌ تحتاج صلاحية إدارة السيرفر.",
-                    ephemeral=True,
-                )
+            await interaction.response.send_message(
+                "❌ تحتاج صلاحية إدارة السيرفر أو الرومات.",
+                ephemeral=True,
+            )
             return
 
-        print(
-            f"❌ Ticket slash error: {error}"
+        if not self.is_ticket_channel(
+            interaction.channel
+        ):
+            await interaction.response.send_message(
+                "❌ هذا الأمر يستخدم داخل التذاكر فقط.",
+                ephemeral=True,
+            )
+            return
+
+        success, message = await self.remove_member(
+            interaction.channel,
+            member,
         )
+
+        await interaction.response.send_message(
+            message
+        )
+
+
+# =========================================================
+# Close Button
+# =========================================================
+
+class TicketCloseView(
+    discord.ui.View
+):
+    def __init__(
+        self,
+        cog: Tickets,
+        owner_id: int,
+    ):
+        super().__init__(
+            timeout=None
+        )
+
+        self.cog = cog
+        self.owner_id = owner_id
+
+    @discord.ui.button(
+        label="إغلاق التذكرة",
+        emoji="🔒",
+        style=discord.ButtonStyle.danger,
+        custom_id="zivex_ticket_close",
+    )
+    async def close_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        channel = interaction.channel
+
+        if not isinstance(
+            channel,
+            discord.TextChannel,
+        ):
+            await interaction.response.send_message(
+                "❌ هذا ليس روم تذكرة.",
+                ephemeral=True,
+            )
+            return
+
+        if not self.cog.is_ticket_channel(
+            channel
+        ):
+            await interaction.response.send_message(
+                "❌ هذه التذكرة غير صالحة.",
+                ephemeral=True,
+            )
+            return
+
+        is_owner = (
+            interaction.user.id
+            == self.owner_id
+        )
+
+        is_manager = await self.cog.can_manage(
+            interaction.user
+        )
+
+        if not is_owner and not is_manager:
+            await interaction.response.send_message(
+                "❌ فقط صاحب التذكرة أو الإدارة يستطيع إغلاقها.",
+                ephemeral=True,
+            )
+            return
+
+        await interaction.response.send_message(
+            "🔒 جاري إغلاق التذكرة..."
+        )
+
+        await self.cog.close_ticket(
+            channel,
+            interaction.user,
+        )
+
+
+# =========================================================
+# Ticket Panel
+# =========================================================
+
+class TicketPanelView(
+    discord.ui.View
+):
+    def __init__(
+        self,
+        cog: Tickets,
+    ):
+        super().__init__(
+            timeout=None
+        )
+
+        self.cog = cog
+
+    @discord.ui.button(
+        label="فتح تذكرة",
+        emoji="🎫",
+        style=discord.ButtonStyle.primary,
+        custom_id="zivex_ticket_open",
+    )
+    async def open_ticket(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+    ):
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
+        channel, message = await self.cog.create_ticket(
+            interaction.guild,
+            interaction.user,
+        )
+
+        if channel:
+            await interaction.followup.send(
+                f"{message}\n{channel.mention}",
+                ephemeral=True,
+            )
+        else:
+            await interaction.followup.send(
+                message,
+                ephemeral=True,
+            )
 
 
 # =========================================================
 # Setup
 # =========================================================
 
-async def setup(
-    bot: commands.Bot,
-):
+async def setup(bot: commands.Bot):
     cog = Tickets(bot)
 
-    # إبقاء الأزرار والقائمة تعمل بعد إعادة تشغيل البوت
+    await bot.add_cog(cog)
+
     bot.add_view(
         TicketPanelView(cog)
     )
-
-    bot.add_view(
-        TicketCloseView(cog)
-    )
-
-    await bot.add_cog(cog)
