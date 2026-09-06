@@ -40,9 +40,36 @@ class Welcome(commands.Cog):
             return None
 
     @staticmethod
+    def _as_bool(value, default: bool = False) -> bool:
+        """Safely coerce DB values (which may come back as
+        int, str, or None) into a real boolean."""
+        if value is None:
+            return default
+
+        if isinstance(value, bool):
+            return value
+
+        if isinstance(value, (int, float)):
+            return value != 0
+
+        if isinstance(value, str):
+            return value.strip().lower() in (
+                "1", "true", "yes", "on"
+            )
+
+        return bool(value)
+
+    @staticmethod
     def parse_color(value) -> discord.Color:
-        if not value:
+        if value is None or value == "":
             return discord.Color.blurple()
+
+        # Handle values already stored as an int (e.g. from DB)
+        if isinstance(value, int):
+            try:
+                return discord.Color(value)
+            except (ValueError, TypeError):
+                return discord.Color.blurple()
 
         try:
             value = str(value).strip()
@@ -178,6 +205,7 @@ class Welcome(commands.Cog):
             invites = await guild.invites()
 
         except discord.Forbidden:
+            self.invite_cache[guild.id] = {}
             return None
 
         except discord.HTTPException as error:
@@ -196,9 +224,11 @@ class Welcome(commands.Cog):
 
         new_cache = {}
         used_invites = []
+        seen_codes = set()
 
         for invite in invites:
             try:
+                seen_codes.add(invite.code)
                 current_uses = invite.uses or 0
 
                 old_data = previous.get(
@@ -228,11 +258,34 @@ class Welcome(commands.Cog):
 
                 if current_uses > old_uses:
                     used_invites.append(
-                        invite
+                        (invite, current_uses - old_uses)
                     )
 
             except Exception:
                 continue
+
+        # -----------------------------------------------------
+        # Detect invites that hit max_uses and were therefore
+        # auto-deleted by Discord before we could re-fetch them.
+        # These won't appear in `invites` at all, but we can
+        # still infer the inviter from the previous cache.
+        # -----------------------------------------------------
+
+        missing_inviter = None
+
+        for code, data in previous.items():
+            if code in seen_codes:
+                continue
+
+            max_uses = data.get("max_uses", 0)
+            old_uses = data.get("uses", 0)
+
+            if max_uses and old_uses >= max_uses - 1:
+                inviter_id = data.get("inviter_id")
+
+                if inviter_id:
+                    missing_inviter = inviter_id
+                    break
 
         self.invite_cache[guild.id] = new_cache
 
@@ -241,24 +294,22 @@ class Welcome(commands.Cog):
         # If multiple increased, use the largest increase.
         # -----------------------------------------------------
 
-        if not used_invites:
-            return None
+        if used_invites:
+            used_invites.sort(
+                key=lambda pair: pair[1],
+                reverse=True,
+            )
+            return used_invites[0][0].inviter
 
-        used_invites.sort(
-            key=lambda invite: (
-                (invite.uses or 0)
-                - previous.get(
-                    invite.code,
-                    {},
-                ).get(
-                    "uses",
-                    0,
+        if missing_inviter:
+            try:
+                return await self.bot.fetch_user(
+                    missing_inviter
                 )
-            ),
-            reverse=True,
-        )
+            except Exception:
+                return None
 
-        return used_invites[0].inviter
+        return None
 
     # =========================================================
     # Logs
@@ -492,7 +543,7 @@ class Welcome(commands.Cog):
         # Logs still work.
         # -----------------------------------------------------
 
-        if not bool(
+        if not self._as_bool(
             settings.get(
                 "welcome_enabled",
                 0,
@@ -607,11 +658,12 @@ class Welcome(commands.Cog):
         # Thumbnail.
         # -----------------------------------------------------
 
-        if bool(
+        if self._as_bool(
             settings.get(
                 "welcome_thumbnail",
                 1,
-            )
+            ),
+            default=True,
         ):
             avatar_url = self.get_avatar_url(
                 member
