@@ -14,7 +14,6 @@ from database import db
 
 intents = discord.Intents.default()
 
-# نحتاج هذه للترحيب والليفلات والتعامل مع الأعضاء
 intents.members = True
 intents.message_content = True
 
@@ -28,22 +27,47 @@ class Zivex(commands.Bot):
         )
 
     async def setup_hook(self):
-        # تجهيز قاعدة البيانات
+        # تشغيل قاعدة البيانات
         await db.setup()
 
-        # تحميل الـ Cogs لاحقًا
-        # سيتم تفعيلها بعد إنشاء ملفاتها
+        # تحميل جميع الـ Cogs تلقائيًا
+        cog_files = [
+            "cogs.utility",
+            "cogs.welcome",
+        ]
+
+        for extension in cog_files:
+            try:
+                await self.load_extension(extension)
+                print(f"✅ Loaded: {extension}")
+            except Exception as error:
+                print(
+                    f"❌ Failed to load {extension}: "
+                    f"{type(error).__name__}: {error}"
+                )
+
+        # مزامنة Slash Commands
+        try:
+            synced = await self.tree.sync()
+
+            print(
+                f"✅ Synced {len(synced)} Slash Commands."
+            )
+        except Exception as error:
+            print(
+                "❌ Failed to sync Slash Commands: "
+                f"{type(error).__name__}: {error}"
+            )
 
         print("✅ Database initialized.")
 
     async def on_ready(self):
-        print("=" * 45)
+        print("=" * 50)
         print(f"🤖 Logged in as: {self.user}")
         print(f"🆔 Bot ID: {self.user.id}")
         print(f"🌐 Servers: {len(self.guilds)}")
-        print("=" * 45)
+        print("=" * 50)
 
-        # تحديث حالة البوت
         activity = discord.Activity(
             type=discord.ActivityType.watching,
             name=f"{len(self.guilds)} servers"
@@ -54,16 +78,19 @@ class Zivex(commands.Bot):
             activity=activity
         )
 
-    async def on_guild_join(self, guild: discord.Guild):
-        icon_url = None
+    async def on_guild_join(
+        self,
+        guild: discord.Guild
+    ):
+        icon_url = ""
 
         if guild.icon:
-            icon_url = guild.icon.url
+            icon_url = str(guild.icon.url)
 
         await db.ensure_guild(
             guild_id=guild.id,
             guild_name=guild.name,
-            guild_icon=str(icon_url) if icon_url else ""
+            guild_icon=icon_url
         )
 
         print(
@@ -71,7 +98,10 @@ class Zivex(commands.Bot):
             f"{guild.name} ({guild.id})"
         )
 
-    async def on_guild_remove(self, guild: discord.Guild):
+    async def on_guild_remove(
+        self,
+        guild: discord.Guild
+    ):
         print(
             f"➖ Left server: "
             f"{guild.name} ({guild.id})"
@@ -83,50 +113,6 @@ class Zivex(commands.Bot):
 # =========================================================
 
 bot = Zivex()
-
-
-# =========================================================
-# أمر اختبار
-# =========================================================
-
-@bot.command(name="ping")
-async def ping(ctx: commands.Context):
-    latency = round(bot.latency * 1000)
-
-    await ctx.send(
-        f"🏓 Pong!\n"
-        f"**Latency:** `{latency}ms`"
-    )
-
-
-# =========================================================
-# أمر معلومات Zivex
-# =========================================================
-
-@bot.command(name="zivex")
-async def zivex(ctx: commands.Context):
-    embed = discord.Embed(
-        title="Zivex",
-        description=(
-            "بوت Discord متعدد الأنظمة.\n"
-            "إعدادات السيرفر يتم التحكم بها من لوحة التحكم."
-        ),
-        color=discord.Color.blurple()
-    )
-
-    embed.add_field(
-        name="🤖 السيرفرات",
-        value=f"`{len(bot.guilds)}`",
-        inline=True
-    )
-
-    embed.add_field(
-        name="⚡ Ping",
-        value=f"`{round(bot.latency * 1000)}ms`",
-        inline=True
-    )
-
-    await ctx.send(embed=embed)
 
 
 # =========================================================
