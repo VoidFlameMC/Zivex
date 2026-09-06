@@ -1,1 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Zivex - منصة احترافية لإدارة سيرفرات Discord"
+    >
+
+    <meta
+        name="theme-color"
+        content="#09090b"
+    >
+
+    <title>Zivex — Discord Management</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <script
+        src="{{ url_for('static', filename='script.js') }}"
+        defer
+    ></script>
+</head>
+
+
+<body>
+
+    <!-- =====================================================
+         Background
+    ====================================================== -->
+
+    <div class="background">
+
+        <div class="background-grid"></div>
+
+        <div class="background-glow glow-one"></div>
+        <div class="background-glow glow-two"></div>
+
+    </div>
+
+
+    <!-- =====================================================
+         Navbar
+    ====================================================== -->
+
+    <header class="navbar">
+
+        <div class="navbar-container">
+
+            <!-- Brand -->
+
+            <a
+                href="{{ url_for('index') }}"
+                class="brand"
+                aria-label="Zivex"
+            >
+
+                <span class="brand-logo">
+                    Z
+                </span>
+
+                <span class="brand-text">
+                    Zivex
+                </span>
+
+            </a>
+
+
+            <!-- Navigation -->
+
+            <nav class="navigation">
+
+                <a href="#features">
+                    المميزات
+                </a>
+
+                <a href="#security">
+                    الأمان
+                </a>
+
+                <a href="#about">
+                    عن Zivex
+                </a>
+
+            </nav>
+
+
+            <!-- Login -->
+
+            <a
+                href="{{ url_for('login') }}"
+                class="navbar-login"
+            >
+                <span>
+                    تسجيل الدخول
+                </span>
+
+                <span class="login-arrow">
+                    ←
+                </span>
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         Main
+    ====================================================== -->
+
+    <main>
+
+
+        <!-- =================================================
+             Hero
+        ================================================== -->
+
+        <section class="hero">
+
+            <div class="hero-container">
+
+
+                <!-- Hero Content -->
+
+                <div class="hero-content">
+
+                    <div class="hero-badge">
+
+                        <span class="badge-dot"></span>
+
+                        <span>
+                            منصة إدارة Discord احترافية
+                        </span>
+
+                    </div>
+
+
+                    <h1 class="hero-title">
+
+                        تحكم كامل
+
+                        <br>
+
+                        <span>
+                            في سيرفرك.
+                        </span>
+
+                    </h1>
+
+
+                    <p class="hero-description">
+
+                        Zivex يمنحك لوحة تحكم حديثة لإدارة
+                        أنظمة سيرفرك بالكامل من مكان واحد،
+                        بتجربة بسيطة وسريعة وآمنة.
+
+                    </p>
+
+
+                    <!-- Buttons -->
+
+                    <div class="hero-buttons">
+
+                        <a
+                            href="{{ url_for('login') }}"
+                            class="button button-primary"
+                        >
+
+                            <span>
+                                ابدأ الآن
+                            </span>
+
+                            <span class="button-icon">
+                                ←
+                            </span>
+
+                        </a>
+
+
+                        <a
+                            href="#features"
+                            class="button button-secondary"
+                        >
+
+                            اكتشف Zivex
+
+                        </a>
+
+                    </div>
+
+
+                    <!-- Trust -->
+
+                    <div class="hero-trust">
+
+                        <div class="trust-item">
+
+                            <span class="trust-check">
+                                ✓
+                            </span>
+
+                            <span>
+                                آمن
+                            </span>
+
+                        </div>
+
+
+                        <div class="trust-divider"></div>
+
+
+                        <div class="trust-item">
+
+                            <span class="trust-check">
+                                ✓
+                            </span>
+
+                            <span>
+                                سريع
+                            </span>
+
+                        </div>
+
+
+                        <div class="trust-divider"></div>
+
+
+                        <div class="trust-item">
+
+                            <span class="trust-check">
+                                ✓
+                            </span>
+
+                            <span>
+                                بدون إعلانات
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     Dashboard Preview
+                ================================================== -->
+
+                <div class="hero-dashboard">
+
+                    <div class="dashboard-glow"></div>
+
+
+                    <div class="dashboard-window">
+
+
+                        <!-- Window Header -->
+
+                        <div class="window-header">
+
+                            <div class="window-dots">
+
+                                <span></span>
+                                <span></span>
+                                <span></span>
+
+                            </div>
+
+
+                            <div class="window-title">
+
+                                Zivex Dashboard
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Dashboard -->
+
+                        <div class="window-body">
+
+
+                            <!-- Sidebar -->
+
+                            <aside class="dashboard-sidebar">
+
+                                <div class="sidebar-brand">
+
+                                    <span>
+                                        Z
+                                    </span>
+
+                                </div>
+
+
+                                <div class="sidebar-menu">
+
+                                    <div class="sidebar-item active">
+                                        <span>⌂</span>
+                                    </div>
+
+                                    <div class="sidebar-item">
+                                        <span>⚙</span>
+                                    </div>
+
+                                    <div class="sidebar-item">
+                                        <span>◆</span>
+                                    </div>
+
+                                    <div class="sidebar-item">
+                                        <span>▣</span>
+                                    </div>
+
+                                    <div class="sidebar-item">
+                                        <span>♢</span>
+                                    </div>
+
+                                </div>
+
+                            </aside>
+
+
+                            <!-- Content -->
+
+                            <div class="dashboard-content">
+
+
+                                <!-- Top -->
+
+                                <div class="dashboard-heading">
+
+                                    <div>
+
+                                        <span class="dashboard-small">
+                                            لوحة التحكم
+                                        </span>
+
+                                        <h3>
+                                            مرحباً بك في Zivex
+                                        </h3>
+
+                                    </div>
+
+
+                                    <div class="fake-avatar">
+                                        Z
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Stats -->
+
+                                <div class="dashboard-stats">
+
+
+                                    <div class="dashboard-stat">
+
+                                        <span class="stat-label">
+                                            الأنظمة
+                                        </span>
+
+                                        <strong>
+                                            06
+                                        </strong>
+
+                                        <small>
+                                            نظام فعال
+                                        </small>
+
+                                    </div>
+
+
+                                    <div class="dashboard-stat">
+
+                                        <span class="stat-label">
+                                            الحالة
+                                        </span>
+
+                                        <strong class="online">
+                                            Online
+                                        </strong>
+
+                                        <small>
+                                            Zivex متصل
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- Settings -->
+
+                                <div class="dashboard-panel">
+
+                                    <div class="panel-top">
+
+                                        <div>
+
+                                            <span class="panel-label">
+                                                الأنظمة
+                                            </span>
+
+                                            <strong>
+                                                إعدادات السيرفر
+                                            </strong>
+
+                                        </div>
+
+                                        <span class="panel-badge">
+                                            ACTIVE
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="panel-setting">
+
+                                        <div class="setting-info">
+
+                                            <span class="setting-icon">
+                                                W
+                                            </span>
+
+                                            <div>
+
+                                                <strong>
+                                                    الترحيب
+                                                </strong>
+
+                                                <small>
+                                                    Welcome System
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                        <span class="setting-toggle active"></span>
+
+                                    </div>
+
+
+                                    <div class="panel-setting">
+
+                                        <div class="setting-info">
+
+                                            <span class="setting-icon">
+                                                L
+                                            </span>
+
+                                            <div>
+
+                                                <strong>
+                                                    الليفلات
+                                                </strong>
+
+                                                <small>
+                                                    Level System
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                        <span class="setting-toggle active"></span>
+
+                                    </div>
+
+
+                                    <div class="panel-setting">
+
+                                        <div class="setting-info">
+
+                                            <span class="setting-icon">
+                                                T
+                                            </span>
+
+                                            <div>
+
+                                                <strong>
+                                                    التذاكر
+                                                </strong>
+
+                                                <small>
+                                                    Ticket System
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                        <span class="setting-toggle active"></span>
+
+                                    </div>
+
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             Features
+        ====================================================== -->
+
+        <section
+            id="features"
+            class="section"
+        >
+
+            <div class="section-container">
+
+
+                <div class="section-heading">
+
+                    <span class="section-kicker">
+                        ZIVEX FEATURES
+                    </span>
+
+                    <h2>
+                        كل ما تحتاجه
+                        <span>
+                            في مكان واحد
+                        </span>
+                    </h2>
+
+                    <p>
+                        مجموعة أنظمة متكاملة تساعدك على
+                        إدارة مجتمعك بسهولة واحترافية.
+                    </p>
+
+                </div>
+
+
+                <div class="features-grid">
+
+
+                    <article class="feature-card featured">
+
+                        <div class="feature-number">
+                            01
+                        </div>
+
+                        <div class="feature-icon">
+                            W
+                        </div>
+
+                        <h3>
+                            الترحيب
+                        </h3>
+
+                        <p>
+                            أنشئ تجربة دخول احترافية
+                            لأعضاء سيرفرك مع إعدادات
+                            مستقلة لكل سيرفر.
+                        </p>
+
+                        <span class="feature-link">
+                            Welcome System ←
+                        </span>
+
+                    </article>
+
+
+                    <article class="feature-card">
+
+                        <div class="feature-number">
+                            02
+                        </div>
+
+                        <div class="feature-icon">
+                            L
+                        </div>
+
+                        <h3>
+                            الليفلات
+                        </h3>
+
+                        <p>
+                            نظام مستويات يساعدك على
+                            زيادة تفاعل أعضاء المجتمع.
+                        </p>
+
+                        <span class="feature-link">
+                            Level System ←
+                        </span>
+
+                    </article>
+
+
+                    <article class="feature-card">
+
+                        <div class="feature-number">
+                            03
+                        </div>
+
+                        <div class="feature-icon">
+                            T
+                        </div>
+
+                        <h3>
+                            التذاكر
+                        </h3>
+
+                        <p>
+                            إدارة طلبات الدعم والتذاكر
+                            بطريقة منظمة وسريعة.
+                        </p>
+
+                        <span class="feature-link">
+                            Ticket System ←
+                        </span>
+
+                    </article>
+
+
+                    <article class="feature-card">
+
+                        <div class="feature-number">
+                            04
+                        </div>
+
+                        <div class="feature-icon">
+                            A
+                        </div>
+
+                        <h3>
+                            التقديمات
+                        </h3>
+
+                        <p>
+                            استقبل طلبات الإدارة
+                            وراجعها بسهولة من خلال النظام.
+                        </p>
+
+                        <span class="feature-link">
+                            Applications ←
+                        </span>
+
+                    </article>
+
+
+                    <article class="feature-card">
+
+                        <div class="feature-number">
+                            05
+                        </div>
+
+                        <div class="feature-icon">
+                            M
+                        </div>
+
+                        <h3>
+                            الإدارة
+                        </h3>
+
+                        <p>
+                            أدوات إدارية تساعد فريقك
+                            على إدارة السيرفر بشكل أفضل.
+                        </p>
+
+                        <span class="feature-link">
+                            Moderation ←
+                        </span>
+
+                    </article>
+
+
+                    <article class="feature-card">
+
+                        <div class="feature-number">
+                            06
+                        </div>
+
+                        <div class="feature-icon">
+                            S
+                        </div>
+
+                        <h3>
+                            إعدادات السيرفر
+                        </h3>
+
+                        <p>
+                            تحكم كامل في أنظمة Zivex
+                            من لوحة تحكم واحدة.
+                        </p>
+
+                        <span class="feature-link">
+                            Dashboard ←
+                        </span>
+
+                    </article>
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             Security
+        ====================================================== -->
+
+        <section
+            id="security"
+            class="section security-section"
+        >
+
+            <div class="section-container">
+
+
+                <div class="security-layout">
+
+
+                    <!-- Text -->
+
+                    <div class="security-content">
+
+                        <span class="section-kicker">
+                            SECURITY FIRST
+                        </span>
+
+                        <h2>
+                            الأمان ليس
+                            <span>
+                                خيارًا.
+                            </span>
+                        </h2>
+
+                        <p>
+                            صممنا Zivex بحيث تكون صلاحيات
+                            المستخدم والتحقق من السيرفر جزءًا
+                            أساسيًا من النظام، وليس إضافة لاحقة.
+                        </p>
+
+
+                        <div class="security-items">
+
+
+                            <div class="security-item">
+
+                                <div class="security-icon">
+                                    ✓
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        OAuth2 آمن
+                                    </strong>
+
+                                    <span>
+                                        تسجيل الدخول يتم عبر Discord.
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="security-item">
+
+                                <div class="security-icon">
+                                    ✓
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        التحقق من الصلاحيات
+                                    </strong>
+
+                                    <span>
+                                        لا يمكن إدارة سيرفر بدون صلاحية مناسبة.
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="security-item">
+
+                                <div class="security-icon">
+                                    ✓
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        حماية الجلسات
+                                    </strong>
+
+                                    <span>
+                                        طبقات حماية إضافية لجلسات المستخدم.
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Visual -->
+
+                    <div class="security-visual">
+
+                        <div class="security-card">
+
+                            <div class="security-card-top">
+
+                                <span>
+                                    Zivex Security
+                                </span>
+
+                                <span class="security-status">
+                                    SECURE
+                                </span>
+
+                            </div>
+
+
+                            <div class="security-shield">
+
+                                <div class="shield-circle">
+                                    Z
+                                </div>
+
+                            </div>
+
+
+                            <div class="security-lines">
+
+                                <div>
+                                    <span></span>
+                                    OAuth Protection
+                                    <b>✓</b>
+                                </div>
+
+                                <div>
+                                    <span></span>
+                                    Permission Check
+                                    <b>✓</b>
+                                </div>
+
+                                <div>
+                                    <span></span>
+                                    Session Security
+                                    <b>✓</b>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             About / CTA
+        ====================================================== -->
+
+        <section
+            id="about"
+            class="section"
+        >
+
+            <div class="section-container">
+
+
+                <div class="cta-card">
+
+
+                    <div class="cta-content">
+
+                        <span class="section-kicker">
+                            READY?
+                        </span>
+
+                        <h2>
+                            ابدأ إدارة سيرفرك
+                            <span>
+                                مع Zivex.
+                            </span>
+                        </h2>
+
+                        <p>
+                            ادخل إلى لوحة التحكم وابدأ
+                            بتخصيص أنظمة سيرفرك.
+                        </p>
+
+
+                        <a
+                            href="{{ url_for('login') }}"
+                            class="button button-primary"
+                        >
+
+                            <span>
+                                الدخول إلى لوحة التحكم
+                            </span>
+
+                            <span>
+                                ←
+                            </span>
+
+                        </a>
+
+                    </div>
+
+
+                    <div class="cta-logo">
+
+                        <div class="large-logo">
+                            Z
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <!-- =====================================================
+         Footer
+    ====================================================== -->
+
+    <footer class="footer">
+
+        <div class="footer-container">
+
+
+            <div class="footer-brand">
+
+                <a
+                    href="{{ url_for('index') }}"
+                    class="brand"
+                >
+
+                    <span class="brand-logo">
+                        Z
+                    </span>
+
+                    <span class="brand-text">
+                        Zivex
+                    </span>
+
+                </a>
+
+                <p>
+                    منصة احترافية لإدارة سيرفرات Discord.
+                </p>
+
+            </div>
+
+
+            <div class="footer-navigation">
+
+                <a href="#features">
+                    المميزات
+                </a>
+
+                <a href="#security">
+                    الأمان
+                </a>
+
+                <a href="#about">
+                    عن Zivex
+                </a>
+
+                <a href="{{ url_for('login') }}">
+                    لوحة التحكم
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div class="footer-bottom">
+
+            <span>
+                © 2026 Zivex
+            </span>
+
+            <span>
+                Built for Discord communities.
+            </span>
+
+        </div>
+
+    </footer>
+
+</body>
+
+</html>
