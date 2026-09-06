@@ -44,6 +44,8 @@ DISCORD_TOKEN_URL = (
 
 OAUTH_TIMEOUT = (5, 15)
 
+USER_AGENT = "Zivex-Dashboard/1.0"
+
 
 # =========================================================
 # Redirect URI
@@ -51,15 +53,21 @@ OAUTH_TIMEOUT = (5, 15)
 
 def get_redirect_uri():
     """
-    رابط OAuth يجب أن يطابق الرابط الموجود
-    في Discord Developer Portal بشكل كامل.
+    إنشاء رابط OAuth Callback.
+    يجب أن يطابق الرابط الموجود في
+    Discord Developer Portal بشكل كامل.
     """
 
-    if not WEB_URL:
+    web_url = (
+        WEB_URL
+        or ""
+    ).strip()
+
+    if not web_url:
         return None
 
     return (
-        f"{WEB_URL.rstrip('/')}"
+        f"{web_url.rstrip('/')}"
         "/auth/callback"
     )
 
@@ -76,27 +84,23 @@ def generate_secure_state():
     return secrets.token_urlsafe(48)
 
 
-def generate_oauth_nonce():
-    """
-    إنشاء Nonce إضافي للجلسة.
-    """
-
-    return secrets.token_urlsafe(32)
-
-
 def create_oauth_session():
     """
     إنشاء جلسة OAuth جديدة.
     """
 
     state = generate_secure_state()
-    nonce = generate_oauth_nonce()
 
-    session.clear()
+    # حذف أي جلسة OAuth قديمة
+    session.pop(
+        "oauth_state",
+        None,
+    )
 
+    # إنشاء State جديد
     session["oauth_state"] = state
-    session["oauth_nonce"] = nonce
 
+    # جعل الجلسة دائمة
     session.permanent = True
 
     return state
@@ -118,13 +122,27 @@ def validate_oauth_state(received_state):
     if not received_state:
         return False
 
-    if not isinstance(saved_state, str):
+    if not isinstance(
+        saved_state,
+        str,
+    ):
         return False
 
-    if not isinstance(received_state, str):
+    if not isinstance(
+        received_state,
+        str,
+    ):
         return False
 
     if len(saved_state) < 32:
+        return False
+
+    if len(received_state) < 32:
+        return False
+
+    if len(saved_state) != len(
+        received_state
+    ):
         return False
 
     return secrets.compare_digest(
@@ -135,20 +153,22 @@ def validate_oauth_state(received_state):
 
 def clear_sensitive_session():
     """
-    حذف بيانات المصادقة من الجلسة.
+    حذف بيانات OAuth الحساسة.
     """
 
-    keys = (
+    sensitive_keys = (
         "discord_user",
         "discord_access_token",
         "discord_token_type",
         "discord_token_expires",
         "oauth_state",
-        "oauth_nonce",
     )
 
-    for key in keys:
-        session.pop(key, None)
+    for key in sensitive_keys:
+        session.pop(
+            key,
+            None,
+        )
 
 
 # =========================================================
@@ -160,20 +180,30 @@ def discord_get(
     access_token,
 ):
     """
-    تنفيذ GET إلى Discord API بدون تسجيل
-    الـAccess Token في Logs.
+    تنفيذ GET إلى Discord API.
+    لا يتم تسجيل Access Token.
     """
 
     if not access_token:
         return None
 
-    if not isinstance(access_token, str):
+    if not isinstance(
+        access_token,
+        str,
+    ):
+        return None
+
+    access_token = access_token.strip()
+
+    if not access_token:
         return None
 
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": (
+            f"Bearer {access_token}"
+        ),
         "Accept": "application/json",
-        "User-Agent": "Zivex-Dashboard/1.0",
+        "User-Agent": USER_AGENT,
     }
 
     try:
@@ -194,6 +224,7 @@ def discord_get(
 @auth_bp.route("/login")
 def oauth_login():
 
+    # إذا كان المستخدم مسجل دخول بالفعل
     if session.get("discord_user"):
         return redirect(
             url_for(
@@ -202,7 +233,7 @@ def oauth_login():
         )
 
     # -----------------------------------------------------
-    # Environment Variables
+    # Environment Validation
     # -----------------------------------------------------
 
     if not DISCORD_CLIENT_ID:
@@ -226,7 +257,7 @@ def oauth_login():
         )
 
     # -----------------------------------------------------
-    # OAuth Session
+    # Create OAuth Session
     # -----------------------------------------------------
 
     state = create_oauth_session()
@@ -249,7 +280,9 @@ def oauth_login():
         f"{urlencode(params)}"
     )
 
-    return redirect(authorize_url)
+    return redirect(
+        authorize_url
+    )
 
 
 # =========================================================
@@ -263,7 +296,12 @@ def oauth_callback():
     # Discord Error
     # -----------------------------------------------------
 
-    oauth_error = request.args.get("error")
+    oauth_error = (
+        request.args.get(
+            "error",
+            "",
+        ).strip()
+    )
 
     if oauth_error:
         clear_sensitive_session()
@@ -273,17 +311,21 @@ def oauth_callback():
         )
 
     # -----------------------------------------------------
-    # Code + State
+    # Get Code + State
     # -----------------------------------------------------
 
-    code = request.args.get(
-        "code",
-        "",
+    code = (
+        request.args.get(
+            "code",
+            "",
+        ).strip()
     )
 
-    state = request.args.get(
-        "state",
-        "",
+    state = (
+        request.args.get(
+            "state",
+            "",
+        ).strip()
     )
 
     # -----------------------------------------------------
@@ -310,7 +352,7 @@ def oauth_callback():
         clear_sensitive_session()
 
         return (
-            "❌ طلب تسجيل الدخول غير صالح.",
+            "❌ رمز تسجيل الدخول غير صالح.",
             400,
         )
 
@@ -377,12 +419,11 @@ def oauth_callback():
     }
 
     token_headers = {
-        "Content-Type":
-            "application/x-www-form-urlencoded",
-        "Accept":
-            "application/json",
-        "User-Agent":
-            "Zivex-Dashboard/1.0",
+        "Content-Type": (
+            "application/x-www-form-urlencoded"
+        ),
+        "Accept": "application/json",
+        "User-Agent": USER_AGENT,
     }
 
     try:
@@ -401,6 +442,10 @@ def oauth_callback():
             502,
         )
 
+    # -----------------------------------------------------
+    # Token Response
+    # -----------------------------------------------------
+
     if token_response.status_code != 200:
         clear_sensitive_session()
 
@@ -417,6 +462,17 @@ def oauth_callback():
 
         return (
             "❌ استجابة غير صالحة من Discord.",
+            502,
+        )
+
+    if not isinstance(
+        token_json,
+        dict,
+    ):
+        clear_sensitive_session()
+
+        return (
+            "❌ بيانات المصادقة غير صالحة.",
             502,
         )
 
@@ -444,13 +500,18 @@ def oauth_callback():
             401,
         )
 
-    if not isinstance(access_token, str):
+    if not isinstance(
+        access_token,
+        str,
+    ):
         clear_sensitive_session()
 
         return (
             "❌ رمز المصادقة غير صالح.",
             401,
         )
+
+    access_token = access_token.strip()
 
     if len(access_token) < 10:
         clear_sensitive_session()
@@ -496,6 +557,17 @@ def oauth_callback():
             502,
         )
 
+    if not isinstance(
+        user,
+        dict,
+    ):
+        clear_sensitive_session()
+
+        return (
+            "❌ بيانات حساب Discord غير صالحة.",
+            502,
+        )
+
     # =====================================================
     # User Validation
     # =====================================================
@@ -513,7 +585,18 @@ def oauth_callback():
             401,
         )
 
-    if not isinstance(user_id, str):
+    if not isinstance(
+        user_id,
+        str,
+    ):
+        clear_sensitive_session()
+
+        return (
+            "❌ معرف Discord غير صالح.",
+            401,
+        )
+
+    if not user_id.isdigit():
         clear_sensitive_session()
 
         return (
@@ -538,14 +621,14 @@ def oauth_callback():
 
     session["discord_user"] = {
         "id": user_id,
-        "username": str(username),
+        "username": str(username)[:100],
         "global_name": (
-            str(global_name)
+            str(global_name)[:100]
             if global_name
             else None
         ),
         "avatar": (
-            str(avatar)
+            str(avatar)[:200]
             if avatar
             else None
         ),
@@ -554,6 +637,10 @@ def oauth_callback():
     # =====================================================
     # Store OAuth Token
     # =====================================================
+    #
+    # Flask-Session يخزن الجلسة Server-Side،
+    # لذلك الـAccess Token لا يتم وضعه داخل
+    # Cookie المتصفح.
     #
     # لا تتم طباعة التوكن أو عرضه للمستخدم.
     # =====================================================
@@ -564,14 +651,19 @@ def oauth_callback():
 
     if token_type:
         session["discord_token_type"] = (
-            str(token_type)
+            str(token_type)[:50]
         )
 
     if expires_in is not None:
         try:
-            session["discord_token_expires"] = int(
+            expires_value = int(
                 expires_in
             )
+
+            if expires_value > 0:
+                session[
+                    "discord_token_expires"
+                ] = expires_value
 
         except (
             TypeError,
@@ -597,8 +689,7 @@ def oauth_callback():
 @auth_bp.route("/logout")
 def oauth_logout():
 
-    clear_sensitive_session()
-
+    # حذف كل بيانات الجلسة
     session.clear()
 
     return redirect(
