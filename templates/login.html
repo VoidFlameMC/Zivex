@@ -1,834 +1,196 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>تسجيل الدخول | Zivex Dashboard</title>
 
     <meta
         name="description"
-        content="تسجيل الدخول إلى لوحة تحكم Zivex"
+        content="سجّل الدخول إلى لوحة تحكم Zivex لإدارة بوتك وسيرفرك."
     >
-
-    <meta
-        name="theme-color"
-        content="#08070d"
-    >
-
-    <title>تسجيل الدخول | Zivex</title>
 
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='style.css') }}"
     >
 
-    <script
-        src="{{ url_for('static', filename='script.js') }}"
-        defer
-    ></script>
-
-    <style>
-        /* =====================================================
-           ZIVEX LOGIN — PREMIUM LANDING
-           ===================================================== */
-
-        .login-page {
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            background:
-                radial-gradient(
-                    circle at 50% -10%,
-                    rgba(139, 92, 246, 0.20),
-                    transparent 38%
-                ),
-                radial-gradient(
-                    circle at 100% 100%,
-                    rgba(109, 40, 217, 0.10),
-                    transparent 32%
-                ),
-                radial-gradient(
-                    circle at 0% 80%,
-                    rgba(88, 101, 242, 0.07),
-                    transparent 28%
-                ),
-                #07070b;
-
-            color: #fff;
-        }
-
-        /* Background grid */
-
-        .login-page::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-
-            pointer-events: none;
-
-            background-image:
-                linear-gradient(
-                    rgba(255,255,255,0.025) 1px,
-                    transparent 1px
-                ),
-                linear-gradient(
-                    90deg,
-                    rgba(255,255,255,0.025) 1px,
-                    transparent 1px
-                );
-
-            background-size: 55px 55px;
-
-            mask-image:
-                linear-gradient(
-                    to bottom,
-                    black,
-                    transparent 85%
-                );
-
-            -webkit-mask-image:
-                linear-gradient(
-                    to bottom,
-                    black,
-                    transparent 85%
-                );
-        }
-
-        /* Purple glow */
-
-        .login-page::after {
-            content: "";
-
-            position: fixed;
-
-            width: 500px;
-            height: 500px;
-
-            top: -260px;
-            left: 50%;
-
-            transform: translateX(-50%);
-
-            border-radius: 50%;
-
-            background:
-                rgba(139, 92, 246, 0.10);
-
-            filter: blur(90px);
-
-            pointer-events: none;
-        }
-
-        .login-container {
-            position: relative;
-            z-index: 2;
-
-            width: min(100% - 32px, 470px);
-
-            padding: 42px 0 22px;
-        }
-
-        /* =====================================================
-           CARD
-           ===================================================== */
-
-        .login-card {
-            position: relative;
-
-            padding: 36px;
-
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 26px;
-
-            background:
-                linear-gradient(
-                    145deg,
-                    rgba(20,19,29,0.94),
-                    rgba(10,10,15,0.96)
-                );
-
-            box-shadow:
-                0 35px 100px rgba(0,0,0,0.55),
-                0 0 70px rgba(139,92,246,0.07);
-
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-
-            overflow: hidden;
-        }
-
-        .login-card::before {
-            content: "";
-
-            position: absolute;
-
-            top: 0;
-            left: 15%;
-            right: 15%;
-
-            height: 1px;
-
-            background:
-                linear-gradient(
-                    90deg,
-                    transparent,
-                    rgba(167,139,250,0.8),
-                    transparent
-                );
-
-            box-shadow:
-                0 0 25px rgba(139,92,246,0.45);
-        }
-
-        .login-card::after {
-            content: "";
-
-            position: absolute;
-
-            width: 180px;
-            height: 180px;
-
-            left: -100px;
-            bottom: -100px;
-
-            border-radius: 50%;
-
-            background:
-                rgba(139,92,246,0.06);
-
-            filter: blur(20px);
-
-            pointer-events: none;
-        }
-
-        /* =====================================================
-           LOGO
-           ===================================================== */
-
-        .login-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            gap: 12px;
-
-            width: fit-content;
-
-            margin: 0 auto 34px;
-
-            color: #fff;
-
-            transition: 0.25s ease;
-        }
-
-        .login-logo:hover {
-            transform: translateY(-2px);
-        }
-
-        .login-logo-mark {
-            width: 52px;
-            height: 52px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 16px;
-
-            color: #fff;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #9b6cff,
-                    #6d28d9
-                );
-
-            font-size: 22px;
-            font-weight: 900;
-
-            box-shadow:
-                0 14px 35px rgba(109,40,217,0.35),
-                inset 0 1px 0 rgba(255,255,255,0.25);
-        }
-
-        .login-logo-text {
-            font-size: 25px;
-            font-weight: 900;
-
-            letter-spacing: -0.8px;
-        }
-
-        /* =====================================================
-           HEADER
-           ===================================================== */
-
-        .login-header {
-            text-align: center;
-
-            margin-bottom: 28px;
-        }
-
-        .login-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-
-            padding: 7px 12px;
-
-            margin-bottom: 15px;
-
-            border: 1px solid rgba(139,92,246,0.18);
-            border-radius: 50px;
-
-            color: #b8a0ff;
-
-            background:
-                rgba(139,92,246,0.07);
-
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .login-badge::before {
-            content: "";
-
-            width: 6px;
-            height: 6px;
-
-            border-radius: 50%;
-
-            background: #a78bfa;
-
-            box-shadow:
-                0 0 12px rgba(167,139,250,0.9);
-        }
-
-        .login-header h1 {
-            margin-bottom: 10px;
-
-            color: #fff;
-
-            font-size: 29px;
-            font-weight: 900;
-
-            letter-spacing: -0.8px;
-        }
-
-        .login-header p {
-            max-width: 350px;
-
-            margin: 0 auto;
-
-            color: #8f8f9d;
-
-            font-size: 12px;
-            line-height: 1.9;
-        }
-
-        /* =====================================================
-           DISCORD BUTTON
-           ===================================================== */
-
-        .login-actions {
-            margin-bottom: 23px;
-        }
-
-        .btn-discord {
-            position: relative;
-
-            width: 100%;
-            min-height: 57px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            gap: 11px;
-
-            padding: 14px 20px;
-
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 14px;
-
-            color: #fff !important;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #6875f5,
-                    #5865f2
-                );
-
-            font-size: 13px;
-            font-weight: 800;
-
-            box-shadow:
-                0 14px 35px rgba(88,101,242,0.22);
-
-            transition:
-                transform 0.22s ease,
-                box-shadow 0.22s ease,
-                filter 0.22s ease;
-        }
-
-        .btn-discord::before {
-            content: "";
-
-            position: absolute;
-
-            inset: 1px;
-
-            border-radius: 13px;
-
-            background:
-                linear-gradient(
-                    180deg,
-                    rgba(255,255,255,0.12),
-                    transparent 45%
-                );
-
-            pointer-events: none;
-        }
-
-        .btn-discord:hover {
-            transform: translateY(-3px);
-
-            filter: brightness(1.06);
-
-            box-shadow:
-                0 20px 45px rgba(88,101,242,0.32);
-        }
-
-        .btn-discord:active {
-            transform: translateY(0);
-        }
-
-        .discord-icon {
-            position: relative;
-            z-index: 1;
-
-            width: 24px;
-            height: 24px;
-
-            flex-shrink: 0;
-        }
-
-        .btn-discord span {
-            position: relative;
-            z-index: 1;
-        }
-
-        /* =====================================================
-           DIVIDER
-           ===================================================== */
-
-        .login-divider {
-            display: flex;
-            align-items: center;
-
-            gap: 12px;
-
-            margin: 25px 0;
-        }
-
-        .login-divider::before,
-        .login-divider::after {
-            content: "";
-
-            flex: 1;
-
-            height: 1px;
-
-            background:
-                rgba(255,255,255,0.06);
-        }
-
-        .login-divider span {
-            color: #555562;
-
-            font-size: 9px;
-            font-weight: 700;
-        }
-
-        /* =====================================================
-           SECURITY
-           ===================================================== */
-
-        .login-security {
-            display: flex;
-            align-items: flex-start;
-
-            gap: 12px;
-
-            padding: 14px;
-
-            margin-bottom: 17px;
-
-            border: 1px solid rgba(34,197,94,0.10);
-            border-radius: 15px;
-
-            background:
-                rgba(34,197,94,0.035);
-        }
-
-        .security-icon {
-            width: 37px;
-            height: 37px;
-
-            flex-shrink: 0;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 11px;
-
-            color: #86efac;
-
-            background:
-                rgba(34,197,94,0.08);
-        }
-
-        .security-icon svg {
-            width: 19px;
-            height: 19px;
-        }
-
-        .login-security strong {
-            display: block;
-
-            margin-bottom: 2px;
-
-            color: #d8ffe4;
-
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .login-security p {
-            color: #777783;
-
-            font-size: 9px;
-            line-height: 1.8;
-        }
-
-        /* =====================================================
-           PERMISSIONS
-           ===================================================== */
-
-        .login-permissions {
-            padding: 17px;
-
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 15px;
-
-            background:
-                rgba(255,255,255,0.018);
-        }
-
-        .login-permissions h2 {
-            margin-bottom: 12px;
-
-            color: #d9d9e1;
-
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .login-permissions ul {
-            display: flex;
-            flex-direction: column;
-
-            gap: 9px;
-
-            list-style: none;
-        }
-
-        .login-permissions li {
-            display: flex;
-            align-items: center;
-
-            gap: 9px;
-
-            color: #858591;
-
-            font-size: 10px;
-        }
-
-        .permission-check {
-            width: 19px;
-            height: 19px;
-
-            flex-shrink: 0;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 6px;
-
-            color: #a78bfa;
-
-            background:
-                rgba(139,92,246,0.09);
-
-            border: 1px solid rgba(139,92,246,0.12);
-
-            font-size: 10px;
-            font-weight: 900;
-        }
-
-        /* =====================================================
-           BACK
-           ===================================================== */
-
-        .login-back {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            gap: 7px;
-
-            margin-top: 23px;
-
-            color: #6f6f7b;
-
-            font-size: 10px;
-            font-weight: 700;
-
-            transition: 0.2s ease;
-        }
-
-        .login-back:hover {
-            color: #b8a0ff;
-        }
-
-        .login-back span {
-            font-size: 15px;
-
-            transition: 0.2s ease;
-        }
-
-        .login-back:hover span {
-            transform: translateX(3px);
-        }
-
-        /* =====================================================
-           FOOTER
-           ===================================================== */
-
-        .login-footer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            gap: 8px;
-
-            padding-top: 18px;
-
-            color: #4f4f5a;
-
-            font-size: 9px;
-        }
-
-        /* =====================================================
-           MOBILE
-           ===================================================== */
-
-        @media (max-width: 600px) {
-
-            .login-container {
-                width: min(100% - 22px, 470px);
-
-                padding: 22px 0 16px;
-            }
-
-            .login-card {
-                padding: 28px 20px;
-
-                border-radius: 22px;
-            }
-
-            .login-logo {
-                margin-bottom: 27px;
-            }
-
-            .login-logo-mark {
-                width: 46px;
-                height: 46px;
-
-                border-radius: 14px;
-
-                font-size: 20px;
-            }
-
-            .login-logo-text {
-                font-size: 23px;
-            }
-
-            .login-header h1 {
-                font-size: 25px;
-            }
-
-            .login-header p {
-                font-size: 11px;
-            }
-
-            .btn-discord {
-                min-height: 54px;
-
-                font-size: 12px;
-            }
-
-            .login-security,
-            .login-permissions {
-                padding: 13px;
-            }
-        }
-
-        /* =====================================================
-           SMALL PHONES
-           ===================================================== */
-
-        @media (max-width: 380px) {
-
-            .login-card {
-                padding: 25px 17px;
-            }
-
-            .login-header h1 {
-                font-size: 23px;
-            }
-
-            .login-footer {
-                font-size: 8px;
-            }
-        }
-    </style>
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
 </head>
 
+<body class="zivex-login-page">
 
-<body class="login-page">
+    <!-- Background -->
+    <div class="login-background">
 
-    <main class="login-container">
+        <div class="login-grid"></div>
+
+        <div class="login-glow login-glow-one"></div>
+        <div class="login-glow login-glow-two"></div>
+
+    </div>
+
+
+    <!-- Main -->
+    <main class="login-wrapper">
 
         <section
             class="login-card"
-            aria-labelledby="login-title"
+            aria-label="Zivex Login"
         >
 
-            <!-- ZIVEX LOGO -->
+            <!-- Brand -->
+            <div class="login-brand">
 
-            <a
-                href="{{ url_for('index') }}"
-                class="login-logo"
-                aria-label="Zivex الرئيسية"
-            >
+                <div class="zivex-crest">
 
-                <span class="login-logo-mark">
-                    Z
-                </span>
+                    <div class="crest-outer">
+                        <span class="crest-star">✦</span>
+                    </div>
 
-                <span class="login-logo-text">
-                    Zivex
-                </span>
+                    <div class="crest-wreath crest-wreath-left">
+                        ❯
+                    </div>
 
-            </a>
+                    <div class="crest-wreath crest-wreath-right">
+                        ❮
+                    </div>
+
+                    <div class="crest-shield">
+
+                        <div class="crest-shield-inner">
+                            Z
+                        </div>
+
+                    </div>
+
+                </div>
 
 
-            <!-- HEADER -->
+                <h1>Zivex Dashboard</h1>
 
-            <div class="login-header">
-
-                <span class="login-badge">
+                <span class="brand-arabic">
                     لوحة تحكم Zivex
                 </span>
 
-                <h1 id="login-title">
+            </div>
+
+
+            <!-- Header -->
+            <div class="login-header">
+
+                <div class="login-status">
+                    <span class="status-dot"></span>
+                    النظام متصل
+                </div>
+
+                <h2>
                     أهلاً بك في Zivex
-                </h1>
+                </h2>
 
                 <p>
-                    تحكم في بوتك، أدر أنظمتك،
-                    وخصص سيرفرك من مكان واحد.
+                    تحكم في بوتك، أدر أنظمتك، وخصّص سيرفرك
+                    من مكان واحد.
                 </p>
 
             </div>
 
 
-            <!-- DISCORD LOGIN -->
-
-            <div class="login-actions">
+            <!-- Login -->
+            <div class="login-action">
 
                 <a
                     href="{{ url_for('auth.oauth_login') }}"
-                    class="btn btn-discord btn-large"
-                    data-loading="true"
+                    class="discord-login-button"
+                    id="discord-login-button"
                 >
 
+                    <!-- Discord SVG -->
                     <svg
                         class="discord-icon"
                         viewBox="0 0 24 24"
                         aria-hidden="true"
-                        focusable="false"
                     >
-
                         <path
                             fill="currentColor"
-                            d="M19.54 0c1.13 0 2.05.92 2.05 2.05v19.9c0 1.13-.92 2.05-2.05 2.05H4.46a2.05 2.05 0 0 1-2.05-2.05V2.05C2.41.92 3.33 0 4.46 0h15.08ZM8.91 15.02c-1.03 0-1.87.84-1.87 1.87s.84 1.87 1.87 1.87 1.87-.84 1.87-1.87-.84-1.87-1.87-1.87Zm6.18 0c-.79 0-1.45.74-1.45 1.65s.65 1.65 1.45 1.65 1.45-.74 1.45-1.65-.65-1.65-1.45-1.65Zm2.69-7.1a12.62 12.62 0 0 0-2.96-.9l-.38.78c-1.43-.22-2.85-.22-4.28 0l-.38-.78c-1.02.18-2.01.48-2.96.9C5.08 10.68 4.3 13.9 4.1 17.08c1.2.9 2.36 1.45 3.5 1.8l.85-1.17c-.47-.18-.93-.4-1.37-.65l.34-.26c2.64 1.22 5.5 1.22 8.1 0l.35.26c-.44.25-.9.47-1.37.65l.85 1.17c1.14-.35 2.3-.9 3.5-1.8-.2-3.18-.98-6.4-3.07-9.16ZM9.36 14.6c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Zm5.28 0c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Z"
+                            d="M19.54 4.96A16.9 16.9 0 0 0 15.7 3.76l-.47.96a15.3 15.3 0 0 0-6.46 0l-.47-.96a16.9 16.9 0 0 0-3.84 1.2C2.03 8.83 1.36 12.6 1.7 16.3a17.7 17.7 0 0 0 5.23 2.64l1.27-1.7a10.8 10.8 0 0 1-1.99-.96l.49-.38c3.84 1.78 7.98 1.78 11.77 0l.5.38c-.64.38-1.31.7-2 .96l1.27 1.7a17.7 17.7 0 0 0 5.23-2.64c.4-4.28-.69-8.02-3.93-11.34ZM8.73 14.57c-1.15 0-2.1-1.05-2.1-2.34s.92-2.34 2.1-2.34 2.11 1.05 2.1 2.34c0 1.29-.93 2.34-2.1 2.34Zm6.54 0c-1.15 0-2.1-1.05-2.1-2.34s.92-2.34 2.1-2.34 2.11 1.05 2.1 2.34c0 1.29-.93 2.34-2.1 2.34Z"
                         />
-
                     </svg>
 
                     <span>
                         تسجيل الدخول باستخدام Discord
                     </span>
 
+                    <span class="login-arrow">
+                        ←
+                    </span>
+
                 </a>
 
+
+                <div class="secure-login-text">
+
+                    <span class="secure-icon">
+                        ✓
+                    </span>
+
+                    دخول آمن
+
+                </div>
+
             </div>
 
 
-            <!-- DIVIDER -->
+            <!-- Security -->
+            <div class="security-notice">
 
-            <div class="login-divider">
-                <span>دخول آمن</span>
-            </div>
-
-
-            <!-- SECURITY -->
-
-            <div class="login-security">
-
-                <div
-                    class="security-icon"
-                    aria-hidden="true"
-                >
+                <div class="security-shield">
 
                     <svg
-                        viewBox="0 0 24 24"
-                        focusable="false"
+                        viewBox="0 0 64 64"
+                        aria-hidden="true"
                     >
-
                         <path
-                            fill="currentColor"
-                            d="M12 2 4 5v6c0 5.25 3.4 10.17 8 11 4.6-.83 8-5.75 8-11V5l-8-3Zm0 4.1 5 1.88V11c0 3.88-2.33 7.7-5 8.65C9.33 18.7 7 14.88 7 11V7.98L12 6.1Zm-1 3.4v4h2v-4h-2Zm0 5v2h2v-2h-2Z"
+                            d="M32 5 51 12v16c0 13.5-7.8 24.7-19 31C20.8 52.7 13 41.5 13 28V12l19-7Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
                         />
 
+                        <path
+                            d="M32 18v16"
+                            stroke="currentColor"
+                            stroke-width="4"
+                            stroke-linecap="round"
+                        />
+
+                        <circle
+                            cx="32"
+                            cy="42"
+                            r="2.5"
+                            fill="currentColor"
+                        />
                     </svg>
 
                 </div>
 
-                <div>
+
+                <div class="security-content">
 
                     <strong>
                         تسجيل آمن عبر Discord
@@ -844,98 +206,90 @@
             </div>
 
 
-            <!-- PERMISSIONS -->
+            <!-- Permissions -->
+            <div class="permissions">
 
-            <div class="login-permissions">
+                <div class="permission-item">
+                    <span>✓</span>
+                    تسجيل دخول رسمي عبر Discord
+                </div>
 
-                <h2>
-                    الصلاحيات المطلوبة
-                </h2>
+                <div class="permission-item">
+                    <span>✓</span>
+                    لا نحفظ كلمة المرور
+                </div>
 
-                <ul>
-
-                    <li>
-
-                        <span
-                            class="permission-check"
-                            aria-hidden="true"
-                        >
-                            ✓
-                        </span>
-
-                        معلومات حساب Discord الأساسية
-
-                    </li>
-
-                    <li>
-
-                        <span
-                            class="permission-check"
-                            aria-hidden="true"
-                        >
-                            ✓
-                        </span>
-
-                        عرض السيرفرات المرتبطة بحسابك
-
-                    </li>
-
-                    <li>
-
-                        <span
-                            class="permission-check"
-                            aria-hidden="true"
-                        >
-                            ✓
-                        </span>
-
-                        التحقق من صلاحيات إدارة السيرفر
-
-                    </li>
-
-                </ul>
+                <div class="permission-item">
+                    <span>✓</span>
+                    اتصال مشفّر وآمن
+                </div>
 
             </div>
 
 
-            <!-- BACK -->
-
+            <!-- Back -->
             <a
                 href="{{ url_for('index') }}"
                 class="login-back"
             >
-
-                <span aria-hidden="true">
-                    ←
-                </span>
-
+                <span>→</span>
                 العودة إلى الصفحة الرئيسية
-
             </a>
 
         </section>
 
-
-        <!-- FOOTER -->
-
-        <footer class="login-footer">
-
-            <span>
-                © {{ current_year|default(2026) }} Zivex
-            </span>
-
-            <span aria-hidden="true">
-                •
-            </span>
-
-            <span>
-                Discord Bot & Dashboard
-            </span>
-
-        </footer>
-
     </main>
 
-</body>
 
+    <!-- Footer -->
+    <footer class="login-footer">
+
+        <span>
+            Zivex
+        </span>
+
+        <b>•</b>
+
+        <span>
+            Discord 2026 © Bot & Dashboard
+        </span>
+
+    </footer>
+
+
+    <script>
+        "use strict";
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const button =
+                document.getElementById("discord-login-button");
+
+            if (!button) {
+                return;
+            }
+
+            button.addEventListener("click", () => {
+
+                button.classList.add("loading");
+
+                button.setAttribute(
+                    "aria-busy",
+                    "true"
+                );
+
+                const text =
+                    button.querySelector("span");
+
+                if (text) {
+                    text.textContent =
+                        "جاري تحويلك إلى Discord...";
+                }
+
+            });
+
+        });
+    </script>
+
+</body>
 </html>
