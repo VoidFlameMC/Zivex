@@ -1,255 +1,403 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+
     <meta
         name="theme-color"
         content="#09090f"
     >
+
     <meta
         name="description"
         content="لوحة تحكم Zivex"
     >
+
     <title>
-        {% if guild %}
-            {{ guild.name }} | Zivex
+        {% if selected_guild is defined and selected_guild %}
+            {{ selected_guild.name }} | Zivex
         {% else %}
             Dashboard | Zivex
         {% endif %}
     </title>
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='style.css') }}"
     >
+
     <script
         src="{{ url_for('static', filename='script.js') }}"
         defer
     ></script>
 </head>
+
+
 <body class="dashboard-page">
-    <!-- =====================================================
-         Dashboard Layout
-         ===================================================== -->
+
+    {% set current_guild = selected_guild if selected_guild is defined and selected_guild else None %}
+
     <div class="dashboard-layout">
-        <!-- =================================================
+
+        <!-- =====================================================
              Sidebar
-             ================================================= -->
+             ===================================================== -->
+
         <aside
             class="dashboard-sidebar"
             id="dashboard-sidebar"
         >
+
             <div class="sidebar-inner">
+
                 <!-- Brand -->
+
                 <div class="sidebar-brand">
+
                     <a
                         href="{{ url_for('dashboard.dashboard_home') }}"
                         class="sidebar-logo"
                     >
+
                         <span class="sidebar-logo-mark">
                             Z
                         </span>
+
                         <span class="sidebar-logo-text">
                             Zivex
                         </span>
+
                     </a>
+
                 </div>
+
+
                 <!-- Server -->
+
                 <div class="sidebar-server">
-                    {% set guild_icon = guild.icon_url
-                        if guild and guild.icon_url
+
+                    {% set guild_icon = current_guild.icon
+                        if current_guild and current_guild.icon
                         else None
                     %}
+
                     {% if guild_icon %}
+
                         <img
-                            src="{{ guild_icon }}"
-                            alt="{{ guild.name }}"
+                            src="https://cdn.discordapp.com/icons/{{ current_guild.id }}/{{ guild_icon }}.png?size=128"
+                            alt="{{ current_guild.name }}"
                             class="server-avatar"
                         >
+
                     {% else %}
+
                         <div
                             class="server-avatar server-avatar-fallback"
                             aria-hidden="true"
                         >
-                            {{ guild.name[0]|upper if guild and guild.name else "Z" }}
+                            {{
+                                current_guild.name[0]|upper
+                                if current_guild and current_guild.name
+                                else "Z"
+                            }}
                         </div>
+
                     {% endif %}
+
+
                     <div class="server-info">
+
                         <span class="server-label">
                             السيرفر الحالي
                         </span>
+
                         <strong>
-                            {{ guild.name if guild else "Zivex Server" }}
+                            {{
+                                current_guild.name
+                                if current_guild
+                                else "اختر سيرفر"
+                            }}
                         </strong>
+
                     </div>
+
                 </div>
+
+
                 <!-- Navigation -->
+
                 <nav
                     class="dashboard-nav"
                     aria-label="لوحة التحكم"
                 >
+
                     <span class="nav-section-title">
                         الرئيسية
                     </span>
+
+
                     <a
                         href="{{ url_for('dashboard.dashboard_home') }}"
                         class="dashboard-nav-item active"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             الرئيسية
                         </span>
+
                     </a>
+
+
                     <a
                         href="#overview"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="M5 19h14v2H5v-2Zm1-2V9h3v8H6Zm5 0V5h3v12h-3Zm5 0v-5h3v5h-3Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             الإحصائيات
                         </span>
+
                     </a>
+
+
                     <span class="nav-section-title">
                         الأنظمة
                     </span>
+
+
                     <a
                         href="#welcome"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm-1 15-4-4 1.4-1.4L11 14.17l4.6-4.6L17 11l-6 6Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             الترحيب
                         </span>
+
                     </a>
+
+
                     <a
                         href="#levels"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="m12 2 2.3 6.1L21 10l-5 3.7L17.6 20 12 16.4 6.4 20 8 13.7 3 10l6.7-1.9L12 2Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             المستويات
                         </span>
+
                     </a>
+
+
                     <a
                         href="#tickets"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 12H4V9h16v8Zm-3-4h-4v2h4v-2Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             التذاكر
                         </span>
+
                     </a>
+
+
                     <a
                         href="#applications"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm2 4v2h8V6H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             التقديمات
                         </span>
+
                     </a>
+
+
                     <a
                         href="#moderation"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="M12 2 4 5v6c0 5.2 3.3 10 8 11 4.7-1 8-5.8 8-11V5l-8-3Zm0 4 5 1.9V11c0 3.4-2 6.8-5 8.2C9 17.8 7 14.4 7 11V7.9L12 6Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             الإدارة
                         </span>
+
                     </a>
+
+
                     <span class="nav-section-title">
                         الإعدادات
                     </span>
+
+
                     <a
                         href="#settings"
                         class="dashboard-nav-item"
                     >
-                        <span class="nav-icon" aria-hidden="true">
+
+                        <span
+                            class="nav-icon"
+                            aria-hidden="true"
+                        >
+
                             <svg viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
                                     d="m19.4 13 .1-1-.1-1 2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3h-4l-.3 3a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.3 3h4l.3-3a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6ZM13 15h-2v-2h2v2Zm0-4h-2V7h2v4Z"
                                 />
                             </svg>
+
                         </span>
+
                         <span>
                             الإعدادات
                         </span>
+
                     </a>
+
                 </nav>
+
+
                 <!-- Sidebar Footer -->
+
                 <div class="sidebar-footer">
+
                     <a
-                        href="{{ url_for('auth.logout') }}"
+                        href="{{ url_for('auth.oauth_logout') }}"
                         class="sidebar-logout"
                     >
+
                         <span aria-hidden="true">
                             ↪
                         </span>
+
                         تسجيل الخروج
+
                     </a>
+
                 </div>
+
             </div>
+
         </aside>
-        <!-- =================================================
+
+
+        <!-- =====================================================
              Main Content
-             ================================================= -->
+             ===================================================== -->
+
         <main class="dashboard-main">
+
             <!-- Topbar -->
+
             <header class="dashboard-topbar">
+
                 <div class="topbar-left">
+
                     <button
                         type="button"
                         class="dashboard-menu-toggle"
@@ -258,39 +406,67 @@
                         aria-controls="dashboard-sidebar"
                         aria-expanded="false"
                     >
+
                         <span></span>
                         <span></span>
                         <span></span>
+
                     </button>
+
+
                     <div>
+
                         <span class="topbar-eyebrow">
                             Zivex Dashboard
                         </span>
+
                         <h1>
                             لوحة التحكم
                         </h1>
+
                     </div>
+
                 </div>
+
+
                 <div class="topbar-right">
+
                     <!-- User -->
+
                     <div class="dashboard-user">
-                        {% if user and user.avatar_url %}
+
+                        {% set user_avatar = user.avatar
+                            if user and user.avatar
+                            else None
+                        %}
+
+                        {% if user_avatar %}
+
                             <img
-                                src="{{ user.avatar_url }}"
+                                src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user_avatar }}.png?size=128"
                                 alt="{{ user.username }}"
                                 class="user-avatar"
                             >
+
                         {% else %}
+
                             <div class="user-avatar user-avatar-fallback">
+
                                 {{
                                     user.username[0]|upper
                                     if user and user.username
                                     else "U"
                                 }}
+
                             </div>
+
                         {% endif %}
+
+
                         <div class="user-details">
+
                             <strong>
+
                                 {{
                                     user.global_name
                                     if user and user.global_name
@@ -298,118 +474,182 @@
                                     if user
                                     else "User"
                                 }}
+
                             </strong>
+
                             <span>
+
                                 {{
                                     "@" ~ user.username
                                     if user and user.username
                                     else "@user"
                                 }}
+
                             </span>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </header>
+
+
             <!-- Content -->
+
             <div class="dashboard-content">
-                <!-- =================================================
-                     Welcome
-                     ================================================= -->
+
+
+                <!-- Welcome -->
+
                 <section class="dashboard-welcome">
+
                     <div>
+
                         <span class="dashboard-badge">
                             لوحة الإدارة
                         </span>
+
                         <h2>
                             أهلاً بك في Zivex
                         </h2>
+
                         <p>
                             تحكم في أنظمة سيرفرك من مكان واحد،
                             بسرعة وبشكل منظم.
                         </p>
+
                     </div>
+
+
                     <div class="welcome-server-card">
-                        {% if guild_icon %}
+
+                        {% if guild_icon and current_guild %}
+
                             <img
-                                src="{{ guild_icon }}"
-                                alt="{{ guild.name }}"
+                                src="https://cdn.discordapp.com/icons/{{ current_guild.id }}/{{ guild_icon }}.png?size=128"
+                                alt="{{ current_guild.name }}"
                                 class="welcome-server-icon"
                             >
+
                         {% else %}
+
                             <div class="welcome-server-icon server-avatar-fallback">
-                                {{ guild.name[0]|upper if guild else "Z" }}
+
+                                {{
+                                    current_guild.name[0]|upper
+                                    if current_guild and current_guild.name
+                                    else "Z"
+                                }}
+
                             </div>
+
                         {% endif %}
+
+
                         <div>
+
                             <span>
                                 السيرفر
                             </span>
+
                             <strong>
-                                {{ guild.name if guild else "Zivex Server" }}
+                                {{
+                                    current_guild.name
+                                    if current_guild
+                                    else "اختر سيرفر"
+                                }}
                             </strong>
+
                         </div>
+
                     </div>
+
                 </section>
-                <!-- =================================================
-                     Overview
-                     ================================================= -->
+
+
+                <!-- Overview -->
+
                 <section
                     id="overview"
                     class="dashboard-section"
                 >
+
                     <div class="section-heading">
+
                         <div>
+
                             <span class="section-kicker">
                                 نظرة عامة
                             </span>
+
                             <h2>
                                 إحصائيات السيرفر
                             </h2>
+
                         </div>
+
                     </div>
+
+
                     <div class="dashboard-stats-grid">
+
+
                         <article class="dashboard-stat-card">
+
                             <div class="stat-icon">
                                 👥
                             </div>
+
                             <div class="stat-content">
+
                                 <span>
                                     الأعضاء
                                 </span>
+
                                 <strong>
-                                    {{
-                                        guild.member_count
-                                        if guild and guild.member_count is defined
-                                        else "—"
-                                    }}
+                                    —
                                 </strong>
+
                             </div>
+
                         </article>
+
+
                         <article class="dashboard-stat-card">
+
                             <div class="stat-icon">
                                 💬
                             </div>
+
                             <div class="stat-content">
+
                                 <span>
                                     القنوات
                                 </span>
+
                                 <strong>
-                                    {{
-                                        guild.channel_count
-                                        if guild and guild.channel_count is defined
-                                        else "—"
-                                    }}
+                                    —
                                 </strong>
+
                             </div>
+
                         </article>
+
+
                         <article class="dashboard-stat-card">
+
                             <div class="stat-icon">
                                 ⚙️
                             </div>
+
                             <div class="stat-content">
+
                                 <span>
                                     الأنظمة المفعلة
                                 </span>
+
                                 <strong>
                                     {{
                                         enabled_systems
@@ -417,466 +657,680 @@
                                         else "—"
                                     }}
                                 </strong>
+
                             </div>
+
                         </article>
+
+
                         <article class="dashboard-stat-card">
+
                             <div class="stat-icon">
                                 🛡️
                             </div>
+
                             <div class="stat-content">
+
                                 <span>
                                     حالة الحماية
                                 </span>
+
                                 <strong>
                                     متصل
                                 </strong>
+
                             </div>
+
                         </article>
+
+
                     </div>
+
                 </section>
-                <!-- =================================================
-                     Systems
-                     ================================================= -->
+
+
+                <!-- Systems -->
+
                 <section class="dashboard-section">
+
                     <div class="section-heading">
+
                         <div>
+
                             <span class="section-kicker">
                                 الأنظمة
                             </span>
+
                             <h2>
                                 إدارة أنظمة Zivex
                             </h2>
+
                         </div>
+
                         <span class="section-description">
                             إعدادات مستقلة لهذا السيرفر
                         </span>
+
                     </div>
+
+
                     <div class="system-grid">
+
+
                         <!-- Welcome -->
+
                         <article
                             id="welcome"
                             class="system-card"
                         >
+
                             <div class="system-card-top">
+
                                 <div class="system-icon">
                                     👋
                                 </div>
-                                <span
-                                    class="system-status {% if settings and settings.welcome_enabled %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.welcome_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="system-status disabled">
+                                    غير محدد
                                 </span>
+
                             </div>
+
                             <h3>
                                 نظام الترحيب
                             </h3>
+
                             <p>
                                 أرسل رسالة ترحيب تلقائية للأعضاء الجدد.
                             </p>
+
                             <a
                                 href="#settings"
                                 class="system-action"
                             >
                                 إدارة النظام
-                                <span aria-hidden="true">←</span>
+                                <span aria-hidden="true">
+                                    ←
+                                </span>
                             </a>
+
                         </article>
+
+
                         <!-- Levels -->
+
                         <article
                             id="levels"
                             class="system-card"
                         >
+
                             <div class="system-card-top">
+
                                 <div class="system-icon">
                                     ⭐
                                 </div>
-                                <span
-                                    class="system-status {% if settings and settings.level_enabled %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.level_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="system-status disabled">
+                                    غير محدد
                                 </span>
+
                             </div>
+
                             <h3>
                                 نظام المستويات
                             </h3>
+
                             <p>
                                 نظام XP ومستويات لتحفيز نشاط أعضاء السيرفر.
                             </p>
+
                             <a
                                 href="#settings"
                                 class="system-action"
                             >
                                 إدارة النظام
-                                <span aria-hidden="true">←</span>
+                                <span aria-hidden="true">
+                                    ←
+                                </span>
                             </a>
+
                         </article>
+
+
                         <!-- Tickets -->
+
                         <article
                             id="tickets"
                             class="system-card"
                         >
+
                             <div class="system-card-top">
+
                                 <div class="system-icon">
                                     🎫
                                 </div>
-                                <span
-                                    class="system-status {% if settings and settings.tickets_enabled %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.tickets_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="system-status disabled">
+                                    غير محدد
                                 </span>
+
                             </div>
+
                             <h3>
                                 نظام التذاكر
                             </h3>
+
                             <p>
                                 أنشئ نظام دعم وتذاكر منظم لأعضاء السيرفر.
                             </p>
+
                             <a
                                 href="#settings"
                                 class="system-action"
                             >
                                 إدارة النظام
-                                <span aria-hidden="true">←</span>
+                                <span aria-hidden="true">
+                                    ←
+                                </span>
                             </a>
+
                         </article>
+
+
                         <!-- Applications -->
+
                         <article
                             id="applications"
                             class="system-card"
                         >
+
                             <div class="system-card-top">
+
                                 <div class="system-icon">
                                     📋
                                 </div>
-                                <span
-                                    class="system-status {% if settings and settings.applications_enabled %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.applications_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="system-status disabled">
+                                    غير محدد
                                 </span>
+
                             </div>
+
                             <h3>
                                 نظام التقديمات
                             </h3>
+
                             <p>
                                 استقبل طلبات الانضمام والإشراف بطريقة منظمة.
                             </p>
+
                             <a
                                 href="#settings"
                                 class="system-action"
                             >
                                 إدارة النظام
-                                <span aria-hidden="true">←</span>
+                                <span aria-hidden="true">
+                                    ←
+                                </span>
                             </a>
+
                         </article>
+
+
                         <!-- Moderation -->
+
                         <article
                             id="moderation"
                             class="system-card"
                         >
+
                             <div class="system-card-top">
+
                                 <div class="system-icon">
                                     🛡️
                                 </div>
+
                                 <span class="system-status enabled">
                                     متاح
                                 </span>
+
                             </div>
+
                             <h3>
                                 الإدارة والحماية
                             </h3>
+
                             <p>
                                 أدوات إدارة تساعدك على تنظيم وحماية السيرفر.
                             </p>
+
                             <a
                                 href="#settings"
                                 class="system-action"
                             >
                                 إدارة النظام
-                                <span aria-hidden="true">←</span>
+                                <span aria-hidden="true">
+                                    ←
+                                </span>
                             </a>
+
                         </article>
+
+
                         <!-- Logs -->
+
                         <article class="system-card">
+
                             <div class="system-card-top">
+
                                 <div class="system-icon">
                                     📊
                                 </div>
-                                <span
-                                    class="system-status {% if settings and settings.logs_enabled %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.logs_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="system-status disabled">
+                                    غير محدد
                                 </span>
+
                             </div>
+
                             <h3>
                                 سجل الأحداث
                             </h3>
+
                             <p>
                                 تابع الأحداث المهمة داخل السيرفر.
                             </p>
+
                             <a
                                 href="#settings"
                                 class="system-action"
                             >
                                 إدارة النظام
-                                <span aria-hidden="true">←</span>
+                                <span aria-hidden="true">
+                                    ←
+                                </span>
                             </a>
+
                         </article>
+
+
                     </div>
+
                 </section>
-                <!-- =================================================
-                     Settings
-                     ================================================= -->
+
+
+                <!-- Settings -->
+
                 <section
                     id="settings"
                     class="dashboard-section settings-section"
                 >
+
                     <div class="section-heading">
+
                         <div>
+
                             <span class="section-kicker">
                                 إعدادات السيرفر
                             </span>
+
                             <h2>
                                 الإعدادات الأساسية
                             </h2>
+
                         </div>
+
                     </div>
+
+
                     <div class="settings-card">
+
                         <div class="settings-card-header">
+
                             <div>
+
                                 <h3>
                                     حالة الأنظمة
                                 </h3>
+
                                 <p>
-                                    يمكنك تعديل الإعدادات من لوحة التحكم.
+                                    سيتم التحكم بالأنظمة من هنا.
                                 </p>
+
                             </div>
+
                             <span class="settings-status">
+
                                 {{
                                     "متصل"
                                     if bot_online|default(true)
                                     else "غير متصل"
                                 }}
+
                             </span>
+
                         </div>
+
+
                         <div class="settings-list">
+
+
                             <div class="setting-row">
+
                                 <div>
+
                                     <strong>
                                         الترحيب
                                     </strong>
+
                                     <span>
                                         نظام رسائل الأعضاء الجدد
                                     </span>
+
                                 </div>
-                                <span
-                                    class="setting-value {% if settings and settings.welcome_enabled %}on{% else %}off{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.welcome_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="setting-value off">
+                                    غير محدد
                                 </span>
+
                             </div>
+
+
                             <div class="setting-row">
+
                                 <div>
+
                                     <strong>
                                         المستويات
                                     </strong>
+
                                     <span>
                                         XP والمستويات
                                     </span>
+
                                 </div>
-                                <span
-                                    class="setting-value {% if settings and settings.level_enabled %}on{% else %}off{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.level_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="setting-value off">
+                                    غير محدد
                                 </span>
+
                             </div>
+
+
                             <div class="setting-row">
+
                                 <div>
+
                                     <strong>
                                         التذاكر
                                     </strong>
+
                                     <span>
                                         نظام الدعم والتذاكر
                                     </span>
+
                                 </div>
-                                <span
-                                    class="setting-value {% if settings and settings.tickets_enabled %}on{% else %}off{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.tickets_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="setting-value off">
+                                    غير محدد
                                 </span>
+
                             </div>
+
+
                             <div class="setting-row">
+
                                 <div>
+
                                     <strong>
                                         التقديمات
                                     </strong>
+
                                     <span>
                                         نظام استقبال الطلبات
                                     </span>
+
                                 </div>
-                                <span
-                                    class="setting-value {% if settings and settings.applications_enabled %}on{% else %}off{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.applications_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="setting-value off">
+                                    غير محدد
                                 </span>
+
                             </div>
+
+
                             <div class="setting-row">
+
                                 <div>
+
                                     <strong>
                                         السجلات
                                     </strong>
+
                                     <span>
                                         تسجيل الأحداث المهمة
                                     </span>
+
                                 </div>
-                                <span
-                                    class="setting-value {% if settings and settings.logs_enabled %}on{% else %}off{% endif %}"
-                                >
-                                    {{
-                                        "مفعل"
-                                        if settings and settings.logs_enabled
-                                        else "متوقف"
-                                    }}
+
+                                <span class="setting-value off">
+                                    غير محدد
                                 </span>
+
                             </div>
+
+
                         </div>
+
                     </div>
+
                 </section>
-                <!-- =================================================
-                     Security
-                     ================================================= -->
+
+
+                <!-- Security -->
+
                 <section class="dashboard-security">
+
                     <div class="security-panel">
+
                         <div class="security-panel-icon">
                             🛡️
                         </div>
+
                         <div>
+
                             <span>
                                 الحماية
                             </span>
+
                             <h3>
                                 حسابك محمي بواسطة Discord OAuth2
                             </h3>
+
                             <p>
                                 Zivex لا يحتاج إلى كلمة مرور Discord
                                 ولا يطلبها منك.
                             </p>
+
                         </div>
+
                     </div>
+
                 </section>
+
+
                 <!-- Footer -->
+
                 <footer class="dashboard-footer">
+
                     <span>
                         © {{ current_year|default(2026) }} Zivex
                     </span>
+
                     <span>
                         لوحة تحكم Discord احترافية
                     </span>
+
                 </footer>
+
             </div>
+
         </main>
+
     </div>
+
+
     <!-- =====================================================
          Mobile Overlay
          ===================================================== -->
+
     <div
         class="dashboard-overlay"
         id="dashboard-overlay"
         hidden
     ></div>
+
+
     <!-- =====================================================
          Dashboard Menu Script
          ===================================================== -->
+
     <script>
+
         document.addEventListener("DOMContentLoaded", () => {
+
             const sidebar =
                 document.getElementById("dashboard-sidebar");
+
             const toggle =
                 document.getElementById("dashboard-menu-toggle");
+
             const overlay =
                 document.getElementById("dashboard-overlay");
+
+
             if (!sidebar || !toggle || !overlay) {
                 return;
             }
+
+
             const closeSidebar = () => {
+
                 sidebar.classList.remove("open");
+
                 overlay.classList.remove("active");
+
                 overlay.hidden = true;
-                toggle.setAttribute("aria-expanded", "false");
-                document.body.classList.remove("dashboard-menu-open");
+
+                toggle.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+                document.body.classList.remove(
+                    "dashboard-menu-open"
+                );
+
             };
+
+
             const openSidebar = () => {
+
                 sidebar.classList.add("open");
+
                 overlay.hidden = false;
+
                 requestAnimationFrame(() => {
                     overlay.classList.add("active");
                 });
-                toggle.setAttribute("aria-expanded", "true");
-                document.body.classList.add("dashboard-menu-open");
+
+                toggle.setAttribute(
+                    "aria-expanded",
+                    "true"
+                );
+
+                document.body.classList.add(
+                    "dashboard-menu-open"
+                );
+
             };
-            toggle.addEventListener("click", () => {
-                if (sidebar.classList.contains("open")) {
-                    closeSidebar();
-                } else {
-                    openSidebar();
+
+
+            toggle.addEventListener(
+                "click",
+                () => {
+
+                    if (
+                        sidebar.classList.contains("open")
+                    ) {
+
+                        closeSidebar();
+
+                    } else {
+
+                        openSidebar();
+
+                    }
+
                 }
-            });
-            overlay.addEventListener("click", closeSidebar);
+            );
+
+
+            overlay.addEventListener(
+                "click",
+                closeSidebar
+            );
+
+
             sidebar
                 .querySelectorAll("a")
                 .forEach((link) => {
-                    link.addEventListener("click", () => {
-                        if (window.innerWidth <= 900) {
-                            closeSidebar();
+
+                    link.addEventListener(
+                        "click",
+                        () => {
+
+                            if (
+                                window.innerWidth <= 900
+                            ) {
+
+                                closeSidebar();
+
+                            }
+
                         }
-                    });
+                    );
+
                 });
-            document.addEventListener("keydown", (event) => {
-                if (event.key === "Escape") {
-                    closeSidebar();
+
+
+            document.addEventListener(
+                "keydown",
+                (event) => {
+
+                    if (event.key === "Escape") {
+                        closeSidebar();
+                    }
+
                 }
-            });
-            window.addEventListener("resize", () => {
-                if (window.innerWidth > 900) {
-                    closeSidebar();
+            );
+
+
+            window.addEventListener(
+                "resize",
+                () => {
+
+                    if (window.innerWidth > 900) {
+                        closeSidebar();
+                    }
+
                 }
-            });
+            );
+
         });
+
     </script>
+
 </body>
+
 </html>
