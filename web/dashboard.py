@@ -46,17 +46,96 @@ MANAGE_GUILD = 1 << 5
 # Database / Async Helpers
 # =========================================================
 
-def run_async(coroutine):
+def run_async(coroutine, timeout=30):
     """
-    تشغيل Coroutine من داخل Flask.
+    تشغيل Coroutine داخل Event Loop الخاص بالبوت.
 
-    Flask يعمل بشكل متزامن بينما قاعدة البيانات async.
+    مهم جدًا:
+    لا نستخدم asyncio.run() هنا لأن البوت لديه Event Loop
+    رئيسي يعمل باستمرار.
+
+    Flask يعمل في Thread مختلف، لذلك نرسل العملية إلى
+    Event Loop الخاص بالبوت باستخدام run_coroutine_threadsafe.
     """
+
+    bot = get_bot()
+
+    if bot is None:
+        print("❌ Dashboard async error: Bot is not available.")
+
+        try:
+            coroutine.close()
+        except Exception:
+            pass
+
+        return None
 
     try:
-        return asyncio.run(coroutine)
+        loop = bot.loop
     except Exception as error:
-        print(f"❌ Dashboard database error: {error}")
+        print(
+            f"❌ Dashboard async error: "
+            f"Could not get bot loop: {error}"
+        )
+
+        try:
+            coroutine.close()
+        except Exception:
+            pass
+
+        return None
+
+    if loop is None:
+        print("❌ Dashboard async error: Bot loop is None.")
+
+        try:
+            coroutine.close()
+        except Exception:
+            pass
+
+        return None
+
+    if not loop.is_running():
+        print(
+            "❌ Dashboard async error: "
+            "Bot Event Loop is not running."
+        )
+
+        try:
+            coroutine.close()
+        except Exception:
+            pass
+
+        return None
+
+    try:
+        future = asyncio.run_coroutine_threadsafe(
+            coroutine,
+            loop,
+        )
+
+        return future.result(
+            timeout=timeout
+        )
+
+    except asyncio.TimeoutError:
+        print(
+            "❌ Dashboard async error: "
+            "Database operation timed out."
+        )
+
+        try:
+            future.cancel()
+        except Exception:
+            pass
+
+        return None
+
+    except Exception as error:
+        print(
+            f"❌ Dashboard async error: {error}"
+        )
+
         return None
 
 
@@ -150,7 +229,9 @@ def get_bot():
     الحصول على نسخة Zivex Bot المستخدمة بواسطة التطبيق.
     """
 
-    return current_app.config.get("ZIVEX_BOT")
+    return current_app.config.get(
+        "ZIVEX_BOT"
+    )
 
 
 def get_bot_guild(guild_id):
@@ -167,9 +248,13 @@ def get_bot_guild(guild_id):
         return None
 
     try:
-        return bot.get_guild(int(guild_id))
+        return bot.get_guild(
+            int(guild_id)
+        )
     except Exception as error:
-        print(f"⚠️ Bot guild lookup error: {error}")
+        print(
+            f"⚠️ Bot guild lookup error: {error}"
+        )
         return None
 
 
@@ -185,14 +270,23 @@ def can_manage_guild(guild_data):
     Manage Server
     """
 
-    if not isinstance(guild_data, dict):
+    if not isinstance(
+        guild_data,
+        dict,
+    ):
         return False
 
     try:
         permissions = int(
-            guild_data.get("permissions", 0)
+            guild_data.get(
+                "permissions",
+                0,
+            )
         )
-    except (TypeError, ValueError):
+    except (
+        TypeError,
+        ValueError,
+    ):
         return False
 
     return bool(
@@ -218,10 +312,16 @@ def get_user_guilds():
     if not token:
         return None
 
-    response = discord_get(
-        "/users/@me/guilds",
-        token,
-    )
+    try:
+        response = discord_get(
+            "/users/@me/guilds",
+            token,
+        )
+    except Exception as error:
+        print(
+            f"❌ Discord guild request error: {error}"
+        )
+        return None
 
     if response is None:
         return None
@@ -242,7 +342,10 @@ def get_user_guilds():
     except ValueError:
         return None
 
-    if not isinstance(guilds, list):
+    if not isinstance(
+        guilds,
+        list,
+    ):
         return None
 
     return guilds
@@ -263,7 +366,9 @@ def get_authorized_guild(guild_id):
     if not valid_guild_id(guild_id):
         return None
 
-    guild_id = str(guild_id)
+    guild_id = str(
+        guild_id
+    )
 
     guilds = get_user_guilds()
 
@@ -272,17 +377,25 @@ def get_authorized_guild(guild_id):
 
     for guild in guilds:
 
-        if not isinstance(guild, dict):
+        if not isinstance(
+            guild,
+            dict,
+        ):
             continue
 
         current_id = str(
-            guild.get("id", "")
+            guild.get(
+                "id",
+                "",
+            )
         )
 
         if current_id != guild_id:
             continue
 
-        if not can_manage_guild(guild):
+        if not can_manage_guild(
+            guild
+        ):
             return None
 
         return guild
@@ -294,7 +407,10 @@ def get_authorized_guild(guild_id):
 # Database
 # =========================================================
 
-def get_guild_settings(guild_id, bot_guild=None):
+def get_guild_settings(
+    guild_id,
+    bot_guild=None,
+):
     """
     جلب إعدادات السيرفر.
 
@@ -302,13 +418,19 @@ def get_guild_settings(guild_id, bot_guild=None):
     نقوم بإنشائه تلقائيًا.
     """
 
-    if not valid_guild_id(guild_id):
+    if not valid_guild_id(
+        guild_id
+    ):
         return {}
 
-    guild_id = int(guild_id)
+    guild_id = int(
+        guild_id
+    )
 
     settings = run_async(
-        db.get_guild(guild_id)
+        db.get_guild(
+            guild_id
+        )
     )
 
     if settings:
@@ -326,7 +448,7 @@ def get_guild_settings(guild_id, bot_guild=None):
         except Exception:
             icon_url = None
 
-        run_async(
+        created = run_async(
             db.ensure_guild(
                 guild_id,
                 bot_guild.name,
@@ -334,8 +456,16 @@ def get_guild_settings(guild_id, bot_guild=None):
             )
         )
 
+        if created is False:
+            print(
+                "⚠️ Could not ensure guild "
+                f"{guild_id}"
+            )
+
         settings = run_async(
-            db.get_guild(guild_id)
+            db.get_guild(
+                guild_id
+            )
         )
 
         if settings:
@@ -363,7 +493,10 @@ def get_system_status(settings):
     حالة جميع أنظمة Zivex.
     """
 
-    if not isinstance(settings, dict):
+    if not isinstance(
+        settings,
+        dict,
+    ):
         settings = {}
 
     return {
@@ -384,7 +517,9 @@ def get_system_status(settings):
 # Guild Statistics
 # =========================================================
 
-def get_guild_statistics(bot_guild):
+def get_guild_statistics(
+    bot_guild
+):
     """
     إحصائيات السيرفر من Discord Bot.
     """
@@ -436,7 +571,9 @@ def get_guild_statistics(bot_guild):
             "members": int(
                 bot_guild.member_count or 0
             ),
-            "channels": len(channels),
+            "channels": len(
+                channels
+            ),
             "text_channels": text_channels,
             "voice_channels": voice_channels,
             "categories": categories,
@@ -463,13 +600,19 @@ def get_guild_statistics(bot_guild):
 # Guild Data
 # =========================================================
 
-def build_guild_data(guild, bot_guild=None):
+def build_guild_data(
+    guild,
+    bot_guild=None,
+):
     """
     تجهيز بيانات السيرفر للـDashboard.
     """
 
     guild_id = str(
-        guild.get("id", "")
+        guild.get(
+            "id",
+            "",
+        )
     )
 
     settings = get_guild_settings(
@@ -487,7 +630,9 @@ def build_guild_data(guild, bot_guild=None):
             "name",
             "Unknown Server",
         ),
-        "icon": guild.get("icon"),
+        "icon": guild.get(
+            "icon"
+        ),
         "owner": bool(
             guild.get(
                 "owner",
@@ -511,7 +656,10 @@ def build_guild_data(guild, bot_guild=None):
 
 def login_required(view):
     @wraps(view)
-    def wrapped(*args, **kwargs):
+    def wrapped(
+        *args,
+        **kwargs,
+    ):
 
         if not require_login():
             return redirect(
@@ -536,13 +684,19 @@ def guild_required(view):
     """
 
     @wraps(view)
-    def wrapped(guild_id, *args, **kwargs):
+    def wrapped(
+        guild_id,
+        *args,
+        **kwargs,
+    ):
 
         if not require_login():
             return jsonify({
                 "success": False,
                 "error": "Unauthorized",
-                "message": "يجب تسجيل الدخول أولًا.",
+                "message": (
+                    "يجب تسجيل الدخول أولًا."
+                ),
             }), 401
 
         guild = get_authorized_guild(
@@ -598,12 +752,18 @@ def dashboard_home():
         ):
             continue
 
-        if not can_manage_guild(guild):
+        if not can_manage_guild(
+            guild
+        ):
             continue
 
-        guild_id = guild.get("id")
+        guild_id = guild.get(
+            "id"
+        )
 
-        if not valid_guild_id(guild_id):
+        if not valid_guild_id(
+            guild_id
+        ):
             continue
 
         bot_guild = get_bot_guild(
@@ -628,7 +788,8 @@ def dashboard_home():
             ),
             "installed": sum(
                 1
-                for guild in authorized_guilds
+                for guild
+                in authorized_guilds
                 if guild.get(
                     "bot_installed",
                     False,
@@ -642,9 +803,13 @@ def dashboard_home():
 # Guild Dashboard
 # =========================================================
 
-@dashboard_bp.route("/<guild_id>")
+@dashboard_bp.route(
+    "/<guild_id>"
+)
 @login_required
-def guild_dashboard(guild_id):
+def guild_dashboard(
+    guild_id
+):
     """
     لوحة التحكم الخاصة بسيرفر محدد.
     """
@@ -756,7 +921,9 @@ def guild_overview(
                 "name",
                 "Unknown Server",
             ),
-            "icon": guild.get("icon"),
+            "icon": guild.get(
+                "icon"
+            ),
             "owner": bool(
                 guild.get(
                     "owner",
@@ -875,7 +1042,9 @@ def update_settings_api(
 
     if "key" in data:
 
-        key = data.get("key")
+        key = data.get(
+            "key"
+        )
 
         if not isinstance(
             key,
@@ -906,7 +1075,9 @@ def update_settings_api(
                 "error": "MissingValue",
             }), 400
 
-        value = data.get("value")
+        value = data.get(
+            "value"
+        )
 
         result = run_async(
             db.update_setting(
@@ -927,7 +1098,9 @@ def update_settings_api(
 
         return jsonify({
             "success": True,
-            "message": "تم حفظ الإعداد بنجاح.",
+            "message": (
+                "تم حفظ الإعداد بنجاح."
+            ),
             "key": key,
             "value": value,
         })
@@ -936,7 +1109,9 @@ def update_settings_api(
     # عدة إعدادات
     # -----------------------------------------------------
 
-    settings = data.get("settings")
+    settings = data.get(
+        "settings"
+    )
 
     if isinstance(
         settings,
@@ -967,7 +1142,9 @@ def update_settings_api(
             if len(key) > 100:
                 continue
 
-            cleaned_settings[key] = value
+            cleaned_settings[
+                key
+            ] = value
 
         if not cleaned_settings:
             return jsonify({
@@ -1182,7 +1359,7 @@ def get_channels(
             "success": False,
             "error": "BotNotInstalled",
             "message": (
-                "البوت غير موجود في السيرفر."
+                "البوت غير موجود في هذا السيرفر."
             ),
         }), 400
 
@@ -1313,12 +1490,6 @@ def set_channel_api(
 ):
     """
     تعيين روم لأحد أنظمة Zivex.
-
-    مثال:
-    {
-        "system": "welcome",
-        "channel_id": "123456789"
-    }
     """
 
     bot_guild = get_bot_guild(
@@ -1375,6 +1546,7 @@ def set_channel_api(
         channel_id = None
 
     else:
+
         if not valid_guild_id(
             channel_id
         ):
@@ -1422,7 +1594,7 @@ def set_channel_api(
         "system": system,
         "channel_id": (
             str(channel_id)
-            if channel_id
+            if channel_id is not None
             else None
         ),
         "message": (
@@ -1445,8 +1617,7 @@ def save_message_config(
     guild,
 ):
     """
-    حفظ إعدادات الرسائل للأنظمة
-    التي يدعمها database.py.
+    حفظ إعدادات الرسائل.
     """
 
     bot_guild = get_bot_guild(
@@ -1500,10 +1671,18 @@ def save_message_config(
             ),
         }), 400
 
-    title = data.get("title")
-    message = data.get("message")
-    color = data.get("color")
-    footer = data.get("footer")
+    title = data.get(
+        "title"
+    )
+    message = data.get(
+        "message"
+    )
+    color = data.get(
+        "color"
+    )
+    footer = data.get(
+        "footer"
+    )
 
     if title is not None:
         title = str(title)[:256]
