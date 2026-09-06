@@ -1,4 +1,3 @@
-import asyncio
 import random
 import time
 from typing import Optional
@@ -14,7 +13,6 @@ class LevelResetConfirmView(discord.ui.View):
         super().__init__(timeout=30)
         self.cog = cog
         self.author_id = author_id
-        self.confirmed = False
 
     async def interaction_check(
         self,
@@ -39,13 +37,11 @@ class LevelResetConfirmView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        self.confirmed = True
-
         for child in self.children:
             child.disabled = True
 
         await interaction.response.edit_message(
-            content="⏳ جاري تصفير مستويات جميع الأعضاء...",
+            content="⏳ جاري تصفير جميع المستويات...",
             view=self,
         )
 
@@ -54,9 +50,7 @@ class LevelResetConfirmView(discord.ui.View):
         )
 
         await interaction.edit_original_response(
-            content=(
-                f"✅ تم تصفير مستويات **{count}** عضو."
-            ),
+            content=f"✅ تم تصفير مستويات **{count}** عضو.",
             view=self,
         )
 
@@ -86,48 +80,35 @@ class LevelResetConfirmView(discord.ui.View):
 class Levels(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
         self.cooldowns: dict[tuple[int, int], float] = {}
-
-        self._table_ready = False
-        self._table_lock = asyncio.Lock()
+        self.table_ready = False
 
     # =========================================================
     # Database
     # =========================================================
 
     async def ensure_table(self):
-        if self._table_ready:
+        if self.table_ready:
             return
 
-        async with self._table_lock:
-            if self._table_ready:
-                return
-
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS user_levels (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    xp INTEGER NOT NULL DEFAULT 0,
-                    level INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_levels (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                xp INTEGER NOT NULL DEFAULT 0,
+                level INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
             )
+            """
+        )
 
-            await db.commit()
+        await db.commit()
+        self.table_ready = True
 
-            self._table_ready = True
-
-    async def get_settings(
-        self,
-        guild: discord.Guild,
-    ):
+    async def get_settings(self, guild):
         try:
-            settings = await db.get_guild(
-                guild.id
-            )
+            settings = await db.get_guild(guild.id)
 
             if settings:
                 return settings
@@ -142,9 +123,7 @@ class Levels(commands.Cog):
                 ),
             )
 
-            return await db.get_guild(
-                guild.id
-            )
+            return await db.get_guild(guild.id)
 
         except Exception as error:
             print(
@@ -153,56 +132,11 @@ class Levels(commands.Cog):
             )
             return None
 
-    # =========================================================
-    # Helpers
-    # =========================================================
-
-    @staticmethod
-    def parse_color(value) -> discord.Color:
-        if not value:
-            return discord.Color.blurple()
-
-        try:
-            value = str(value).strip()
-
-            if value.startswith("#"):
-                value = value[1:]
-
-            if value.lower().startswith("0x"):
-                value = value[2:]
-
-            if len(value) != 6:
-                return discord.Color.blurple()
-
-            return discord.Color(
-                int(value, 16)
-            )
-
-        except (ValueError, TypeError):
-            return discord.Color.blurple()
-
-    @staticmethod
-    def positive_int(
-        value,
-        default: int,
-        minimum: int = 1,
-        maximum: int = 10_000_000,
-    ) -> int:
-        try:
-            value = int(value)
-        except (TypeError, ValueError):
-            return default
-
-        return max(
-            minimum,
-            min(value, maximum),
-        )
-
     async def get_user_data(
         self,
         guild_id: int,
         user_id: int,
-    ) -> dict:
+    ):
         await self.ensure_table()
 
         cursor = await db.execute(
@@ -210,12 +144,9 @@ class Levels(commands.Cog):
             SELECT xp, level
             FROM user_levels
             WHERE guild_id = ?
-              AND user_id = ?
+            AND user_id = ?
             """,
-            (
-                guild_id,
-                user_id,
-            ),
+            (guild_id, user_id),
         )
 
         row = await cursor.fetchone()
@@ -223,31 +154,18 @@ class Levels(commands.Cog):
         if row is None:
             await db.execute(
                 """
-                INSERT INTO user_levels (
-                    guild_id,
-                    user_id,
-                    xp,
-                    level
-                )
+                INSERT INTO user_levels
+                (guild_id, user_id, xp, level)
                 VALUES (?, ?, 0, 0)
                 """,
-                (
-                    guild_id,
-                    user_id,
-                ),
+                (guild_id, user_id),
             )
 
             await db.commit()
 
-            return {
-                "xp": 0,
-                "level": 0,
-            }
+            return 0, 0
 
-        return {
-            "xp": int(row[0] or 0),
-            "level": int(row[1] or 0),
-        }
+        return int(row[0]), int(row[1])
 
     async def set_user_data(
         self,
@@ -260,12 +178,8 @@ class Levels(commands.Cog):
 
         await db.execute(
             """
-            INSERT INTO user_levels (
-                guild_id,
-                user_id,
-                xp,
-                level
-            )
+            INSERT INTO user_levels
+            (guild_id, user_id, xp, level)
             VALUES (?, ?, ?, ?)
             ON CONFLICT(guild_id, user_id)
             DO UPDATE SET
@@ -282,18 +196,70 @@ class Levels(commands.Cog):
 
         await db.commit()
 
-    def xp_required(
-        self,
-        settings,
-    ) -> int:
-        return self.positive_int(
-            settings.get(
-                "level_xp_per_level",
-                100,
+    # =========================================================
+    # Helpers
+    # =========================================================
+
+    @staticmethod
+    def parse_color(value):
+        if not value:
+            return discord.Color.blurple()
+
+        try:
+            value = str(value).strip()
+            value = value.replace("#", "")
+
+            if value.lower().startswith("0x"):
+                value = value[2:]
+
+            if len(value) != 6:
+                return discord.Color.blurple()
+
+            return discord.Color(int(value, 16))
+
+        except (ValueError, TypeError):
+            return discord.Color.blurple()
+
+    @staticmethod
+    def replace_variables(
+        text: str,
+        member: discord.Member,
+        level: int,
+        xp: int,
+    ):
+        variables = {
+            "{user}": member.mention,
+            "{username}": member.display_name,
+            "{server}": member.guild.name,
+            "{member_count}": str(
+                member.guild.member_count or 0
             ),
-            100,
-            minimum=1,
-            maximum=1_000_000,
+            "{level}": str(level),
+            "{xp}": str(xp),
+        }
+
+        for key, value in variables.items():
+            text = text.replace(
+                key,
+                str(value),
+            )
+
+        return text
+
+    def xp_per_level(self, settings):
+        try:
+            value = int(
+                settings.get(
+                    "level_xp_per_level",
+                    100,
+                )
+            )
+        except (TypeError, ValueError):
+            value = 100
+
+        return max(
+            1,
+            min(value, 1_000_000),
         )
 
     # =========================================================
@@ -304,37 +270,32 @@ class Levels(commands.Cog):
         self,
         member: discord.Member,
         amount: int,
-        announce: bool = True,
-    ) -> tuple[int, int, bool]:
+        announce=True,
+    ):
         settings = await self.get_settings(
             member.guild
         )
 
-        if settings is None:
+        if not settings:
             return 0, 0, False
 
-        data = await self.get_user_data(
+        old_xp, old_level = await self.get_user_data(
             member.guild.id,
             member.id,
         )
 
-        old_level = data["level"]
-        old_xp = data["xp"]
-
-        xp_per_level = self.xp_required(
+        required = self.xp_per_level(
             settings
         )
 
         new_xp = max(
             0,
-            old_xp + int(amount),
+            old_xp + amount,
         )
 
-        new_level = new_xp // xp_per_level
+        new_level = new_xp // required
 
-        leveled_up = (
-            new_level > old_level
-        )
+        leveled_up = new_level > old_level
 
         await self.set_user_data(
             member.guild.id,
@@ -361,29 +322,26 @@ class Levels(commands.Cog):
         self,
         member: discord.Member,
         amount: int,
-    ) -> tuple[int, int]:
+    ):
         settings = await self.get_settings(
             member.guild
         )
 
-        if settings is None:
-            return 0, 0
+        required = self.xp_per_level(
+            settings
+        )
 
-        data = await self.get_user_data(
+        xp, _ = await self.get_user_data(
             member.guild.id,
             member.id,
         )
 
-        xp_per_level = self.xp_required(
-            settings
-        )
-
         new_xp = max(
             0,
-            data["xp"] - int(amount),
+            xp - amount,
         )
 
-        new_level = new_xp // xp_per_level
+        new_level = new_xp // required
 
         await self.set_user_data(
             member.guild.id,
@@ -392,33 +350,26 @@ class Levels(commands.Cog):
             new_level,
         )
 
-        return (
-            new_xp,
-            new_level,
-        )
+        return new_xp, new_level
 
     # =========================================================
-    # Level Up Message
+    # Level Up
     # =========================================================
 
     async def send_level_up(
         self,
-        member: discord.Member,
-        level: int,
-        xp: int,
+        member,
+        level,
+        xp,
         settings,
     ):
         title = (
-            settings.get(
-                "level_title"
-            )
+            settings.get("level_title")
             or "🎉 مستوى جديد!"
         )
 
         message = (
-            settings.get(
-                "level_message"
-            )
+            settings.get("level_message")
             or (
                 "مبروك {user}! وصلت إلى "
                 "المستوى **{level}**."
@@ -426,9 +377,7 @@ class Levels(commands.Cog):
         )
 
         footer = (
-            settings.get(
-                "level_footer"
-            )
+            settings.get("level_footer")
             or "Zivex • Levels"
         )
 
@@ -457,9 +406,7 @@ class Levels(commands.Cog):
             title=title,
             description=message,
             color=self.parse_color(
-                settings.get(
-                    "level_color"
-                )
+                settings.get("level_color")
             ),
             timestamp=discord.utils.utcnow(),
         )
@@ -470,24 +417,16 @@ class Levels(commands.Cog):
                 1,
             )
         ):
-            try:
-                embed.set_thumbnail(
-                    url=member.display_avatar.url
-                )
-            except Exception:
-                pass
+            embed.set_thumbnail(
+                url=member.display_avatar.url
+            )
 
-        try:
-            if member.guild.icon:
-                embed.set_footer(
-                    text=footer,
-                    icon_url=member.guild.icon.url,
-                )
-            else:
-                embed.set_footer(
-                    text=footer
-                )
-        except Exception:
+        if member.guild.icon:
+            embed.set_footer(
+                text=footer,
+                icon_url=member.guild.icon.url,
+            )
+        else:
             embed.set_footer(
                 text=footer
             )
@@ -529,27 +468,11 @@ class Levels(commands.Cog):
                 ),
             )
 
-        except discord.Forbidden:
-            print(
-                f"⚠️ [LEVELS] Missing permissions "
-                f"in guild {member.guild.id}."
-            )
-
-        except discord.HTTPException as error:
-            print(
-                f"⚠️ [LEVELS] Discord API error "
-                f"in guild {member.guild.id}: {error}"
-            )
-
         except Exception as error:
             print(
-                f"❌ [LEVELS] Level-up message error: "
+                f"⚠️ [LEVELS] Level-up message error: "
                 f"{error}"
             )
-
-        # -----------------------------------------------------
-        # Logs
-        # -----------------------------------------------------
 
         logs = self.bot.get_cog("Logs")
 
@@ -565,35 +488,6 @@ class Levels(commands.Cog):
                     f"⚠️ [LEVELS] Log error: {error}"
                 )
 
-    @staticmethod
-    def replace_variables(
-        text: str,
-        member: discord.Member,
-        level: int,
-        xp: int,
-    ) -> str:
-        if not text:
-            return ""
-
-        variables = {
-            "{user}": member.mention,
-            "{username}": member.display_name,
-            "{server}": member.guild.name,
-            "{level}": str(level),
-            "{xp}": str(xp),
-            "{member_count}": str(
-                member.guild.member_count or 0
-            ),
-        }
-
-        for key, value in variables.items():
-            text = text.replace(
-                key,
-                str(value),
-            )
-
-        return text
-
     # =========================================================
     # Message XP
     # =========================================================
@@ -603,10 +497,11 @@ class Levels(commands.Cog):
         self,
         message: discord.Message,
     ):
-        if message.author.bot:
-            return
-
-        if not message.guild:
+        if (
+            message.author.bot
+            or message.webhook_id
+            or not message.guild
+        ):
             return
 
         if not isinstance(
@@ -619,7 +514,7 @@ class Levels(commands.Cog):
             message.guild
         )
 
-        if settings is None:
+        if not settings:
             return
 
         if not bool(
@@ -630,49 +525,18 @@ class Levels(commands.Cog):
         ):
             return
 
-        # -----------------------------------------------------
-        # Avoid bots/webhooks.
-        # -----------------------------------------------------
-
-        if message.webhook_id:
-            return
-
-        # -----------------------------------------------------
-        # Channel restriction.
-        # -----------------------------------------------------
-
-        configured_channel = settings.get(
-            "level_channel_id"
-        )
-
-        if configured_channel:
-            try:
-                configured_channel = int(
-                    configured_channel
-                )
-            except (
-                TypeError,
-                ValueError,
-            ):
-                configured_channel = None
-
-            # The configured level channel is for
-            # announcements, not XP restriction.
-            # Therefore XP still works in all channels.
-
-        # -----------------------------------------------------
-        # Cooldown.
-        # -----------------------------------------------------
-
-        cooldown = self.positive_int(
-            settings.get(
-                "level_cooldown",
-                60,
-            ),
+        cooldown = settings.get(
+            "level_cooldown",
             60,
-            minimum=1,
-            maximum=86_400,
         )
+
+        try:
+            cooldown = max(
+                1,
+                min(int(cooldown), 86400),
+            )
+        except (TypeError, ValueError):
+            cooldown = 60
 
         key = (
             message.guild.id,
@@ -681,41 +545,46 @@ class Levels(commands.Cog):
 
         now = time.monotonic()
 
-        last = self.cooldowns.get(
-            key,
-            0,
-        )
-
-        if now - last < cooldown:
+        if (
+            now - self.cooldowns.get(
+                key,
+                0,
+            )
+            < cooldown
+        ):
             return
 
         self.cooldowns[key] = now
 
-        # -----------------------------------------------------
-        # XP range.
-        # -----------------------------------------------------
+        try:
+            xp_min = int(
+                settings.get(
+                    "level_xp_min",
+                    15,
+                )
+            )
 
-        xp_min = self.positive_int(
-            settings.get(
-                "level_xp_min",
-                15,
-            ),
-            15,
-            minimum=1,
-            maximum=10_000,
+            xp_max = int(
+                settings.get(
+                    "level_xp_max",
+                    25,
+                )
+            )
+        except (TypeError, ValueError):
+            xp_min = 15
+            xp_max = 25
+
+        xp_min = max(
+            1,
+            min(xp_min, 10000),
         )
 
-        xp_max = self.positive_int(
-            settings.get(
-                "level_xp_max",
-                25,
-            ),
-            25,
-            minimum=1,
-            maximum=10_000,
+        xp_max = max(
+            1,
+            min(xp_max, 10000),
         )
 
-        if xp_max < xp_min:
+        if xp_min > xp_max:
             xp_min, xp_max = (
                 xp_max,
                 xp_min,
@@ -732,69 +601,99 @@ class Levels(commands.Cog):
         )
 
     # =========================================================
-    # Admin Checks
+    # Permission
     # =========================================================
 
-    async def ensure_manager(
+    async def is_manager(
         self,
-        ctx: commands.Context,
-    ) -> bool:
-        if not isinstance(
-            ctx.author,
-            discord.Member,
-        ):
-            return False
-
-        if ctx.guild is None:
-            return False
-
-        if ctx.author.guild_permissions.manage_guild:
+        user,
+    ):
+        if await self.bot.is_owner(user):
             return True
 
-        if await self.bot.is_owner(
+        return (
+            isinstance(user, discord.Member)
+            and user.guild_permissions.manage_guild
+        )
+
+    async def check_manager(
+        self,
+        ctx,
+    ):
+        if await self.is_manager(
             ctx.author
         ):
             return True
 
         await ctx.send(
-            "❌ تحتاج صلاحية **إدارة السيرفر** لاستخدام هذا الأمر."
+            "❌ تحتاج صلاحية **إدارة السيرفر**."
         )
 
         return False
 
-    async def ensure_slash_manager(
+    # =========================================================
+    # Rank
+    # =========================================================
+
+    async def get_rank(
         self,
-        interaction: discord.Interaction,
-    ) -> bool:
-        if interaction.guild is None:
-            return False
+        guild_id,
+        user_id,
+    ):
+        await self.ensure_table()
 
-        member = interaction.user
-
-        if (
-            isinstance(
-                member,
-                discord.Member,
+        cursor = await db.execute(
+            """
+            SELECT COUNT(*)
+            FROM user_levels
+            WHERE guild_id = ?
+            AND xp > (
+                SELECT COALESCE(xp, 0)
+                FROM user_levels
+                WHERE guild_id = ?
+                AND user_id = ?
             )
-            and member.guild_permissions.manage_guild
-        ):
-            return True
+            """,
+            (
+                guild_id,
+                guild_id,
+                user_id,
+            ),
+        )
 
-        if await self.bot.is_owner(
-            member
-        ):
-            return True
+        row = await cursor.fetchone()
 
-        if not interaction.response.is_done():
-            await interaction.response.send_message(
-                "❌ تحتاج صلاحية **إدارة السيرفر**.",
-                ephemeral=True,
-            )
+        return (
+            int(row[0]) + 1
+            if row
+            else 1
+        )
 
-        return False
+    async def get_leaderboard(
+        self,
+        guild_id,
+        limit=10,
+    ):
+        await self.ensure_table()
+
+        cursor = await db.execute(
+            """
+            SELECT user_id, xp, level
+            FROM user_levels
+            WHERE guild_id = ?
+            ORDER BY xp DESC, level DESC, user_id ASC
+            LIMIT ?
+            """,
+            (
+                guild_id,
+                max(1, min(limit, 100)),
+            ),
+        )
+
+        return await cursor.fetchall()
 
     # =========================================================
-    # Commands Group - Arabic
+    # Arabic Prefix Commands
     # =========================================================
 
     @commands.group(
@@ -803,61 +702,59 @@ class Levels(commands.Cog):
     )
     async def level_group(
         self,
-        ctx: commands.Context,
+        ctx,
         member: Optional[discord.Member] = None,
     ):
+        if not ctx.guild:
+            return
+
         member = member or ctx.author
 
-        data = await self.get_user_data(
+        xp, level = await self.get_user_data(
             ctx.guild.id,
             member.id,
         )
 
-        settings = await self.get_settings(
-            ctx.guild
-        )
-
-        xp_per_level = (
-            self.xp_required(settings)
-            if settings
-            else 100
+        rank = await self.get_rank(
+            ctx.guild.id,
+            member.id,
         )
 
         await ctx.send(
             (
-                f"📊 **معلومات مستوى {member.display_name}**\n"
-                f"⭐ المستوى: `{data['level']}`\n"
-                f"✨ XP: `{data['xp']}`\n"
-                f"📈 XP للمستوى التالي: "
-                f"`{xp_per_level}`"
+                f"📊 **معلومات المستوى**\n"
+                f"👤 العضو: {member.mention}\n"
+                f"⭐ المستوى: `{level}`\n"
+                f"✨ XP: `{xp:,}`\n"
+                f"🏆 الترتيب: `#{rank}`"
             )
         )
 
     @level_group.command(
-        name="اضافة",
+        name="اضافة"
     )
     async def level_add(
         self,
-        ctx: commands.Context,
+        ctx,
         member: discord.Member,
         amount: int,
     ):
-        if not await self.ensure_manager(ctx):
+        if not await self.check_manager(ctx):
             return
 
         if amount <= 0:
             await ctx.send(
-                "❌ يجب أن يكون مقدار الـXP أكبر من صفر."
+                "❌ اكتب مقدار XP أكبر من صفر."
             )
             return
 
         if amount > 10_000_000:
             await ctx.send(
-                "❌ الحد الأقصى هو `10,000,000 XP`."
+                "❌ الحد الأقصى `10,000,000 XP`."
             )
             return
 
-        xp, level, leveled = await self.add_xp(
+        xp, level, _ = await self.add_xp(
             member,
             amount,
             announce=False,
@@ -873,26 +770,20 @@ class Levels(commands.Cog):
         )
 
     @level_group.command(
-        name="حذف",
+        name="حذف"
     )
     async def level_remove(
         self,
-        ctx: commands.Context,
+        ctx,
         member: discord.Member,
         amount: int,
     ):
-        if not await self.ensure_manager(ctx):
+        if not await self.check_manager(ctx):
             return
 
         if amount <= 0:
             await ctx.send(
-                "❌ يجب أن يكون مقدار الـXP أكبر من صفر."
-            )
-            return
-
-        if amount > 10_000_000:
-            await ctx.send(
-                "❌ الحد الأقصى هو `10,000,000 XP`."
+                "❌ اكتب مقدار XP أكبر من صفر."
             )
             return
 
@@ -911,21 +802,60 @@ class Levels(commands.Cog):
         )
 
     @level_group.command(
-        name="تصفير",
+        name="رتبة"
+    )
+    async def level_rank(
+        self,
+        ctx,
+        member: Optional[discord.Member] = None,
+    ):
+        member = member or ctx.author
+
+        xp, level = await self.get_user_data(
+            ctx.guild.id,
+            member.id,
+        )
+
+        rank = await self.get_rank(
+            ctx.guild.id,
+            member.id,
+        )
+
+        await ctx.send(
+            (
+                f"🏆 **ترتيب {member.display_name}**\n"
+                f"الترتيب: `#{rank}`\n"
+                f"المستوى: `{level}`\n"
+                f"XP: `{xp:,}`"
+            )
+        )
+
+    @level_group.command(
+        name="تصفير"
     )
     async def level_reset(
         self,
-        ctx: commands.Context,
+        ctx,
         member: Optional[discord.Member] = None,
     ):
-        if not await self.ensure_manager(ctx):
+        if not await self.check_manager(ctx):
             return
 
+        # !ليفل تصفير @everyone
         if member is None:
+            view = LevelResetConfirmView(
+                self,
+                ctx.author.id,
+            )
+
             await ctx.send(
-                "❌ حدد عضوًا، أو استخدم:\n"
-                "`!ليفل تصفير @العضو`\n"
-                "لتصفير عضو واحد."
+                (
+                    "⚠️ **تأكيد تصفير الجميع**\n\n"
+                    "سيتم تصفير XP والمستوى لجميع "
+                    "الأعضاء المسجلين في نظام الليفل.\n"
+                    "لا يمكن التراجع عن العملية."
+                ),
+                view=view,
             )
             return
 
@@ -940,287 +870,27 @@ class Levels(commands.Cog):
             f"✅ تم تصفير مستوى {member.mention}."
         )
 
-    @level_group.command(
-        name="رتبة",
-    )
-    async def level_rank(
-        self,
-        ctx: commands.Context,
-        member: Optional[discord.Member] = None,
-    ):
-        member = member or ctx.author
-
-        rank = await self.get_rank(
-            ctx.guild.id,
-            member.id,
-        )
-
-        data = await self.get_user_data(
-            ctx.guild.id,
-            member.id,
-        )
-
-        await ctx.send(
-            (
-                f"🏆 رتبة {member.mention}: "
-                f"`#{rank}`\n"
-                f"⭐ المستوى: `{data['level']}`\n"
-                f"✨ XP: `{data['xp']:,}`"
-            )
-        )
-
-    @level_group.command(
-        name="تصفير-الكل",
-    )
-    async def level_reset_all_alias(
-        self,
-        ctx: commands.Context,
-    ):
-        await self.reset_everyone(
-            ctx
-        )
-
-    # Support the requested:
-    # !ليفل تصفير @everyone
-    @level_group.command(
-        name="تصفير",
-    )
-    async def level_reset_duplicate(
-        self,
-        ctx: commands.Context,
-        target: Optional[str] = None,
-    ):
-        # This method intentionally won't be reached because
-        # Discord.py does not allow duplicate subcommand names.
-        # Kept out of runtime by the alternate implementation below.
-        return
-
     # =========================================================
-    # Better Arabic "تصفير" Handler
+    # Leaderboard Prefix
     # =========================================================
 
     @commands.command(
-        name="ليفل_تصفير_الكل",
+        name="ترتيب"
     )
-    async def reset_all_command(
+    async def leaderboard(
         self,
-        ctx: commands.Context,
+        ctx,
     ):
-        await self.reset_everyone(
-            ctx
-        )
-
-    async def reset_everyone(
-        self,
-        ctx: commands.Context,
-    ):
-        if not await self.ensure_manager(ctx):
+        if not ctx.guild:
             return
-
-        view = LevelResetConfirmView(
-            self,
-            ctx.author.id,
-        )
-
-        await ctx.send(
-            (
-                "⚠️ **تأكيد تصفير جميع المستويات**\n\n"
-                "سيتم حذف XP والمستوى لجميع أعضاء السيرفر.\n"
-                "لا يمكن التراجع عن العملية."
-            ),
-            view=view,
-        )
-
-    async def reset_all_users(
-        self,
-        guild: discord.Guild,
-    ) -> int:
-        await self.ensure_table()
-
-        cursor = await db.execute(
-            """
-            SELECT COUNT(*)
-            FROM user_levels
-            WHERE guild_id = ?
-            """,
-            (guild.id,),
-        )
-
-        row = await cursor.fetchone()
-
-        count = int(
-            row[0] or 0
-        ) if row else 0
-
-        await db.execute(
-            """
-            UPDATE user_levels
-            SET xp = 0,
-                level = 0
-            WHERE guild_id = ?
-            """,
-            (guild.id,),
-        )
-
-        await db.commit()
-
-        return count
-
-    # =========================================================
-    # Ranking
-    # =========================================================
-
-    async def get_rank(
-        self,
-        guild_id: int,
-        user_id: int,
-    ) -> int:
-        await self.ensure_table()
-
-        cursor = await db.execute(
-            """
-            SELECT COUNT(*)
-            FROM user_levels
-            WHERE guild_id = ?
-              AND (
-                  xp > (
-                      SELECT xp
-                      FROM user_levels
-                      WHERE guild_id = ?
-                        AND user_id = ?
-                  )
-                  OR (
-                      xp = (
-                          SELECT xp
-                          FROM user_levels
-                          WHERE guild_id = ?
-                            AND user_id = ?
-                      )
-                      AND user_id < ?
-                  )
-              )
-            """,
-            (
-                guild_id,
-                guild_id,
-                user_id,
-                guild_id,
-                user_id,
-                user_id,
-            ),
-        )
-
-        row = await cursor.fetchone()
-
-        return (
-            int(row[0] or 0) + 1
-            if row
-            else 1
-        )
-
-    async def get_leaderboard(
-        self,
-        guild_id: int,
-        limit: int = 10,
-    ):
-        await self.ensure_table()
-
-        limit = max(
-            1,
-            min(int(limit), 100),
-        )
-
-        cursor = await db.execute(
-            """
-            SELECT user_id, xp, level
-            FROM user_levels
-            WHERE guild_id = ?
-            ORDER BY xp DESC, user_id ASC
-            LIMIT ?
-            """,
-            (
-                guild_id,
-                limit,
-            ),
-        )
-
-        return await cursor.fetchall()
-
-    # =========================================================
-    # Slash Commands
-    # =========================================================
-
-    @discord.app_commands.command(
-        name="level",
-        description="عرض مستوى عضو",
-    )
-    @discord.app_commands.describe(
-        member="العضو",
-    )
-    async def slash_level(
-        self,
-        interaction: discord.Interaction,
-        member: Optional[discord.Member] = None,
-    ):
-        if interaction.guild is None:
-            await interaction.response.send_message(
-                "❌ هذا الأمر داخل السيرفرات فقط.",
-                ephemeral=True,
-            )
-            return
-
-        member = member or interaction.user
-
-        data = await self.get_user_data(
-            interaction.guild.id,
-            member.id,
-        )
-
-        rank = await self.get_rank(
-            interaction.guild.id,
-            member.id,
-        )
-
-        await interaction.response.send_message(
-            (
-                f"📊 **معلومات {member.display_name}**\n"
-                f"⭐ المستوى: `{data['level']}`\n"
-                f"✨ XP: `{data['xp']:,}`\n"
-                f"🏆 الترتيب: `#{rank}`"
-            )
-        )
-
-    @discord.app_commands.command(
-        name="leaderboard",
-        description="عرض قائمة أعلى الأعضاء في المستويات",
-    )
-    @discord.app_commands.describe(
-        limit="عدد الأعضاء",
-    )
-    async def slash_leaderboard(
-        self,
-        interaction: discord.Interaction,
-        limit: int = 10,
-    ):
-        if interaction.guild is None:
-            await interaction.response.send_message(
-                "❌ هذا الأمر داخل السيرفرات فقط.",
-                ephemeral=True,
-            )
-            return
-
-        limit = max(
-            1,
-            min(limit, 25),
-        )
 
         rows = await self.get_leaderboard(
-            interaction.guild.id,
-            limit,
+            ctx.guild.id,
+            10,
         )
 
         if not rows:
-            await interaction.response.send_message(
+            await ctx.send(
                 "📊 لا توجد بيانات مستويات حتى الآن."
             )
             return
@@ -1229,13 +899,13 @@ class Levels(commands.Cog):
 
         for index, row in enumerate(
             rows,
-            start=1,
+            1,
         ):
             user_id = int(row[0])
-            xp = int(row[1] or 0)
-            level = int(row[2] or 0)
+            xp = int(row[1])
+            level = int(row[2])
 
-            member = interaction.guild.get_member(
+            member = ctx.guild.get_member(
                 user_id
             )
 
@@ -1262,6 +932,123 @@ class Levels(commands.Cog):
             )
 
         embed = discord.Embed(
+            title="🏆 ترتيب المستويات",
+            description="\n".join(lines),
+            color=discord.Color.blurple(),
+        )
+
+        await ctx.send(
+            embed=embed
+        )
+
+    # =========================================================
+    # Slash Commands
+    # =========================================================
+
+    @discord.app_commands.command(
+        name="level",
+        description="عرض مستوى عضو",
+    )
+    @discord.app_commands.describe(
+        member="العضو",
+    )
+    async def slash_level(
+        self,
+        interaction,
+        member: Optional[discord.Member] = None,
+    ):
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "❌ هذا الأمر داخل السيرفر فقط.",
+                ephemeral=True,
+            )
+            return
+
+        member = member or interaction.user
+
+        xp, level = await self.get_user_data(
+            interaction.guild.id,
+            member.id,
+        )
+
+        rank = await self.get_rank(
+            interaction.guild.id,
+            member.id,
+        )
+
+        await interaction.response.send_message(
+            (
+                f"📊 **معلومات المستوى**\n"
+                f"👤 العضو: {member.mention}\n"
+                f"⭐ المستوى: `{level}`\n"
+                f"✨ XP: `{xp:,}`\n"
+                f"🏆 الترتيب: `#{rank}`"
+            )
+        )
+
+    @discord.app_commands.command(
+        name="leaderboard",
+        description="عرض ترتيب المستويات",
+    )
+    @discord.app_commands.describe(
+        limit="عدد الأعضاء",
+    )
+    async def slash_leaderboard(
+        self,
+        interaction,
+        limit: int = 10,
+    ):
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "❌ هذا الأمر داخل السيرفر فقط.",
+                ephemeral=True,
+            )
+            return
+
+        limit = max(
+            1,
+            min(limit, 25),
+        )
+
+        rows = await self.get_leaderboard(
+            interaction.guild.id,
+            limit,
+        )
+
+        if not rows:
+            await interaction.response.send_message(
+                "📊 لا توجد بيانات مستويات حتى الآن."
+            )
+            return
+
+        lines = []
+
+        for index, row in enumerate(
+            rows,
+            1,
+        ):
+            user_id = int(row[0])
+            xp = int(row[1])
+            level = int(row[2])
+
+            member = interaction.guild.get_member(
+                user_id
+            )
+
+            name = (
+                member.display_name
+                if member
+                else f"عضو {user_id}"
+            )
+
+            lines.append(
+                (
+                    f"`#{index}` **{name}** — "
+                    f"Level `{level}` • XP `{xp:,}`"
+                )
+            )
+
+        embed = discord.Embed(
             title="🏆 Level Leaderboard",
             description="\n".join(lines),
             color=discord.Color.blurple(),
@@ -1281,25 +1068,22 @@ class Levels(commands.Cog):
     )
     async def slash_level_add(
         self,
-        interaction: discord.Interaction,
+        interaction,
         member: discord.Member,
         amount: int,
     ):
-        if not await self.ensure_slash_manager(
-            interaction
+        if not await self.is_manager(
+            interaction.user
         ):
+            await interaction.response.send_message(
+                "❌ تحتاج صلاحية إدارة السيرفر.",
+                ephemeral=True,
+            )
             return
 
         if amount <= 0:
             await interaction.response.send_message(
                 "❌ يجب أن يكون XP أكبر من صفر.",
-                ephemeral=True,
-            )
-            return
-
-        if amount > 10_000_000:
-            await interaction.response.send_message(
-                "❌ الحد الأقصى هو `10,000,000 XP`.",
                 ephemeral=True,
             )
             return
@@ -1329,13 +1113,17 @@ class Levels(commands.Cog):
     )
     async def slash_level_remove(
         self,
-        interaction: discord.Interaction,
+        interaction,
         member: discord.Member,
         amount: int,
     ):
-        if not await self.ensure_slash_manager(
-            interaction
+        if not await self.is_manager(
+            interaction.user
         ):
+            await interaction.response.send_message(
+                "❌ تحتاج صلاحية إدارة السيرفر.",
+                ephemeral=True,
+            )
             return
 
         if amount <= 0:
@@ -1368,12 +1156,16 @@ class Levels(commands.Cog):
     )
     async def slash_level_reset(
         self,
-        interaction: discord.Interaction,
+        interaction,
         member: discord.Member,
     ):
-        if not await self.ensure_slash_manager(
-            interaction
+        if not await self.is_manager(
+            interaction.user
         ):
+            await interaction.response.send_message(
+                "❌ تحتاج صلاحية إدارة السيرفر.",
+                ephemeral=True,
+            )
             return
 
         await self.set_user_data(
@@ -1396,108 +1188,86 @@ class Levels(commands.Cog):
     )
     async def slash_level_rank(
         self,
-        interaction: discord.Interaction,
+        interaction,
         member: Optional[discord.Member] = None,
     ):
-        if interaction.guild is None:
+        if not interaction.guild:
             await interaction.response.send_message(
-                "❌ هذا الأمر داخل السيرفرات فقط.",
+                "❌ هذا الأمر داخل السيرفر فقط.",
                 ephemeral=True,
             )
             return
 
         member = member or interaction.user
 
-        rank = await self.get_rank(
+        xp, level = await self.get_user_data(
             interaction.guild.id,
             member.id,
         )
 
-        data = await self.get_user_data(
+        rank = await self.get_rank(
             interaction.guild.id,
             member.id,
         )
 
         await interaction.response.send_message(
             (
-                f"🏆 {member.mention} ترتيبه "
-                f"`#{rank}`\n"
-                f"⭐ المستوى: `{data['level']}`\n"
-                f"✨ XP: `{data['xp']:,}`"
+                f"🏆 **ترتيب {member.display_name}**\n"
+                f"الترتيب: `#{rank}`\n"
+                f"المستوى: `{level}`\n"
+                f"XP: `{xp:,}`"
             )
         )
 
     # =========================================================
-    # Traditional Prefix Command
+    # Reset All
     # =========================================================
 
-    @commands.command(
-        name="ترتيب",
-        aliases=["ليفلترتيب"],
-    )
-    async def prefix_leaderboard(
+    async def reset_all_users(
         self,
-        ctx: commands.Context,
+        guild: discord.Guild,
     ):
-        if ctx.guild is None:
-            return
+        await self.ensure_table()
 
-        rows = await self.get_leaderboard(
-            ctx.guild.id,
-            10,
+        cursor = await db.execute(
+            """
+            SELECT COUNT(*)
+            FROM user_levels
+            WHERE guild_id = ?
+            """,
+            (guild.id,),
         )
 
-        if not rows:
-            await ctx.send(
-                "📊 لا توجد بيانات مستويات حتى الآن."
-            )
-            return
+        row = await cursor.fetchone()
 
-        lines = []
-
-        for index, row in enumerate(
-            rows,
-            start=1,
-        ):
-            user_id = int(row[0])
-            xp = int(row[1] or 0)
-            level = int(row[2] or 0)
-
-            member = ctx.guild.get_member(
-                user_id
-            )
-
-            name = (
-                member.display_name
-                if member
-                else f"عضو {user_id}"
-            )
-
-            lines.append(
-                (
-                    f"`#{index}` **{name}** — "
-                    f"Level `{level}` • XP `{xp:,}`"
-                )
-            )
-
-        embed = discord.Embed(
-            title="🏆 ترتيب المستويات",
-            description="\n".join(lines),
-            color=discord.Color.blurple(),
+        count = (
+            int(row[0])
+            if row
+            else 0
         )
 
-        await ctx.send(
-            embed=embed
+        await db.execute(
+            """
+            UPDATE user_levels
+            SET xp = 0,
+                level = 0
+            WHERE guild_id = ?
+            """,
+            (guild.id,),
         )
+
+        await db.commit()
+
+        return count
 
     # =========================================================
-    # Cleanup
+    # Guild Cleanup
     # =========================================================
 
     @commands.Cog.listener()
     async def on_guild_remove(
         self,
-        guild: discord.Guild,
+        guild,
     ):
         keys = [
             key
@@ -1516,11 +1286,7 @@ class Levels(commands.Cog):
 # Setup
 # =========================================================
 
-async def setup(
-    bot: commands.Bot,
-):
-    cog = Levels(bot)
-
+async def setup(bot: commands.Bot):
     await bot.add_cog(
-        cog
+        Levels(bot)
     )
