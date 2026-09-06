@@ -1,78 +1,238 @@
-import os
 import asyncio
-import logging
-from threading import Thread
+import os
+import threading
 
 import discord
 from discord.ext import commands
-from flask import Flask
 
+from config import DISCORD_TOKEN, PREFIX, WEB_HOST, WEB_PORT
 from database import db
+from web.app import create_app
 
 
 # =========================================================
-# Logging
+# Zivex Bot
 # =========================================================
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
-
-logger = logging.getLogger("Zivex")
-
-
-# =========================================================
-# Configuration
-# =========================================================
-
-TOKEN = os.getenv("DISCORD_TOKEN")
-
-if not TOKEN:
-    raise RuntimeError(
-        "DISCORD_TOKEN environment variable is missing."
-    )
-
-
-PREFIX = "!"
-
-
-# =========================================================
-# Intents
-# =========================================================
-
-intents = discord.Intents.default()
-
-intents.guilds = True
-intents.members = True
-intents.messages = True
-intents.message_content = True
-intents.presences = True
-
-
-# =========================================================
-# Bot
-# =========================================================
-
-class ZivexBot(commands.Bot):
+class Zivex(commands.Bot):
 
     def __init__(self):
+
+        intents = discord.Intents.default()
+
+        intents.members = True
+        intents.message_content = True
+
         super().__init__(
             command_prefix=PREFIX,
             intents=intents,
             help_command=None,
-            case_insensitive=True,
-            strip_after_prefix=True,
         )
 
-        self.ready_once = False
-        self.web_server = None
+        # =====================================================
+        # Maintenance State
+        # =====================================================
 
-    # =====================================================
-    # Setup Hook
-    # =====================================================
+        self.maintenance_mode = False
+
+        # =====================================================
+        # Global Slash Command Check
+        # =====================================================
+
+        self.tree.interaction_check = self._maintenance_interaction_check
+
+    # =========================================================
+    # Database - Maintenance
+    # =========================================================
+
+    async def setup_maintenance_database(self):
+
+        async with await db.connect() as database:
+
+            await database.execute(
+                """
+                CREATE TABLE IF NOT EXISTS zivex_global_settings (
+                    setting TEXT PRIMARY KEY,
+                    value TEXT NOT NULL DEFAULT ''
+                )
+                """
+            )
+
+            cursor = await database.execute(
+                """
+                SELECT value
+                FROM zivex_global_settings
+                WHERE setting = ?
+                """,
+                ("maintenance_mode",),
+            )
+
+            row = await cursor.fetchone()
+
+            if row:
+                self.maintenance_mode = str(row[0]) == "1"
+            else:
+                await database.execute(
+                    """
+                    INSERT INTO zivex_global_settings
+                    (setting, value)
+                    VALUES (?, ?)
+                    """,
+                    ("maintenance_mode", "0"),
+                )
+
+                await database.commit()
+
+        print(
+            "🔧 Maintenance:",
+            "ON" if self.maintenance_mode else "OFF",
+        )
+
+    async def set_maintenance(self, enabled: bool):
+
+        self.maintenance_mode = bool(enabled)
+
+        async with await db.connect() as database:
+
+            await database.execute(
+                """
+                INSERT INTO zivex_global_settings
+                (setting, value)
+                VALUES (?, ?)
+                ON CONFLICT(setting)
+                DO UPDATE SET value = excluded.value
+                """,
+                (
+                    "maintenance_mode",
+                    "1" if enabled else "0",
+                ),
+            )
+
+            await database.commit()
+
+    # =========================================================
+    # Prefix Command Protection
+    # =========================================================
+
+    async def bot_check(self, ctx):
+
+        # -----------------------------------------------------
+        # !صيانة لازم يظل شغال دائمًا
+        # -----------------------------------------------------
+
+        if ctx.command:
+
+            command_name = str(ctx.command.name).lower()
+
+            if command_name == "صيانة":
+                return True
+
+        # -----------------------------------------------------
+        # الوضع الطبيعي
+        # -----------------------------------------------------
+
+        if not self.maintenance_mode:
+            return True
+
+        # -----------------------------------------------------
+        # وضع الصيانة
+        # -----------------------------------------------------
+
+        try:
+
+            await ctx.send(
+                "🔧 **البوت تحت الصيانة حاليًا.**\n"
+                "⏳ جميع الأوامر متوقفة مؤقتًا.\n"
+                "يرجى المحاولة لاحقًا."
+            )
+
+        except Exception:
+            pass
+
+        return False
+
+    # =========================================================
+    # Slash Command Protection
+    # =========================================================
+
+    async def _maintenance_interaction_check(self, interaction):
+
+        # -----------------------------------------------------
+        # إذا ليست Slash Command
+        # لا نوقف الأزرار والمودالات
+        # -----------------------------------------------------
+
+        if interaction.type != discord.InteractionType.application_command:
+            return True
+
+        # -----------------------------------------------------
+        # الوضع الطبيعي
+        # -----------------------------------------------------
+
+        if not self.maintenance_mode:
+            return True
+
+        # -----------------------------------------------------
+        # وضع الصيانة
+        # -----------------------------------------------------
+
+        try:
+
+            if interaction.response.is_done():
+
+                await interaction.followup.send(
+                    "🔧 **البوت تحت الصيانة حاليًا.**\n"
+                    "⏳ جميع الأوامر متوقفة مؤقتًا.\n"
+                    "يرجى المحاولة لاحقًا.",
+                    ephemeral=True,
+                )
+
+            else:
+
+                await interaction.response.send_message(
+                    "🔧 **البوت تحت الصيانة حاليًا.**\n"
+                    "⏳ جميع الأوامر متوقفة مؤقتًا.\n"
+                    "يرجى المحاولة لاحقًا.",
+                    ephemeral=True,
+                )
+
+        except Exception:
+            pass
+
+        return False
+
+    # =========================================================
+    # Setup
+    # =========================================================
 
     async def setup_hook(self):
+
+        print("🔧 Starting Zivex...")
+
+        # =====================================================
+        # Database
+        # =====================================================
+
+        await db.setup()
+
+        # =====================================================
+        # Maintenance Database
+        # =====================================================
+
+        try:
+
+            await self.setup_maintenance_database()
+
+        except Exception as error:
+
+            print(
+                f"❌ Maintenance database error: {error}"
+            )
+
+        # =====================================================
+        # Load Cogs
+        # =====================================================
+
         cogs = [
             "cogs.utility",
             "cogs.welcome",
@@ -81,322 +241,443 @@ class ZivexBot(commands.Bot):
             "cogs.tickets",
             "cogs.applications",
             "cogs.owner",
-            "cogs.logs",
         ]
 
         for cog in cogs:
+
             try:
+
                 await self.load_extension(cog)
-                logger.info(
-                    "Loaded cog: %s",
-                    cog,
+
+                print(
+                    f"✅ Loaded: {cog}"
                 )
 
-            except commands.ExtensionAlreadyLoaded:
-                logger.warning(
-                    "Cog already loaded: %s",
-                    cog,
+            except Exception as error:
+
+                print(
+                    f"❌ Failed to load {cog}: {error}"
                 )
 
-            except commands.ExtensionNotFound:
-                logger.exception(
-                    "Cog not found: %s",
-                    cog,
+        # =====================================================
+        # Ensure Guilds
+        # =====================================================
+
+        for guild in self.guilds:
+
+            try:
+
+                await db.ensure_guild(
+                    guild.id,
+                    guild.name,
+                    str(guild.icon.url)
+                    if guild.icon
+                    else None,
                 )
 
-            except commands.ExtensionFailed:
-                logger.exception(
-                    "Cog failed to load: %s",
-                    cog,
+            except Exception as error:
+
+                print(
+                    f"⚠️ Guild setup error "
+                    f"({guild.id}): {error}"
                 )
 
-            except Exception:
-                logger.exception(
-                    "Unexpected error loading cog: %s",
-                    cog,
-                )
-
-        # -------------------------------------------------
-        # Sync slash commands
-        # -------------------------------------------------
+        # =====================================================
+        # Sync Slash Commands
+        # =====================================================
 
         try:
+
             synced = await self.tree.sync()
 
-            logger.info(
-                "Synced %s application command(s).",
-                len(synced),
+            print(
+                f"✅ Synced {len(synced)} slash commands."
             )
 
-        except Exception:
-            logger.exception(
-                "Failed to sync application commands."
+        except Exception as error:
+
+            print(
+                f"❌ Slash sync failed: {error}"
             )
 
 
 # =========================================================
-# Create Bot
+# Bot Instance
 # =========================================================
 
-bot = ZivexBot()
+bot = Zivex()
 
 
 # =========================================================
-# Discord Events
+# Maintenance Command
+# =========================================================
+
+@bot.command(
+    name="صيانة",
+    help="تشغيل أو إيقاف وضع الصيانة."
+)
+async def maintenance(ctx):
+
+    # =====================================================
+    # Owner Only
+    # =====================================================
+
+    try:
+
+        is_owner = await bot.is_owner(ctx.author)
+
+    except Exception:
+
+        is_owner = False
+
+    if not is_owner:
+
+        await ctx.send(
+            "❌ هذا الأمر مخصص لصاحب البوت فقط."
+        )
+
+        return
+
+    # =====================================================
+    # Toggle
+    # =====================================================
+
+    new_state = not bot.maintenance_mode
+
+    try:
+
+        await bot.set_maintenance(new_state)
+
+    except Exception as error:
+
+        await ctx.send(
+            "❌ حدث خطأ أثناء تغيير وضع الصيانة."
+        )
+
+        print(
+            f"❌ Maintenance toggle error: {error}"
+        )
+
+        return
+
+    # =====================================================
+    # Maintenance ON
+    # =====================================================
+
+    if new_state:
+
+        try:
+
+            await bot.change_presence(
+                status=discord.Status.dnd,
+                activity=discord.Game(
+                    "🔧 تحت الصيانة"
+                ),
+            )
+
+        except Exception as error:
+
+            print(
+                f"⚠️ Maintenance presence error: {error}"
+            )
+
+        await ctx.send(
+            "🔧 **تم تفعيل وضع الصيانة.**\n\n"
+            "🚫 جميع أوامر البوت توقفت الآن.\n"
+            "🚫 Prefix Commands متوقفة.\n"
+            "🚫 Slash Commands متوقفة.\n\n"
+            "✅ الأمر الوحيد الذي يعمل أثناء الصيانة هو:\n"
+            "`!صيانة`\n\n"
+            "يمكنك كتابة `!صيانة` مرة أخرى لإيقاف الصيانة."
+        )
+
+        print(
+            "🔧 Maintenance mode ENABLED."
+        )
+
+        return
+
+    # =====================================================
+    # Maintenance OFF
+    # =====================================================
+
+    try:
+
+        await bot.change_presence(
+            status=discord.Status.online,
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{len(bot.guilds)} servers",
+            ),
+        )
+
+    except Exception as error:
+
+        print(
+            f"⚠️ Normal presence error: {error}"
+        )
+
+    await ctx.send(
+        "✅ **تم إيقاف وضع الصيانة.**\n\n"
+        "🟢 جميع أوامر البوت عادت للعمل."
+    )
+
+    print(
+        "🟢 Maintenance mode DISABLED."
+    )
+
+
+# =========================================================
+# Bot Events
 # =========================================================
 
 @bot.event
 async def on_ready():
 
-    if bot.ready_once:
-        logger.info(
-            "Reconnected as %s (%s).",
-            bot.user,
-            bot.user.id if bot.user else "unknown",
+    print(
+        f""
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🤖 Zivex Online\n"
+        f"📌 Name: {bot.user}\n"
+        f"🆔 ID: {bot.user.id}\n"
+        f"🌐 Servers: {len(bot.guilds)}\n"
+        f"🔧 Maintenance: "
+        f"{'ON' if bot.maintenance_mode else 'OFF'}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    )
+
+    # =====================================================
+    # Update Guild Information
+    # =====================================================
+
+    for guild in bot.guilds:
+
+        try:
+
+            await db.ensure_guild(
+                guild.id,
+                guild.name,
+                str(guild.icon.url)
+                if guild.icon
+                else None,
+            )
+
+        except Exception as error:
+
+            print(
+                f"⚠️ Failed to update guild "
+                f"{guild.id}: {error}"
+            )
+
+    # =====================================================
+    # Presence
+    # =====================================================
+
+    try:
+
+        if bot.maintenance_mode:
+
+            await bot.change_presence(
+                status=discord.Status.dnd,
+                activity=discord.Game(
+                    "🔧 تحت الصيانة"
+                ),
+            )
+
+        else:
+
+            await bot.change_presence(
+                status=discord.Status.online,
+                activity=discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name=f"{len(bot.guilds)} servers",
+                ),
+            )
+
+    except Exception as error:
+
+        print(
+            f"⚠️ Presence error: {error}"
         )
-        return
 
-    bot.ready_once = True
 
-    logger.info(
-        "========================================"
+# =========================================================
+# Guild Join
+# =========================================================
+
+@bot.event
+async def on_guild_join(guild):
+
+    print(
+        f"➕ Joined server: "
+        f"{guild.name} ({guild.id})"
     )
 
-    logger.info(
-        "Zivex is online."
+    try:
+
+        await db.ensure_guild(
+            guild.id,
+            guild.name,
+            str(guild.icon.url)
+            if guild.icon
+            else None,
+        )
+
+    except Exception as error:
+
+        print(
+            f"⚠️ Guild database error: {error}"
+        )
+
+
+# =========================================================
+# Guild Remove
+# =========================================================
+
+@bot.event
+async def on_guild_remove(guild):
+
+    print(
+        f"➖ Left server: "
+        f"{guild.name} ({guild.id})"
     )
 
-    logger.info(
-        "Logged in as: %s",
-        bot.user,
-    )
 
-    logger.info(
-        "Bot ID: %s",
-        bot.user.id if bot.user else "unknown",
-    )
-
-    logger.info(
-        "Servers: %s",
-        len(bot.guilds),
-    )
-
-    logger.info(
-        "Users visible: %s",
-        sum(
-            guild.member_count or 0
-            for guild in bot.guilds
-        ),
-    )
-
-    logger.info(
-        "========================================"
-    )
-
+# =========================================================
+# Command Errors
+# =========================================================
 
 @bot.event
 async def on_command_error(
-    ctx: commands.Context,
-    error: commands.CommandError,
+    ctx,
+    error,
 ):
 
-    # -----------------------------------------------------
-    # Ignore command-not-found
-    # -----------------------------------------------------
+    # =====================================================
+    # Maintenance Check
+    # =====================================================
+
+    if isinstance(
+        error,
+        commands.CheckFailure,
+    ):
+
+        return
+
+    # =====================================================
+    # Command Not Found
+    # =====================================================
 
     if isinstance(
         error,
         commands.CommandNotFound,
     ):
+
         return
 
-    # -----------------------------------------------------
-    # Missing arguments
-    # -----------------------------------------------------
-
-    if isinstance(
-        error,
-        commands.MissingRequiredArgument,
-    ):
-        await ctx.send(
-            "❌ ناقصك بعض البيانات المطلوبة للأمر."
-        )
-        return
-
-    # -----------------------------------------------------
-    # Bad argument
-    # -----------------------------------------------------
-
-    if isinstance(
-        error,
-        commands.BadArgument,
-    ):
-        await ctx.send(
-            "❌ البيانات المدخلة غير صحيحة."
-        )
-        return
-
-    # -----------------------------------------------------
-    # Missing permissions
-    # -----------------------------------------------------
+    # =====================================================
+    # Missing Permissions
+    # =====================================================
 
     if isinstance(
         error,
         commands.MissingPermissions,
     ):
+
         await ctx.send(
-            "❌ ما عندك الصلاحيات المطلوبة لهذا الأمر."
+            "❌ ما عندك الصلاحيات المطلوبة."
         )
+
         return
 
-    # -----------------------------------------------------
-    # Bot missing permissions
-    # -----------------------------------------------------
+    # =====================================================
+    # Missing Argument
+    # =====================================================
 
     if isinstance(
         error,
-        commands.BotMissingPermissions,
+        commands.MissingRequiredArgument,
     ):
+
         await ctx.send(
-            "❌ البوت ما عنده الصلاحيات المطلوبة."
+            "❌ ناقصك بعض المعلومات في الأمر."
         )
+
         return
 
-    # -----------------------------------------------------
-    # Not owner
-    # -----------------------------------------------------
+    # =====================================================
+    # Bad Argument
+    # =====================================================
 
     if isinstance(
         error,
-        commands.NotOwner,
+        commands.BadArgument,
     ):
-        await ctx.send(
-            "❌ هذا الأمر خاص بمالك البوت."
-        )
-        return
-
-    # -----------------------------------------------------
-    # Cooldown
-    # -----------------------------------------------------
-
-    if isinstance(
-        error,
-        commands.CommandOnCooldown,
-    ):
-        seconds = max(
-            1,
-            int(error.retry_after),
-        )
 
         await ctx.send(
-            f"⏳ انتظر {seconds} ثانية قبل استخدام الأمر مرة أخرى."
+            "❌ البيانات التي أدخلتها غير صحيحة."
         )
+
         return
 
-    # -----------------------------------------------------
-    # Command disabled
-    # -----------------------------------------------------
+    # =====================================================
+    # Other Errors
+    # =====================================================
 
-    if isinstance(
-        error,
-        commands.DisabledCommand,
-    ):
-        await ctx.send(
-            "❌ هذا الأمر معطل حاليًا."
-        )
-        return
-
-    # -----------------------------------------------------
-    # Unwrap original error
-    # -----------------------------------------------------
-
-    original = getattr(
-        error,
-        "original",
-        error,
+    print(
+        f"❌ Command error: {error}"
     )
 
-    logger.error(
-        "Command error in %s: %s",
-        getattr(
-            ctx.command,
-            "qualified_name",
-            "unknown",
-        ),
-        original,
-        exc_info=(
-            type(original),
-            original,
-            original.__traceback__,
-        ),
-    )
+
+# =========================================================
+# Flask Dashboard
+# =========================================================
+
+def start_web():
 
     try:
-        await ctx.send(
-            "❌ حدث خطأ غير متوقع أثناء تنفيذ الأمر."
+
+        # Railway provides PORT automatically.
+        railway_port = os.getenv("PORT")
+
+        try:
+
+            port = int(
+                railway_port
+                if railway_port
+                else WEB_PORT
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            port = int(WEB_PORT)
+
+        # =====================================================
+        # Create Flask using SAME bot instance
+        # =====================================================
+
+        app = create_app(bot)
+
+        print(
+            f"🌐 Zivex Dashboard starting "
+            f"on {WEB_HOST}:{port}"
         )
-    except Exception:
-        pass
 
-
-# =========================================================
-# Global Discord Error Handler
-# =========================================================
-
-@bot.event
-async def on_error(
-    event_method: str,
-    *args,
-    **kwargs,
-):
-    logger.exception(
-        "Unhandled Discord event error: %s",
-        event_method,
-    )
-
-
-# =========================================================
-# Flask Health Server
-# =========================================================
-
-app = Flask(__name__)
-
-
-@app.get("/")
-def home():
-    return {
-        "status": "online",
-        "service": "Zivex Bot",
-    }, 200
-
-
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy",
-        "bot": (
-            str(bot.user)
-            if bot.user
-            else None
-        ),
-        "guilds": len(bot.guilds),
-    }, 200
-
-
-def run_web_server():
-    port = int(
-        os.getenv(
-            "PORT",
-            "8080",
+        app.run(
+            host=WEB_HOST,
+            port=port,
+            debug=False,
+            use_reloader=False,
         )
-    )
 
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False,
-        use_reloader=False,
-    )
+    except Exception as error:
+
+        print(
+            f"❌ Dashboard failed to start: {error}"
+        )
 
 
 # =========================================================
@@ -405,38 +686,50 @@ def run_web_server():
 
 async def main():
 
-    web_thread = Thread(
-        target=run_web_server,
+    if not DISCORD_TOKEN:
+
+        raise RuntimeError(
+            "❌ DISCORD_TOKEN is missing "
+            "from Railway Variables."
+        )
+
+    # =====================================================
+    # Start Dashboard
+    # =====================================================
+
+    web_thread = threading.Thread(
+        target=start_web,
+        name="ZivexDashboard",
         daemon=True,
     )
 
     web_thread.start()
 
-    try:
-        await bot.start(
-            TOKEN,
-            reconnect=True,
-        )
+    # =====================================================
+    # Start Discord Bot
+    # =====================================================
 
-    finally:
-        try:
-            await db.close()
-        except Exception:
-            logger.exception(
-                "Failed to close database."
-            )
+    print(
+        "🚀 Starting Zivex Bot..."
+    )
 
+    await bot.start(
+        DISCORD_TOKEN
+    )
+
+
+# =========================================================
+# Start
+# =========================================================
 
 if __name__ == "__main__":
+
     try:
+
         asyncio.run(main())
 
     except KeyboardInterrupt:
-        logger.info(
-            "Zivex stopped manually."
-        )
 
-    except Exception:
-        logger.exception(
-            "Zivex stopped because of an unexpected error."
+        print(
+            "🛑 Zivex stopped."
         )
