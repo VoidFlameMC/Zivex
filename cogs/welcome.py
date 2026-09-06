@@ -7,26 +7,13 @@ from database import db
 class Welcome(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
-        # Invite cache:
-        # {
-        #     guild_id: {
-        #         invite_code: {
-        #             "uses": int,
-        #             "inviter_id": int | None
-        #         }
-        #     }
-        # }
-        self.invite_cache: dict[int, dict] = {}
+        self.invite_cache: dict[int, dict[str, dict]] = {}
 
     # =========================================================
-    # Settings
+    # Helpers
     # =========================================================
 
-    async def get_settings(
-        self,
-        guild: discord.Guild,
-    ):
+    async def get_settings(self, guild: discord.Guild):
         try:
             settings = await db.get_guild(guild.id)
 
@@ -39,7 +26,7 @@ class Welcome(commands.Cog):
                 guild_icon=(
                     str(guild.icon.url)
                     if guild.icon
-                    else ""
+                    else None
                 ),
             )
 
@@ -47,17 +34,29 @@ class Welcome(commands.Cog):
 
         except Exception as error:
             print(
-                f"❌ Welcome settings error "
-                f"({guild.id}): {error}"
+                f"❌ [WELCOME] Database error "
+                f"for {guild.id}: {error}"
             )
             return None
 
-    # =========================================================
-    # Variables
-    # =========================================================
+    @staticmethod
+    def parse_color(value) -> discord.Color:
+        if not value:
+            return discord.Color.blurple()
 
+        try:
+            value = str(value).strip().replace("#", "")
+
+            if len(value) != 6:
+                return discord.Color.blurple()
+
+            return discord.Color(int(value, 16))
+
+        except (ValueError, TypeError):
+            return discord.Color.blurple()
+
+    @staticmethod
     def replace_variables(
-        self,
         text: str,
         member: discord.Member,
         inviter=None,
@@ -65,78 +64,35 @@ class Welcome(commands.Cog):
         if not text:
             return ""
 
-        guild = member.guild
-
         inviter_text = "غير معروف"
 
         if inviter:
             inviter_text = getattr(
                 inviter,
                 "mention",
-                getattr(
-                    inviter,
-                    "name",
-                    "غير معروف",
-                ),
+                getattr(inviter, "name", "غير معروف"),
             )
 
-        replacements = {
+        variables = {
             "{user}": member.mention,
             "{username}": member.display_name,
-            "{server}": guild.name,
+            "{server}": member.guild.name,
             "{member_count}": str(
-                guild.member_count or 0
+                member.guild.member_count or 0
             ),
             "{inviter}": inviter_text,
         }
 
-        for key, value in replacements.items():
-            text = text.replace(
-                key,
-                str(value),
-            )
+        for key, value in variables.items():
+            text = text.replace(key, str(value))
 
         return text
 
     # =========================================================
-    # Color
+    # Invite System
     # =========================================================
 
-    def parse_color(
-        self,
-        value,
-    ) -> discord.Color:
-        try:
-            if not value:
-                return discord.Color.blurple()
-
-            value = (
-                str(value)
-                .strip()
-                .replace("#", "")
-            )
-
-            if len(value) != 6:
-                return discord.Color.blurple()
-
-            return discord.Color(
-                int(value, 16)
-            )
-
-        except (
-            ValueError,
-            TypeError,
-        ):
-            return discord.Color.blurple()
-
-    # =========================================================
-    # Invite Cache
-    # =========================================================
-
-    async def cache_invites(
-        self,
-        guild: discord.Guild,
-    ) -> None:
+    async def cache_invites(self, guild: discord.Guild):
         try:
             invites = await guild.invites()
 
@@ -146,14 +102,7 @@ class Welcome(commands.Cog):
 
         except discord.HTTPException as error:
             print(
-                f"⚠️ Failed to fetch invites "
-                f"for {guild.id}: {error}"
-            )
-            return
-
-        except Exception as error:
-            print(
-                f"❌ Invite cache error "
+                f"⚠️ [WELCOME] Could not fetch invites "
                 f"for {guild.id}: {error}"
             )
             return
@@ -172,15 +121,8 @@ class Welcome(commands.Cog):
 
         self.invite_cache[guild.id] = cache
 
-    # =========================================================
-    # Find Inviter
-    # =========================================================
-
-    async def find_inviter(
-        self,
-        guild: discord.Guild,
-    ):
-        old_cache = self.invite_cache.get(
+    async def find_inviter(self, guild: discord.Guild):
+        previous = self.invite_cache.get(
             guild.id,
             {},
         )
@@ -193,14 +135,7 @@ class Welcome(commands.Cog):
 
         except discord.HTTPException as error:
             print(
-                f"⚠️ Invite lookup HTTP error "
-                f"for {guild.id}: {error}"
-            )
-            return None
-
-        except Exception as error:
-            print(
-                f"❌ Invite lookup error "
+                f"⚠️ [WELCOME] Invite lookup failed "
                 f"for {guild.id}: {error}"
             )
             return None
@@ -211,7 +146,7 @@ class Welcome(commands.Cog):
         for invite in invites:
             current_uses = invite.uses or 0
 
-            old_data = old_cache.get(
+            old_data = previous.get(
                 invite.code,
                 {},
             )
@@ -235,10 +170,10 @@ class Welcome(commands.Cog):
 
         self.invite_cache[guild.id] = new_cache
 
-        if used_invite is None:
-            return None
+        if used_invite:
+            return used_invite.inviter
 
-        return used_invite.inviter
+        return None
 
     # =========================================================
     # Logs
@@ -248,7 +183,7 @@ class Welcome(commands.Cog):
         self,
         member: discord.Member,
         inviter=None,
-    ) -> None:
+    ):
         logs = self.bot.get_cog("Logs")
 
         if logs is None:
@@ -265,7 +200,7 @@ class Welcome(commands.Cog):
                     "inline": True,
                 },
                 {
-                    "name": "👥 عدد الأعضاء",
+                    "name": "👥 الأعضاء",
                     "value": (
                         f"`{member.guild.member_count or 0}`"
                     ),
@@ -291,9 +226,9 @@ class Welcome(commands.Cog):
 
             await logs.send_log(
                 guild=member.guild,
-                title="📥 عضو دخل السيرفر",
+                title="📥 عضو جديد",
                 description=(
-                    f"دخل {member.mention} "
+                    f"انضم {member.mention} "
                     f"إلى السيرفر."
                 ),
                 color=discord.Color.green(),
@@ -303,12 +238,12 @@ class Welcome(commands.Cog):
 
         except Exception as error:
             print(
-                f"⚠️ Join log error "
-                f"({member.guild.id}): {error}"
+                f"⚠️ [WELCOME] Join log failed "
+                f"for {member.guild.id}: {error}"
             )
 
     # =========================================================
-    # Bot Ready
+    # Events
     # =========================================================
 
     @commands.Cog.listener()
@@ -317,13 +252,9 @@ class Welcome(commands.Cog):
             await self.cache_invites(guild)
 
         print(
-            f"✅ Welcome system ready "
-            f"for {len(self.bot.guilds)} guild(s)."
+            f"✅ [WELCOME] Ready for "
+            f"{len(self.bot.guilds)} guild(s)."
         )
-
-    # =========================================================
-    # Guild Join
-    # =========================================================
 
     @commands.Cog.listener()
     async def on_guild_join(
@@ -337,21 +268,16 @@ class Welcome(commands.Cog):
                 guild_icon=(
                     str(guild.icon.url)
                     if guild.icon
-                    else ""
+                    else None
                 ),
             )
-
         except Exception as error:
             print(
-                f"⚠️ Guild database error "
-                f"({guild.id}): {error}"
+                f"⚠️ [WELCOME] Guild setup failed "
+                f"for {guild.id}: {error}"
             )
 
         await self.cache_invites(guild)
-
-    # =========================================================
-    # Guild Remove
-    # =========================================================
 
     @commands.Cog.listener()
     async def on_guild_remove(
@@ -363,10 +289,6 @@ class Welcome(commands.Cog):
             None,
         )
 
-    # =========================================================
-    # Invite Create
-    # =========================================================
-
     @commands.Cog.listener()
     async def on_invite_create(
         self,
@@ -376,10 +298,6 @@ class Welcome(commands.Cog):
             await self.cache_invites(
                 invite.guild
             )
-
-    # =========================================================
-    # Invite Delete
-    # =========================================================
 
     @commands.Cog.listener()
     async def on_invite_delete(
@@ -402,25 +320,16 @@ class Welcome(commands.Cog):
     ):
         guild = member.guild
 
-        # -----------------------------------------------------
-        # Find inviter
-        # -----------------------------------------------------
-
         inviter = await self.find_inviter(
             guild
         )
-
-        # -----------------------------------------------------
-        # Database settings
-        # -----------------------------------------------------
 
         settings = await self.get_settings(
             guild
         )
 
         # -----------------------------------------------------
-        # Even if database/settings fail,
-        # don't crash the bot.
+        # Logs remain independent from welcome.
         # -----------------------------------------------------
 
         if settings is None:
@@ -431,7 +340,7 @@ class Welcome(commands.Cog):
             return
 
         # -----------------------------------------------------
-        # Welcome enabled?
+        # Welcome disabled
         # -----------------------------------------------------
 
         if not bool(
@@ -447,7 +356,7 @@ class Welcome(commands.Cog):
             return
 
         # -----------------------------------------------------
-        # Welcome channel
+        # Channel
         # -----------------------------------------------------
 
         channel_id = settings.get(
@@ -460,11 +369,7 @@ class Welcome(commands.Cog):
                 if channel_id
                 else None
             )
-
-        except (
-            TypeError,
-            ValueError,
-        ):
+        except (TypeError, ValueError):
             channel_id = None
 
         if channel_id is None:
@@ -489,7 +394,7 @@ class Welcome(commands.Cog):
             return
 
         # -----------------------------------------------------
-        # Message
+        # Content
         # -----------------------------------------------------
 
         title = (
@@ -503,7 +408,10 @@ class Welcome(commands.Cog):
             settings.get(
                 "welcome_message"
             )
-            or "أهلًا وسهلًا {user} في {server}! 🎉"
+            or (
+                "أهلًا وسهلًا {user} "
+                "في {server}! 🎉"
+            )
         )
 
         footer = (
@@ -567,23 +475,23 @@ class Welcome(commands.Cog):
         # Footer
         # -----------------------------------------------------
 
-        if guild.icon:
-            try:
+        try:
+            if guild.icon:
                 embed.set_footer(
                     text=footer,
                     icon_url=guild.icon.url,
                 )
-            except Exception:
+            else:
                 embed.set_footer(
                     text=footer
                 )
-        else:
+        except Exception:
             embed.set_footer(
                 text=footer
             )
 
         # -----------------------------------------------------
-        # Send welcome
+        # Send
         # -----------------------------------------------------
 
         try:
@@ -599,20 +507,20 @@ class Welcome(commands.Cog):
 
         except discord.Forbidden:
             print(
-                f"⚠️ Missing permission to send "
-                f"welcome in guild {guild.id}."
+                f"⚠️ [WELCOME] Missing permissions "
+                f"in guild {guild.id}."
             )
 
         except discord.HTTPException as error:
             print(
-                f"⚠️ Welcome HTTP error "
-                f"({guild.id}): {error}"
+                f"⚠️ [WELCOME] Discord API error "
+                f"in guild {guild.id}: {error}"
             )
 
         except Exception as error:
             print(
-                f"❌ Welcome send error "
-                f"({guild.id}): {error}"
+                f"❌ [WELCOME] Send error "
+                f"in guild {guild.id}: {error}"
             )
 
         # -----------------------------------------------------
@@ -645,8 +553,8 @@ class Welcome(commands.Cog):
 
         except Exception as error:
             print(
-                f"⚠️ Leave log error "
-                f"({member.guild.id}): {error}"
+                f"⚠️ [WELCOME] Leave log failed "
+                f"for {member.guild.id}: {error}"
             )
 
 
