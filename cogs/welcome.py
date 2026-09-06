@@ -45,7 +45,13 @@ class Welcome(commands.Cog):
             return discord.Color.blurple()
 
         try:
-            value = str(value).strip().replace("#", "")
+            value = str(value).strip()
+
+            if value.startswith("#"):
+                value = value[1:]
+
+            if value.lower().startswith("0x"):
+                value = value[2:]
 
             if len(value) != 6:
                 return discord.Color.blurple()
@@ -67,37 +73,61 @@ class Welcome(commands.Cog):
         inviter_text = "غير معروف"
 
         if inviter:
-            inviter_text = getattr(
-                inviter,
-                "mention",
-                getattr(inviter, "name", "غير معروف"),
-            )
+            try:
+                inviter_text = inviter.mention
+            except Exception:
+                inviter_text = getattr(
+                    inviter,
+                    "name",
+                    "غير معروف",
+                )
+
+        guild = member.guild
 
         variables = {
             "{user}": member.mention,
             "{username}": member.display_name,
-            "{server}": member.guild.name,
+            "{server}": guild.name,
             "{member_count}": str(
-                member.guild.member_count or 0
+                guild.member_count or 0
             ),
-            "{inviter}": inviter_text,
+            "{inviter}": str(inviter_text),
         }
 
         for key, value in variables.items():
-            text = text.replace(key, str(value))
+            text = text.replace(
+                key,
+                str(value),
+            )
 
         return text
+
+    @staticmethod
+    def get_avatar_url(
+        member: discord.Member,
+    ):
+        try:
+            return member.display_avatar.url
+        except Exception:
+            return None
 
     # =========================================================
     # Invite System
     # =========================================================
 
-    async def cache_invites(self, guild: discord.Guild):
+    async def cache_invites(
+        self,
+        guild: discord.Guild,
+    ):
         try:
             invites = await guild.invites()
 
         except discord.Forbidden:
             self.invite_cache[guild.id] = {}
+            print(
+                f"⚠️ [WELCOME] Cannot access invites "
+                f"in guild {guild.id}."
+            )
             return
 
         except discord.HTTPException as error:
@@ -107,21 +137,38 @@ class Welcome(commands.Cog):
             )
             return
 
+        except Exception as error:
+            print(
+                f"❌ [WELCOME] Invite cache error "
+                f"for {guild.id}: {error}"
+            )
+            return
+
         cache = {}
 
         for invite in invites:
-            cache[invite.code] = {
-                "uses": invite.uses or 0,
-                "inviter_id": (
-                    invite.inviter.id
-                    if invite.inviter
-                    else None
-                ),
-            }
+            try:
+                cache[invite.code] = {
+                    "uses": invite.uses or 0,
+                    "inviter_id": (
+                        invite.inviter.id
+                        if invite.inviter
+                        else None
+                    ),
+                    "max_uses": invite.max_uses or 0,
+                    "temporary": bool(
+                        invite.temporary
+                    ),
+                }
+            except Exception:
+                continue
 
         self.invite_cache[guild.id] = cache
 
-    async def find_inviter(self, guild: discord.Guild):
+    async def find_inviter(
+        self,
+        guild: discord.Guild,
+    ):
         previous = self.invite_cache.get(
             guild.id,
             {},
@@ -140,40 +187,78 @@ class Welcome(commands.Cog):
             )
             return None
 
+        except Exception as error:
+            print(
+                f"❌ [WELCOME] Invite lookup error "
+                f"for {guild.id}: {error}"
+            )
+            return None
+
         new_cache = {}
-        used_invite = None
+        used_invites = []
 
         for invite in invites:
-            current_uses = invite.uses or 0
+            try:
+                current_uses = invite.uses or 0
 
-            old_data = previous.get(
-                invite.code,
-                {},
-            )
+                old_data = previous.get(
+                    invite.code,
+                    {},
+                )
 
-            old_uses = old_data.get(
-                "uses",
-                0,
-            )
+                old_uses = old_data.get(
+                    "uses",
+                    0,
+                )
 
-            new_cache[invite.code] = {
-                "uses": current_uses,
-                "inviter_id": (
+                inviter_id = (
                     invite.inviter.id
                     if invite.inviter
                     else None
-                ),
-            }
+                )
 
-            if current_uses > old_uses:
-                used_invite = invite
+                new_cache[invite.code] = {
+                    "uses": current_uses,
+                    "inviter_id": inviter_id,
+                    "max_uses": invite.max_uses or 0,
+                    "temporary": bool(
+                        invite.temporary
+                    ),
+                }
+
+                if current_uses > old_uses:
+                    used_invites.append(
+                        invite
+                    )
+
+            except Exception:
+                continue
 
         self.invite_cache[guild.id] = new_cache
 
-        if used_invite:
-            return used_invite.inviter
+        # -----------------------------------------------------
+        # Usually only one invite increases.
+        # If multiple increased, use the largest increase.
+        # -----------------------------------------------------
 
-        return None
+        if not used_invites:
+            return None
+
+        used_invites.sort(
+            key=lambda invite: (
+                (invite.uses or 0)
+                - previous.get(
+                    invite.code,
+                    {},
+                ).get(
+                    "uses",
+                    0,
+                )
+            ),
+            reverse=True,
+        )
+
+        return used_invites[0].inviter
 
     # =========================================================
     # Logs
@@ -209,10 +294,15 @@ class Welcome(commands.Cog):
             ]
 
             if inviter:
-                inviter_value = (
-                    f"{inviter.mention}\n"
-                    f"`{inviter.id}`"
-                )
+                try:
+                    inviter_value = (
+                        f"{inviter.mention}\n"
+                        f"`{inviter.id}`"
+                    )
+                except Exception:
+                    inviter_value = (
+                        f"`{getattr(inviter, 'id', 'غير معروف')}`"
+                    )
             else:
                 inviter_value = "غير معروف"
 
@@ -236,9 +326,58 @@ class Welcome(commands.Cog):
                 user=member,
             )
 
+        except discord.Forbidden:
+            print(
+                f"⚠️ [WELCOME] Join log permission error "
+                f"for {member.guild.id}"
+            )
+
+        except discord.HTTPException as error:
+            print(
+                f"⚠️ [WELCOME] Join log API error "
+                f"for {member.guild.id}: {error}"
+            )
+
         except Exception as error:
             print(
                 f"⚠️ [WELCOME] Join log failed "
+                f"for {member.guild.id}: {error}"
+            )
+
+    async def send_leave_log(
+        self,
+        member: discord.Member,
+    ):
+        logs = self.bot.get_cog("Logs")
+
+        if logs is None:
+            return
+
+        try:
+            leave_method = getattr(
+                logs,
+                "member_leave",
+                None,
+            )
+
+            if callable(leave_method):
+                await leave_method(member)
+
+        except discord.Forbidden:
+            print(
+                f"⚠️ [WELCOME] Leave log permission error "
+                f"for {member.guild.id}"
+            )
+
+        except discord.HTTPException as error:
+            print(
+                f"⚠️ [WELCOME] Leave log API error "
+                f"for {member.guild.id}: {error}"
+            )
+
+        except Exception as error:
+            print(
+                f"⚠️ [WELCOME] Leave log failed "
                 f"for {member.guild.id}: {error}"
             )
 
@@ -271,6 +410,7 @@ class Welcome(commands.Cog):
                     else None
                 ),
             )
+
         except Exception as error:
             print(
                 f"⚠️ [WELCOME] Guild setup failed "
@@ -320,9 +460,17 @@ class Welcome(commands.Cog):
     ):
         guild = member.guild
 
+        # -----------------------------------------------------
+        # Find inviter first.
+        # -----------------------------------------------------
+
         inviter = await self.find_inviter(
             guild
         )
+
+        # -----------------------------------------------------
+        # Load settings.
+        # -----------------------------------------------------
 
         settings = await self.get_settings(
             guild
@@ -340,7 +488,8 @@ class Welcome(commands.Cog):
             return
 
         # -----------------------------------------------------
-        # Welcome disabled
+        # Welcome disabled.
+        # Logs still work.
         # -----------------------------------------------------
 
         if not bool(
@@ -356,7 +505,7 @@ class Welcome(commands.Cog):
             return
 
         # -----------------------------------------------------
-        # Channel
+        # Get welcome channel.
         # -----------------------------------------------------
 
         channel_id = settings.get(
@@ -394,7 +543,7 @@ class Welcome(commands.Cog):
             return
 
         # -----------------------------------------------------
-        # Content
+        # Content.
         # -----------------------------------------------------
 
         title = (
@@ -440,7 +589,7 @@ class Welcome(commands.Cog):
         )
 
         # -----------------------------------------------------
-        # Embed
+        # Embed.
         # -----------------------------------------------------
 
         embed = discord.Embed(
@@ -455,7 +604,7 @@ class Welcome(commands.Cog):
         )
 
         # -----------------------------------------------------
-        # Thumbnail
+        # Thumbnail.
         # -----------------------------------------------------
 
         if bool(
@@ -464,15 +613,20 @@ class Welcome(commands.Cog):
                 1,
             )
         ):
-            try:
-                embed.set_thumbnail(
-                    url=member.display_avatar.url
-                )
-            except Exception:
-                pass
+            avatar_url = self.get_avatar_url(
+                member
+            )
+
+            if avatar_url:
+                try:
+                    embed.set_thumbnail(
+                        url=avatar_url
+                    )
+                except Exception:
+                    pass
 
         # -----------------------------------------------------
-        # Footer
+        # Footer.
         # -----------------------------------------------------
 
         try:
@@ -485,13 +639,17 @@ class Welcome(commands.Cog):
                 embed.set_footer(
                     text=footer
                 )
+
         except Exception:
-            embed.set_footer(
-                text=footer
-            )
+            try:
+                embed.set_footer(
+                    text=footer
+                )
+            except Exception:
+                pass
 
         # -----------------------------------------------------
-        # Send
+        # Send welcome message.
         # -----------------------------------------------------
 
         try:
@@ -524,7 +682,8 @@ class Welcome(commands.Cog):
             )
 
         # -----------------------------------------------------
-        # Central Logs
+        # Central Logs.
+        # Always execute even if welcome sending fails.
         # -----------------------------------------------------
 
         await self.send_join_log(
@@ -541,21 +700,9 @@ class Welcome(commands.Cog):
         self,
         member: discord.Member,
     ):
-        logs = self.bot.get_cog("Logs")
-
-        if logs is None:
-            return
-
-        try:
-            await logs.member_leave(
-                member
-            )
-
-        except Exception as error:
-            print(
-                f"⚠️ [WELCOME] Leave log failed "
-                f"for {member.guild.id}: {error}"
-            )
+        await self.send_leave_log(
+            member
+        )
 
 
 # =========================================================
