@@ -6,14 +6,14 @@ from flask import (
     render_template,
     request,
     session,
-    url_for
+    url_for,
 )
 
 from config import (
     BOT_NAME,
     SESSION_SECRET,
     WEB_HOST,
-    WEB_PORT
+    WEB_PORT,
 )
 
 from web.auth import auth_bp
@@ -30,7 +30,7 @@ def create_app(bot=None):
         __name__,
         template_folder="../templates",
         static_folder="../static",
-        static_url_path="/static"
+        static_url_path="/static",
     )
 
     # =====================================================
@@ -39,10 +39,7 @@ def create_app(bot=None):
 
     secret_key = (
         SESSION_SECRET
-        or os.getenv(
-            "FLASK_SECRET_KEY",
-            ""
-        )
+        or os.getenv("FLASK_SECRET_KEY", "")
     ).strip()
 
     if not secret_key:
@@ -61,38 +58,28 @@ def create_app(bot=None):
     # =====================================================
 
     app.config.update(
-
         SECRET_KEY=secret_key,
 
-        SESSION_COOKIE_NAME=(
-            "zivex_session"
-        ),
-
+        SESSION_COOKIE_NAME="zivex_session",
         SESSION_COOKIE_HTTPONLY=True,
-
         SESSION_COOKIE_SAMESITE="Lax",
 
         SESSION_COOKIE_SECURE=(
             os.getenv(
                 "SESSION_COOKIE_SECURE",
-                "false"
+                "false",
             ).lower()
             == "true"
         ),
 
-        PERMANENT_SESSION_LIFETIME=(
-            60 * 60 * 24
-        ),
+        PERMANENT_SESSION_LIFETIME=60 * 60 * 24,
 
-        MAX_CONTENT_LENGTH=(
-            2 * 1024 * 1024
-        ),
+        MAX_CONTENT_LENGTH=2 * 1024 * 1024,
 
         DEBUG=False,
-
         TESTING=False,
 
-        ZIVEX_BOT=bot
+        ZIVEX_BOT=bot,
     )
 
     # =====================================================
@@ -102,32 +89,22 @@ def create_app(bot=None):
     @app.after_request
     def security_headers(response):
 
-        response.headers[
-            "X-Content-Type-Options"
-        ] = "nosniff"
+        response.headers["X-Content-Type-Options"] = "nosniff"
 
-        response.headers[
-            "X-Frame-Options"
-        ] = "DENY"
+        response.headers["X-Frame-Options"] = "DENY"
 
-        response.headers[
-            "Referrer-Policy"
-        ] = (
+        response.headers["Referrer-Policy"] = (
             "strict-origin-when-cross-origin"
         )
 
-        response.headers[
-            "Permissions-Policy"
-        ] = (
+        response.headers["Permissions-Policy"] = (
             "camera=(), "
             "microphone=(), "
             "geolocation=(), "
             "payment=()"
         )
 
-        response.headers[
-            "Content-Security-Policy"
-        ] = (
+        response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "base-uri 'self'; "
             "form-action 'self'; "
@@ -165,14 +142,12 @@ def create_app(bot=None):
             "bot_name": BOT_NAME,
 
             "logged_in": bool(
-                session.get(
-                    "discord_user"
-                )
+                session.get("discord_user")
             ),
 
             "discord_user": session.get(
                 "discord_user"
-            )
+            ),
         }
 
     # =====================================================
@@ -182,9 +157,7 @@ def create_app(bot=None):
     @app.route("/")
     def index():
 
-        if session.get(
-            "discord_user"
-        ):
+        if session.get("discord_user"):
             return redirect(
                 url_for(
                     "dashboard.dashboard_home"
@@ -209,9 +182,7 @@ def create_app(bot=None):
     @app.route("/login")
     def login():
 
-        if session.get(
-            "discord_user"
-        ):
+        if session.get("discord_user"):
             return redirect(
                 url_for(
                     "dashboard.dashboard_home"
@@ -252,7 +223,7 @@ def create_app(bot=None):
 
         return {
             "status": "ok",
-            "service": BOT_NAME
+            "service": BOT_NAME,
         }
 
     # =====================================================
@@ -281,7 +252,7 @@ def create_app(bot=None):
         return render_error(
             "400",
             "طلب غير صالح",
-            "الطلب الذي أرسلته غير صالح."
+            "الطلب الذي أرسلته غير صالح.",
         )
 
     @app.errorhandler(401)
@@ -292,7 +263,7 @@ def create_app(bot=None):
         return render_error(
             "401",
             "تسجيل الدخول مطلوب",
-            "يجب تسجيل الدخول أولًا."
+            "يجب تسجيل الدخول أولًا.",
         )
 
     @app.errorhandler(403)
@@ -301,7 +272,7 @@ def create_app(bot=None):
         return render_error(
             "403",
             "غير مصرح",
-            "ليس لديك صلاحية للوصول إلى هذا المحتوى."
+            "ليس لديك صلاحية للوصول إلى هذا المحتوى.",
         )
 
     @app.errorhandler(404)
@@ -310,7 +281,7 @@ def create_app(bot=None):
         return render_error(
             "404",
             "الصفحة غير موجودة",
-            "الصفحة التي تبحث عنها غير موجودة."
+            "الصفحة التي تبحث عنها غير موجودة.",
         )
 
     @app.errorhandler(405)
@@ -319,7 +290,7 @@ def create_app(bot=None):
         return render_error(
             "405",
             "طريقة غير مسموحة",
-            "طريقة الطلب المستخدمة غير مسموحة."
+            "طريقة الطلب المستخدمة غير مسموحة.",
         )
 
     @app.errorhandler(413)
@@ -328,7 +299,7 @@ def create_app(bot=None):
         return render_error(
             "413",
             "الطلب كبير جدًا",
-            "حجم الطلب أكبر من الحد المسموح."
+            "حجم الطلب أكبر من الحد المسموح.",
         )
 
     @app.errorhandler(429)
@@ -337,7 +308,7 @@ def create_app(bot=None):
         return render_error(
             "429",
             "طلبات كثيرة",
-            "تم إرسال عدد كبير من الطلبات. حاول لاحقًا."
+            "تم إرسال عدد كبير من الطلبات. حاول لاحقًا.",
         )
 
     @app.errorhandler(500)
@@ -346,7 +317,7 @@ def create_app(bot=None):
         return render_error(
             "500",
             "حدث خطأ",
-            "حدث خطأ غير متوقع. حاول مرة أخرى."
+            "حدث خطأ غير متوقع. حاول مرة أخرى.",
         )
 
     return app
@@ -359,23 +330,27 @@ def create_app(bot=None):
 def render_error(
     code,
     title,
-    message
+    message,
 ):
 
     try:
-        return render_template(
-            "error.html",
-            error_code=code,
-            error_title=title,
-            error_message=message
-        ), int(code)
+        return (
+            render_template(
+                "error.html",
+                error_code=code,
+                error_title=title,
+                error_message=message,
+            ),
+            int(code),
+        )
 
     except Exception:
         return (
             f"<h1>{code}</h1>"
             f"<h2>{title}</h2>"
-            f"<p>{message}</p>"
-        ), int(code)
+            f"<p>{message}</p>",
+            int(code),
+        )
 
 
 # =========================================================
@@ -391,8 +366,19 @@ app = create_app()
 
 if __name__ == "__main__":
 
+    railway_port = os.getenv("PORT")
+
+    try:
+        port = int(
+            railway_port
+            if railway_port
+            else WEB_PORT
+        )
+    except (TypeError, ValueError):
+        port = int(WEB_PORT)
+
     app.run(
         host=WEB_HOST,
-        port=WEB_PORT,
-        debug=False
+        port=port,
+        debug=False,
     )
