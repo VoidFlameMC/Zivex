@@ -16,7 +16,7 @@
 
     <meta
         name="theme-color"
-        content="#09090f"
+        content="#08070d"
     >
 
     <title>تسجيل الدخول | Zivex</title>
@@ -30,6 +30,690 @@
         src="{{ url_for('static', filename='script.js') }}"
         defer
     ></script>
+
+    <style>
+        /* =====================================================
+           ZIVEX LOGIN — PREMIUM LANDING
+           ===================================================== */
+
+        .login-page {
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                radial-gradient(
+                    circle at 50% -10%,
+                    rgba(139, 92, 246, 0.20),
+                    transparent 38%
+                ),
+                radial-gradient(
+                    circle at 100% 100%,
+                    rgba(109, 40, 217, 0.10),
+                    transparent 32%
+                ),
+                radial-gradient(
+                    circle at 0% 80%,
+                    rgba(88, 101, 242, 0.07),
+                    transparent 28%
+                ),
+                #07070b;
+
+            color: #fff;
+        }
+
+        /* Background grid */
+
+        .login-page::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+
+            pointer-events: none;
+
+            background-image:
+                linear-gradient(
+                    rgba(255,255,255,0.025) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.025) 1px,
+                    transparent 1px
+                );
+
+            background-size: 55px 55px;
+
+            mask-image:
+                linear-gradient(
+                    to bottom,
+                    black,
+                    transparent 85%
+                );
+
+            -webkit-mask-image:
+                linear-gradient(
+                    to bottom,
+                    black,
+                    transparent 85%
+                );
+        }
+
+        /* Purple glow */
+
+        .login-page::after {
+            content: "";
+
+            position: fixed;
+
+            width: 500px;
+            height: 500px;
+
+            top: -260px;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            border-radius: 50%;
+
+            background:
+                rgba(139, 92, 246, 0.10);
+
+            filter: blur(90px);
+
+            pointer-events: none;
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 2;
+
+            width: min(100% - 32px, 470px);
+
+            padding: 42px 0 22px;
+        }
+
+        /* =====================================================
+           CARD
+           ===================================================== */
+
+        .login-card {
+            position: relative;
+
+            padding: 36px;
+
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 26px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(20,19,29,0.94),
+                    rgba(10,10,15,0.96)
+                );
+
+            box-shadow:
+                0 35px 100px rgba(0,0,0,0.55),
+                0 0 70px rgba(139,92,246,0.07);
+
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: "";
+
+            position: absolute;
+
+            top: 0;
+            left: 15%;
+            right: 15%;
+
+            height: 1px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(167,139,250,0.8),
+                    transparent
+                );
+
+            box-shadow:
+                0 0 25px rgba(139,92,246,0.45);
+        }
+
+        .login-card::after {
+            content: "";
+
+            position: absolute;
+
+            width: 180px;
+            height: 180px;
+
+            left: -100px;
+            bottom: -100px;
+
+            border-radius: 50%;
+
+            background:
+                rgba(139,92,246,0.06);
+
+            filter: blur(20px);
+
+            pointer-events: none;
+        }
+
+        /* =====================================================
+           LOGO
+           ===================================================== */
+
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 12px;
+
+            width: fit-content;
+
+            margin: 0 auto 34px;
+
+            color: #fff;
+
+            transition: 0.25s ease;
+        }
+
+        .login-logo:hover {
+            transform: translateY(-2px);
+        }
+
+        .login-logo-mark {
+            width: 52px;
+            height: 52px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 16px;
+
+            color: #fff;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #9b6cff,
+                    #6d28d9
+                );
+
+            font-size: 22px;
+            font-weight: 900;
+
+            box-shadow:
+                0 14px 35px rgba(109,40,217,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.25);
+        }
+
+        .login-logo-text {
+            font-size: 25px;
+            font-weight: 900;
+
+            letter-spacing: -0.8px;
+        }
+
+        /* =====================================================
+           HEADER
+           ===================================================== */
+
+        .login-header {
+            text-align: center;
+
+            margin-bottom: 28px;
+        }
+
+        .login-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            padding: 7px 12px;
+
+            margin-bottom: 15px;
+
+            border: 1px solid rgba(139,92,246,0.18);
+            border-radius: 50px;
+
+            color: #b8a0ff;
+
+            background:
+                rgba(139,92,246,0.07);
+
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .login-badge::before {
+            content: "";
+
+            width: 6px;
+            height: 6px;
+
+            border-radius: 50%;
+
+            background: #a78bfa;
+
+            box-shadow:
+                0 0 12px rgba(167,139,250,0.9);
+        }
+
+        .login-header h1 {
+            margin-bottom: 10px;
+
+            color: #fff;
+
+            font-size: 29px;
+            font-weight: 900;
+
+            letter-spacing: -0.8px;
+        }
+
+        .login-header p {
+            max-width: 350px;
+
+            margin: 0 auto;
+
+            color: #8f8f9d;
+
+            font-size: 12px;
+            line-height: 1.9;
+        }
+
+        /* =====================================================
+           DISCORD BUTTON
+           ===================================================== */
+
+        .login-actions {
+            margin-bottom: 23px;
+        }
+
+        .btn-discord {
+            position: relative;
+
+            width: 100%;
+            min-height: 57px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 11px;
+
+            padding: 14px 20px;
+
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 14px;
+
+            color: #fff !important;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #6875f5,
+                    #5865f2
+                );
+
+            font-size: 13px;
+            font-weight: 800;
+
+            box-shadow:
+                0 14px 35px rgba(88,101,242,0.22);
+
+            transition:
+                transform 0.22s ease,
+                box-shadow 0.22s ease,
+                filter 0.22s ease;
+        }
+
+        .btn-discord::before {
+            content: "";
+
+            position: absolute;
+
+            inset: 1px;
+
+            border-radius: 13px;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(255,255,255,0.12),
+                    transparent 45%
+                );
+
+            pointer-events: none;
+        }
+
+        .btn-discord:hover {
+            transform: translateY(-3px);
+
+            filter: brightness(1.06);
+
+            box-shadow:
+                0 20px 45px rgba(88,101,242,0.32);
+        }
+
+        .btn-discord:active {
+            transform: translateY(0);
+        }
+
+        .discord-icon {
+            position: relative;
+            z-index: 1;
+
+            width: 24px;
+            height: 24px;
+
+            flex-shrink: 0;
+        }
+
+        .btn-discord span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* =====================================================
+           DIVIDER
+           ===================================================== */
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+
+            gap: 12px;
+
+            margin: 25px 0;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: "";
+
+            flex: 1;
+
+            height: 1px;
+
+            background:
+                rgba(255,255,255,0.06);
+        }
+
+        .login-divider span {
+            color: #555562;
+
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        /* =====================================================
+           SECURITY
+           ===================================================== */
+
+        .login-security {
+            display: flex;
+            align-items: flex-start;
+
+            gap: 12px;
+
+            padding: 14px;
+
+            margin-bottom: 17px;
+
+            border: 1px solid rgba(34,197,94,0.10);
+            border-radius: 15px;
+
+            background:
+                rgba(34,197,94,0.035);
+        }
+
+        .security-icon {
+            width: 37px;
+            height: 37px;
+
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 11px;
+
+            color: #86efac;
+
+            background:
+                rgba(34,197,94,0.08);
+        }
+
+        .security-icon svg {
+            width: 19px;
+            height: 19px;
+        }
+
+        .login-security strong {
+            display: block;
+
+            margin-bottom: 2px;
+
+            color: #d8ffe4;
+
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .login-security p {
+            color: #777783;
+
+            font-size: 9px;
+            line-height: 1.8;
+        }
+
+        /* =====================================================
+           PERMISSIONS
+           ===================================================== */
+
+        .login-permissions {
+            padding: 17px;
+
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 15px;
+
+            background:
+                rgba(255,255,255,0.018);
+        }
+
+        .login-permissions h2 {
+            margin-bottom: 12px;
+
+            color: #d9d9e1;
+
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .login-permissions ul {
+            display: flex;
+            flex-direction: column;
+
+            gap: 9px;
+
+            list-style: none;
+        }
+
+        .login-permissions li {
+            display: flex;
+            align-items: center;
+
+            gap: 9px;
+
+            color: #858591;
+
+            font-size: 10px;
+        }
+
+        .permission-check {
+            width: 19px;
+            height: 19px;
+
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 6px;
+
+            color: #a78bfa;
+
+            background:
+                rgba(139,92,246,0.09);
+
+            border: 1px solid rgba(139,92,246,0.12);
+
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        /* =====================================================
+           BACK
+           ===================================================== */
+
+        .login-back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 7px;
+
+            margin-top: 23px;
+
+            color: #6f6f7b;
+
+            font-size: 10px;
+            font-weight: 700;
+
+            transition: 0.2s ease;
+        }
+
+        .login-back:hover {
+            color: #b8a0ff;
+        }
+
+        .login-back span {
+            font-size: 15px;
+
+            transition: 0.2s ease;
+        }
+
+        .login-back:hover span {
+            transform: translateX(3px);
+        }
+
+        /* =====================================================
+           FOOTER
+           ===================================================== */
+
+        .login-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 8px;
+
+            padding-top: 18px;
+
+            color: #4f4f5a;
+
+            font-size: 9px;
+        }
+
+        /* =====================================================
+           MOBILE
+           ===================================================== */
+
+        @media (max-width: 600px) {
+
+            .login-container {
+                width: min(100% - 22px, 470px);
+
+                padding: 22px 0 16px;
+            }
+
+            .login-card {
+                padding: 28px 20px;
+
+                border-radius: 22px;
+            }
+
+            .login-logo {
+                margin-bottom: 27px;
+            }
+
+            .login-logo-mark {
+                width: 46px;
+                height: 46px;
+
+                border-radius: 14px;
+
+                font-size: 20px;
+            }
+
+            .login-logo-text {
+                font-size: 23px;
+            }
+
+            .login-header h1 {
+                font-size: 25px;
+            }
+
+            .login-header p {
+                font-size: 11px;
+            }
+
+            .btn-discord {
+                min-height: 54px;
+
+                font-size: 12px;
+            }
+
+            .login-security,
+            .login-permissions {
+                padding: 13px;
+            }
+        }
+
+        /* =====================================================
+           SMALL PHONES
+           ===================================================== */
+
+        @media (max-width: 380px) {
+
+            .login-card {
+                padding: 25px 17px;
+            }
+
+            .login-header h1 {
+                font-size: 23px;
+            }
+
+            .login-footer {
+                font-size: 8px;
+            }
+        }
+    </style>
 </head>
 
 
@@ -42,7 +726,7 @@
             aria-labelledby="login-title"
         >
 
-            <!-- Logo -->
+            <!-- ZIVEX LOGO -->
 
             <a
                 href="{{ url_for('index') }}"
@@ -61,12 +745,12 @@
             </a>
 
 
-            <!-- Header -->
+            <!-- HEADER -->
 
             <div class="login-header">
 
                 <span class="login-badge">
-                    لوحة التحكم
+                    لوحة تحكم Zivex
                 </span>
 
                 <h1 id="login-title">
@@ -74,18 +758,16 @@
                 </h1>
 
                 <p>
-                    سجّل دخولك باستخدام حساب Discord
-                    للوصول إلى لوحة التحكم الخاصة بك.
+                    تحكم في بوتك، أدر أنظمتك،
+                    وخصص سيرفرك من مكان واحد.
                 </p>
 
             </div>
 
 
-            <!-- Discord Login -->
+            <!-- DISCORD LOGIN -->
 
             <div class="login-actions">
-
-                <!-- تم تصحيح الرابط هنا -->
 
                 <a
                     href="{{ url_for('auth.oauth_login') }}"
@@ -102,7 +784,7 @@
 
                         <path
                             fill="currentColor"
-                            d="M19.54 0c1.13 0 2.05.92 2.05 2.05v19.9c0 1.13-.92 2.05-2.05 2.05H4.46a2.05 2.05 0 0 1-2.05-2.05V2.05C2.41.92 3.33 0 4.46 0h15.08ZM8.91 15.02c-1.03 0-1.87.84-1.87 1.87s.84 1.87 1.87 1.87 1.87-.84 1.87-1.87-.84-1.87-1.87-1.87Zm6.18 0c-1.03 0-1.87.84-1.87 1.87s.84 1.87 1.87 1.87 1.87-.84 1.87-1.87-.84-1.87-1.87-1.87Zm2.69-7.1a12.62 12.62 0 0 0-2.96-.9l-.38.78c-1.43-.22-2.85-.22-4.28 0l-.38-.78c-1.02.18-2.01.48-2.96.9C5.08 10.68 4.3 13.9 4.1 17.08c1.2.9 2.36 1.45 3.5 1.8l.85-1.17c-.47-.18-.93-.4-1.37-.65l.34-.26c2.64 1.22 5.5 1.22 8.1 0l.35.26c-.44.25-.9.47-1.37.65l.85 1.17c1.14-.35 2.3-.9 3.5-1.8-.2-3.18-.98-6.4-3.07-9.16ZM9.36 14.6c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Zm5.28 0c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Z"
+                            d="M19.54 0c1.13 0 2.05.92 2.05 2.05v19.9c0 1.13-.92 2.05-2.05 2.05H4.46a2.05 2.05 0 0 1-2.05-2.05V2.05C2.41.92 3.33 0 4.46 0h15.08ZM8.91 15.02c-1.03 0-1.87.84-1.87 1.87s.84 1.87 1.87 1.87 1.87-.84 1.87-1.87-.84-1.87-1.87-1.87Zm6.18 0c-.79 0-1.45.74-1.45 1.65s.65 1.65 1.45 1.65 1.45-.74 1.45-1.65-.65-1.65-1.45-1.65Zm2.69-7.1a12.62 12.62 0 0 0-2.96-.9l-.38.78c-1.43-.22-2.85-.22-4.28 0l-.38-.78c-1.02.18-2.01.48-2.96.9C5.08 10.68 4.3 13.9 4.1 17.08c1.2.9 2.36 1.45 3.5 1.8l.85-1.17c-.47-.18-.93-.4-1.37-.65l.34-.26c2.64 1.22 5.5 1.22 8.1 0l.35.26c-.44.25-.9.47-1.37.65l.85 1.17c1.14-.35 2.3-.9 3.5-1.8-.2-3.18-.98-6.4-3.07-9.16ZM9.36 14.6c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Zm5.28 0c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Z"
                         />
 
                     </svg>
@@ -116,7 +798,14 @@
             </div>
 
 
-            <!-- Security Notice -->
+            <!-- DIVIDER -->
+
+            <div class="login-divider">
+                <span>دخول آمن</span>
+            </div>
+
+
+            <!-- SECURITY -->
 
             <div class="login-security">
 
@@ -155,12 +844,12 @@
             </div>
 
 
-            <!-- Permissions -->
+            <!-- PERMISSIONS -->
 
             <div class="login-permissions">
 
                 <h2>
-                    ماذا نحتاج؟
+                    الصلاحيات المطلوبة
                 </h2>
 
                 <ul>
@@ -178,7 +867,6 @@
 
                     </li>
 
-
                     <li>
 
                         <span
@@ -188,10 +876,9 @@
                             ✓
                         </span>
 
-                        قائمة السيرفرات التي تتواجد فيها
+                        عرض السيرفرات المرتبطة بحسابك
 
                     </li>
-
 
                     <li>
 
@@ -211,7 +898,7 @@
             </div>
 
 
-            <!-- Back -->
+            <!-- BACK -->
 
             <a
                 href="{{ url_for('index') }}"
@@ -229,7 +916,7 @@
         </section>
 
 
-        <!-- Footer -->
+        <!-- FOOTER -->
 
         <footer class="login-footer">
 
