@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta
+        name="description"
+        content="تسجيل الدخول إلى لوحة تحكم Zivex"
+    >
+    <meta
+        name="theme-color"
+        content="#09090f"
+    >
+    <title>تسجيل الدخول | Zivex</title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+    <script
+        src="{{ url_for('static', filename='script.js') }}"
+        defer
+    ></script>
+</head>
+<body class="login-page">
+    <main class="login-container">
+        <section
+            class="login-card"
+            aria-labelledby="login-title"
+        >
+            <!-- Logo -->
+            <a
+                href="{{ url_for('index') }}"
+                class="login-logo"
+                aria-label="Zivex الرئيسية"
+            >
+                <span class="login-logo-mark">Z</span>
+                <span class="login-logo-text">
+                    Zivex
+                </span>
+            </a>
+            <!-- Header -->
+            <div class="login-header">
+                <span class="login-badge">
+                    لوحة التحكم
+                </span>
+                <h1 id="login-title">
+                    أهلاً بك في Zivex
+                </h1>
+                <p>
+                    سجّل دخولك باستخدام حساب Discord
+                    للوصول إلى لوحة التحكم الخاصة بك.
+                </p>
+            </div>
+            <!-- Discord Login -->
+            <div class="login-actions">
+                <a
+                    href="{{ url_for('auth.login') }}"
+                    class="btn btn-discord btn-large"
+                    data-loading="true"
+                >
+                    <svg
+                        class="discord-icon"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
+                    >
+                        <path
+                            fill="currentColor"
+                            d="M19.54 0c1.13 0 2.05.92 2.05 2.05v19.9c0 1.13-.92 2.05-2.05 2.05H4.46a2.05 2.05 0 0 1-2.05-2.05V2.05C2.41.92 3.33 0 4.46 0h15.08ZM8.91 15.02c-1.03 0-1.87.84-1.87 1.87s.84 1.87 1.87 1.87 1.87-.84 1.87-1.87-.84-1.87-1.87-1.87Zm6.18 0c-1.03 0-1.87.84-1.87 1.87s.84 1.87 1.87 1.87 1.87-.84 1.87-1.87-.84-1.87-1.87-1.87Zm2.69-7.1a12.62 12.62 0 0 0-2.96-.9l-.38.78c-1.43-.22-2.85-.22-4.28 0l-.38-.78c-1.02.18-2.01.48-2.96.9C5.08 10.68 4.3 13.9 4.1 17.08c1.2.9 2.36 1.45 3.5 1.8l.85-1.17c-.47-.18-.93-.4-1.37-.65l.34-.26c2.64 1.22 5.5 1.22 8.1 0l.35.26c-.44.25-.9.47-1.37.65l.85 1.17c1.14-.35 2.3-.9 3.5-1.8-.2-3.18-.98-6.4-3.07-9.16ZM9.36 14.6c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Zm5.28 0c-.79 0-1.45-.74-1.45-1.65s.65-1.66 1.45-1.66 1.46.75 1.45 1.66c0 .91-.65 1.65-1.45 1.65Z"
+                        />
+                    </svg>
+                    <span>
+                        تسجيل الدخول باستخدام Discord
+                    </span>
+                </a>
+            </div>
+            <!-- Security Notice -->
+            <div class="login-security">
+                <div
+                    class="security-icon"
+                    aria-hidden="true"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        focusable="false"
+                    >
+                        <path
+                            fill="currentColor"
+                            d="M12 2 4 5v6c0 5.25 3.4 10.17 8 11 4.6-.83 8-5.75 8-11V5l-8-3Zm0 4.1 5 1.88V11c0 3.88-2.33 7.7-5 8.65C9.33 18.7 7 14.88 7 11V7.98L12 6.1Zm-1 3.4v4h2v-4h-2Zm0 5v2h2v-2h-2Z"
+                        />
+                    </svg>
+                </div>
+                <div>
+                    <strong>
+                        تسجيل آمن عبر Discord
+                    </strong>
+                    <p>
+                        Zivex لا يطلب كلمة مرور Discord
+                        أو معلومات تسجيل الدخول الخاصة بك.
+                    </p>
+                </div>
+            </div>
+            <!-- Permissions -->
+            <div class="login-permissions">
+                <h2>
+                    ماذا نحتاج؟
+                </h2>
+                <ul>
+                    <li>
+                        <span
+                            class="permission-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                        معلومات حساب Discord الأساسية
+                    </li>
+                    <li>
+                        <span
+                            class="permission-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                        قائمة السيرفرات التي تتواجد فيها
+                    </li>
+                    <li>
+                        <span
+                            class="permission-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                        التحقق من صلاحيات إدارة السيرفر
+                    </li>
+                </ul>
+            </div>
+            <!-- Back -->
+            <a
+                href="{{ url_for('index') }}"
+                class="login-back"
+            >
+                <span aria-hidden="true">←</span>
+                العودة إلى الصفحة الرئيسية
+            </a>
+        </section>
+        <!-- Footer -->
+        <footer class="login-footer">
+            <span>
+                © {{ current_year|default(2026) }} Zivex
+            </span>
+            <span aria-hidden="true">
+                •
+            </span>
+            <span>
+                Discord Bot & Dashboard
+            </span>
+        </footer>
+    </main>
+</body>
+</html>
