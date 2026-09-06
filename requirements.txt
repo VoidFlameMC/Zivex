@@ -1,1 +1,7 @@
-
+discord.py
+Flask
+Flask-Session
+requests
+aiohttp
+aiosqlite
+python-dotenv
