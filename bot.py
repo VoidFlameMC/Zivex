@@ -1,58 +1,78 @@
-import asyncio
 import os
-import threading
+import asyncio
+import logging
+from threading import Thread
 
 import discord
 from discord.ext import commands
+from flask import Flask
 
-from config import DISCORD_TOKEN, PREFIX, WEB_HOST, WEB_PORT
 from database import db
-from web.app import create_app
 
 
 # =========================================================
-# Zivex Bot
+# Logging
 # =========================================================
 
-class Zivex(commands.Bot):
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+
+logger = logging.getLogger("Zivex")
+
+
+# =========================================================
+# Configuration
+# =========================================================
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+
+if not TOKEN:
+    raise RuntimeError(
+        "DISCORD_TOKEN environment variable is missing."
+    )
+
+
+PREFIX = "!"
+
+
+# =========================================================
+# Intents
+# =========================================================
+
+intents = discord.Intents.default()
+
+intents.guilds = True
+intents.members = True
+intents.messages = True
+intents.message_content = True
+intents.presences = True
+
+
+# =========================================================
+# Bot
+# =========================================================
+
+class ZivexBot(commands.Bot):
 
     def __init__(self):
-
-        intents = discord.Intents.default()
-
-        intents.members = True
-        intents.message_content = True
-
         super().__init__(
             command_prefix=PREFIX,
             intents=intents,
             help_command=None,
+            case_insensitive=True,
+            strip_after_prefix=True,
         )
 
+        self.ready_once = False
+        self.web_server = None
+
     # =====================================================
-    # Setup
+    # Setup Hook
     # =====================================================
 
     async def setup_hook(self):
-
-        print("🔧 Starting Zivex...")
-
-        # -------------------------------------------------
-        # Database
-        # -------------------------------------------------
-
-        try:
-            await db.setup()
-            print("✅ Database ready.")
-
-        except Exception as error:
-            print(f"❌ Database setup failed: {error}")
-            raise
-
-        # -------------------------------------------------
-        # Load Cogs
-        # -------------------------------------------------
-
         cogs = [
             "cogs.utility",
             "cogs.welcome",
@@ -65,185 +85,123 @@ class Zivex(commands.Bot):
         ]
 
         for cog in cogs:
-
             try:
-
                 await self.load_extension(cog)
+                logger.info(
+                    "Loaded cog: %s",
+                    cog,
+                )
 
-                print(f"✅ Loaded: {cog}")
+            except commands.ExtensionAlreadyLoaded:
+                logger.warning(
+                    "Cog already loaded: %s",
+                    cog,
+                )
 
-            except Exception as error:
+            except commands.ExtensionNotFound:
+                logger.exception(
+                    "Cog not found: %s",
+                    cog,
+                )
 
-                print(
-                    f"❌ Failed to load {cog}: {error}"
+            except commands.ExtensionFailed:
+                logger.exception(
+                    "Cog failed to load: %s",
+                    cog,
+                )
+
+            except Exception:
+                logger.exception(
+                    "Unexpected error loading cog: %s",
+                    cog,
                 )
 
         # -------------------------------------------------
-        # Ensure Guilds
-        # -------------------------------------------------
-
-        for guild in self.guilds:
-
-            try:
-
-                await db.ensure_guild(
-                    guild.id,
-                    guild.name,
-                    str(guild.icon.url)
-                    if guild.icon
-                    else None,
-                )
-
-            except Exception as error:
-
-                print(
-                    f"⚠️ Guild setup error "
-                    f"({guild.id}): {error}"
-                )
-
-        # -------------------------------------------------
-        # Sync Slash Commands
+        # Sync slash commands
         # -------------------------------------------------
 
         try:
-
             synced = await self.tree.sync()
 
-            print(
-                f"✅ Synced {len(synced)} slash commands."
+            logger.info(
+                "Synced %s application command(s).",
+                len(synced),
             )
 
-        except Exception as error:
-
-            print(
-                f"❌ Slash sync failed: {error}"
+        except Exception:
+            logger.exception(
+                "Failed to sync application commands."
             )
 
 
 # =========================================================
-# Bot Instance
+# Create Bot
 # =========================================================
 
-bot = Zivex()
+bot = ZivexBot()
 
 
 # =========================================================
-# Ready Event
+# Discord Events
 # =========================================================
 
 @bot.event
 async def on_ready():
 
-    print(
-        f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🤖 Zivex Online
-📌 Name: {bot.user}
-🆔 ID: {bot.user.id}
-🌐 Servers: {len(bot.guilds)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
+    if bot.ready_once:
+        logger.info(
+            "Reconnected as %s (%s).",
+            bot.user,
+            bot.user.id if bot.user else "unknown",
+        )
+        return
+
+    bot.ready_once = True
+
+    logger.info(
+        "========================================"
     )
 
-    # -----------------------------------------------------
-    # Update Guild Information
-    # -----------------------------------------------------
-
-    for guild in bot.guilds:
-
-        try:
-
-            await db.ensure_guild(
-                guild.id,
-                guild.name,
-                str(guild.icon.url)
-                if guild.icon
-                else None,
-            )
-
-        except Exception as error:
-
-            print(
-                f"⚠️ Failed to update guild "
-                f"{guild.id}: {error}"
-            )
-
-    # -----------------------------------------------------
-    # Presence
-    # -----------------------------------------------------
-
-    try:
-
-        activity = discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"{len(bot.guilds)} servers",
-        )
-
-        await bot.change_presence(
-            activity=activity
-        )
-
-    except Exception as error:
-
-        print(
-            f"⚠️ Presence error: {error}"
-        )
-
-
-# =========================================================
-# Guild Join
-# =========================================================
-
-@bot.event
-async def on_guild_join(guild):
-
-    print(
-        f"➕ Joined server: "
-        f"{guild.name} ({guild.id})"
+    logger.info(
+        "Zivex is online."
     )
 
-    try:
-
-        await db.ensure_guild(
-            guild.id,
-            guild.name,
-            str(guild.icon.url)
-            if guild.icon
-            else None,
-        )
-
-    except Exception as error:
-
-        print(
-            f"⚠️ Guild database error: {error}"
-        )
-
-
-# =========================================================
-# Guild Remove
-# =========================================================
-
-@bot.event
-async def on_guild_remove(guild):
-
-    print(
-        f"➖ Left server: "
-        f"{guild.name} ({guild.id})"
+    logger.info(
+        "Logged in as: %s",
+        bot.user,
     )
 
+    logger.info(
+        "Bot ID: %s",
+        bot.user.id if bot.user else "unknown",
+    )
 
-# =========================================================
-# Command Errors
-# =========================================================
+    logger.info(
+        "Servers: %s",
+        len(bot.guilds),
+    )
+
+    logger.info(
+        "Users visible: %s",
+        sum(
+            guild.member_count or 0
+            for guild in bot.guilds
+        ),
+    )
+
+    logger.info(
+        "========================================"
+    )
+
 
 @bot.event
 async def on_command_error(
-    ctx,
-    error,
+    ctx: commands.Context,
+    error: commands.CommandError,
 ):
 
     # -----------------------------------------------------
-    # Unknown Command
+    # Ignore command-not-found
     # -----------------------------------------------------
 
     if isinstance(
@@ -253,115 +211,192 @@ async def on_command_error(
         return
 
     # -----------------------------------------------------
-    # Missing Permissions
-    # -----------------------------------------------------
-
-    if isinstance(
-        error,
-        commands.MissingPermissions,
-    ):
-
-        await ctx.send(
-            "❌ ما عندك الصلاحيات المطلوبة."
-        )
-
-        return
-
-    # -----------------------------------------------------
-    # Missing Argument
+    # Missing arguments
     # -----------------------------------------------------
 
     if isinstance(
         error,
         commands.MissingRequiredArgument,
     ):
-
         await ctx.send(
-            "❌ ناقصك بعض المعلومات في الأمر."
+            "❌ ناقصك بعض البيانات المطلوبة للأمر."
         )
-
         return
 
     # -----------------------------------------------------
-    # Bad Argument
+    # Bad argument
     # -----------------------------------------------------
 
     if isinstance(
         error,
         commands.BadArgument,
     ):
-
         await ctx.send(
-            "❌ البيانات التي أدخلتها غير صحيحة."
+            "❌ البيانات المدخلة غير صحيحة."
         )
-
         return
 
     # -----------------------------------------------------
-    # Unexpected Error
+    # Missing permissions
     # -----------------------------------------------------
 
-    print(
-        f"❌ Command error: {error}"
+    if isinstance(
+        error,
+        commands.MissingPermissions,
+    ):
+        await ctx.send(
+            "❌ ما عندك الصلاحيات المطلوبة لهذا الأمر."
+        )
+        return
+
+    # -----------------------------------------------------
+    # Bot missing permissions
+    # -----------------------------------------------------
+
+    if isinstance(
+        error,
+        commands.BotMissingPermissions,
+    ):
+        await ctx.send(
+            "❌ البوت ما عنده الصلاحيات المطلوبة."
+        )
+        return
+
+    # -----------------------------------------------------
+    # Not owner
+    # -----------------------------------------------------
+
+    if isinstance(
+        error,
+        commands.NotOwner,
+    ):
+        await ctx.send(
+            "❌ هذا الأمر خاص بمالك البوت."
+        )
+        return
+
+    # -----------------------------------------------------
+    # Cooldown
+    # -----------------------------------------------------
+
+    if isinstance(
+        error,
+        commands.CommandOnCooldown,
+    ):
+        seconds = max(
+            1,
+            int(error.retry_after),
+        )
+
+        await ctx.send(
+            f"⏳ انتظر {seconds} ثانية قبل استخدام الأمر مرة أخرى."
+        )
+        return
+
+    # -----------------------------------------------------
+    # Command disabled
+    # -----------------------------------------------------
+
+    if isinstance(
+        error,
+        commands.DisabledCommand,
+    ):
+        await ctx.send(
+            "❌ هذا الأمر معطل حاليًا."
+        )
+        return
+
+    # -----------------------------------------------------
+    # Unwrap original error
+    # -----------------------------------------------------
+
+    original = getattr(
+        error,
+        "original",
+        error,
+    )
+
+    logger.error(
+        "Command error in %s: %s",
+        getattr(
+            ctx.command,
+            "qualified_name",
+            "unknown",
+        ),
+        original,
+        exc_info=(
+            type(original),
+            original,
+            original.__traceback__,
+        ),
+    )
+
+    try:
+        await ctx.send(
+            "❌ حدث خطأ غير متوقع أثناء تنفيذ الأمر."
+        )
+    except Exception:
+        pass
+
+
+# =========================================================
+# Global Discord Error Handler
+# =========================================================
+
+@bot.event
+async def on_error(
+    event_method: str,
+    *args,
+    **kwargs,
+):
+    logger.exception(
+        "Unhandled Discord event error: %s",
+        event_method,
     )
 
 
 # =========================================================
-# Flask Dashboard
+# Flask Health Server
 # =========================================================
 
-def start_web():
+app = Flask(__name__)
 
-    try:
 
-        # -------------------------------------------------
-        # Railway PORT
-        # -------------------------------------------------
+@app.get("/")
+def home():
+    return {
+        "status": "online",
+        "service": "Zivex Bot",
+    }, 200
 
-        railway_port = os.getenv("PORT")
 
-        try:
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "bot": (
+            str(bot.user)
+            if bot.user
+            else None
+        ),
+        "guilds": len(bot.guilds),
+    }, 200
 
-            port = int(
-                railway_port
-                if railway_port
-                else WEB_PORT
-            )
 
-        except (
-            TypeError,
-            ValueError,
-        ):
-
-            port = int(WEB_PORT)
-
-        # -------------------------------------------------
-        # Create Flask App
-        # -------------------------------------------------
-
-        app = create_app(bot)
-
-        print(
-            f"🌐 Zivex Dashboard starting "
-            f"on {WEB_HOST}:{port}"
+def run_web_server():
+    port = int(
+        os.getenv(
+            "PORT",
+            "8080",
         )
+    )
 
-        # -------------------------------------------------
-        # Start Flask
-        # -------------------------------------------------
-
-        app.run(
-            host=WEB_HOST,
-            port=port,
-            debug=False,
-            use_reloader=False,
-        )
-
-    except Exception as error:
-
-        print(
-            f"❌ Dashboard failed to start: {error}"
-        )
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False,
+        use_reloader=False,
+    )
 
 
 # =========================================================
@@ -370,54 +405,38 @@ def start_web():
 
 async def main():
 
-    # -----------------------------------------------------
-    # Check Token
-    # -----------------------------------------------------
-
-    if not DISCORD_TOKEN:
-
-        raise RuntimeError(
-            "❌ DISCORD_TOKEN is missing "
-            "from Railway Variables."
-        )
-
-    # -----------------------------------------------------
-    # Start Dashboard
-    # -----------------------------------------------------
-
-    web_thread = threading.Thread(
-        target=start_web,
-        name="ZivexDashboard",
+    web_thread = Thread(
+        target=run_web_server,
         daemon=True,
     )
 
     web_thread.start()
 
-    # -----------------------------------------------------
-    # Start Discord Bot
-    # -----------------------------------------------------
+    try:
+        await bot.start(
+            TOKEN,
+            reconnect=True,
+        )
 
-    print(
-        "🚀 Starting Zivex Bot..."
-    )
+    finally:
+        try:
+            await db.close()
+        except Exception:
+            logger.exception(
+                "Failed to close database."
+            )
 
-    await bot.start(
-        DISCORD_TOKEN
-    )
-
-
-# =========================================================
-# Start
-# =========================================================
 
 if __name__ == "__main__":
-
     try:
-
         asyncio.run(main())
 
     except KeyboardInterrupt:
+        logger.info(
+            "Zivex stopped manually."
+        )
 
-        print(
-            "🛑 Zivex stopped."
+    except Exception:
+        logger.exception(
+            "Zivex stopped because of an unexpected error."
         )
