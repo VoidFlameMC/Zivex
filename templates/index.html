@@ -4,10 +4,7 @@
 <head>
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <meta
         name="description"
@@ -16,7 +13,7 @@
 
     <meta
         name="theme-color"
-        content="#09090b"
+        content="#08070d"
     >
 
     <title>Zivex — Discord Management</title>
@@ -30,84 +27,1443 @@
         src="{{ url_for('static', filename='script.js') }}"
         defer
     ></script>
+
+    <style>
+        /* =====================================================
+           ZIVEX LANDING PAGE
+           Scoped بالكامل حتى لا يتعارض مع Dashboard
+        ===================================================== */
+
+        .zivex-home {
+            --z-purple: #8b5cf6;
+            --z-purple-light: #a78bfa;
+            --z-purple-dark: #6d28d9;
+            --z-bg: #07060b;
+            --z-card: rgba(17, 15, 26, 0.72);
+            --z-border: rgba(255, 255, 255, 0.08);
+            --z-text: #f7f5ff;
+            --z-muted: #9691a6;
+
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at 50% -10%,
+                    rgba(139, 92, 246, 0.18),
+                    transparent 38%
+                ),
+                radial-gradient(
+                    circle at 90% 45%,
+                    rgba(109, 40, 217, 0.08),
+                    transparent 30%
+                ),
+                var(--z-bg);
+
+            color: var(--z-text);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .zivex-home *,
+        .zivex-home *::before,
+        .zivex-home *::after {
+            box-sizing: border-box;
+        }
+
+        .zivex-home a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* =====================================================
+           BACKGROUND
+        ===================================================== */
+
+        .zivex-home .z-bg-grid {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.24;
+
+            background-image:
+                linear-gradient(
+                    rgba(255,255,255,0.025) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.025) 1px,
+                    transparent 1px
+                );
+
+            background-size: 48px 48px;
+
+            mask-image: linear-gradient(
+                to bottom,
+                black,
+                transparent 85%
+            );
+
+            -webkit-mask-image: linear-gradient(
+                to bottom,
+                black,
+                transparent 85%
+            );
+        }
+
+        .zivex-home .z-bg-glow {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(100px);
+        }
+
+        .zivex-home .z-glow-one {
+            width: 520px;
+            height: 520px;
+            top: -300px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(139, 92, 246, 0.18);
+        }
+
+        .zivex-home .z-glow-two {
+            width: 360px;
+            height: 360px;
+            top: 500px;
+            right: -250px;
+            background: rgba(124, 58, 237, 0.08);
+        }
+
+        /* =====================================================
+           NAVBAR
+        ===================================================== */
+
+        .zivex-home .z-navbar {
+            position: relative;
+            z-index: 20;
+            width: 100%;
+            border-bottom: 1px solid rgba(255,255,255,0.055);
+            background: rgba(7,6,11,0.62);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .zivex-home .z-navbar-container {
+            width: min(1180px, calc(100% - 40px));
+            min-height: 76px;
+            margin: auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .zivex-home .z-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 11px;
+            font-weight: 800;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .zivex-home .z-brand-logo {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+
+            border-radius: 12px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #a78bfa,
+                    #6d28d9
+                );
+
+            box-shadow:
+                0 8px 28px rgba(139,92,246,0.28),
+                inset 0 1px rgba(255,255,255,0.25);
+
+            font-size: 19px;
+            font-weight: 900;
+            color: white;
+        }
+
+        .zivex-home .z-brand-text {
+            color: #fff;
+        }
+
+        .zivex-home .z-navigation {
+            display: flex;
+            align-items: center;
+            gap: 34px;
+        }
+
+        .zivex-home .z-navigation a {
+            color: #aaa5b8;
+            font-size: 14px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .zivex-home .z-navigation a:hover {
+            color: white;
+        }
+
+        .zivex-home .z-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+
+            padding: 11px 17px;
+
+            border: 1px solid rgba(139,92,246,0.25);
+            border-radius: 11px;
+
+            background: rgba(139,92,246,0.08);
+
+            color: #e9e3ff;
+            font-size: 13px;
+            font-weight: 700;
+
+            transition:
+                transform 0.2s ease,
+                background 0.2s ease,
+                border-color 0.2s ease;
+        }
+
+        .zivex-home .z-login:hover {
+            transform: translateY(-2px);
+            background: rgba(139,92,246,0.15);
+            border-color: rgba(139,92,246,0.45);
+        }
+
+        .zivex-home .z-login-arrow {
+            font-size: 17px;
+            color: #a78bfa;
+        }
+
+        /* =====================================================
+           HERO
+        ===================================================== */
+
+        .zivex-home .z-hero {
+            position: relative;
+            z-index: 2;
+            padding: 105px 0 100px;
+        }
+
+        .zivex-home .z-hero-container {
+            width: min(1180px, calc(100% - 40px));
+            margin: auto;
+
+            display: grid;
+            grid-template-columns: 0.9fr 1.1fr;
+            align-items: center;
+            gap: 80px;
+        }
+
+        .zivex-home .z-hero-content {
+            text-align: right;
+        }
+
+        .zivex-home .z-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+
+            padding: 8px 12px;
+
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 999px;
+
+            background: rgba(139,92,246,0.07);
+
+            color: #b9a8eb;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .zivex-home .z-badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #a78bfa;
+            box-shadow: 0 0 12px rgba(167,139,250,0.8);
+        }
+
+        .zivex-home .z-hero-title {
+            margin: 24px 0 20px;
+
+            font-size: clamp(44px, 5vw, 70px);
+            line-height: 1.04;
+            letter-spacing: -2.8px;
+            font-weight: 900;
+        }
+
+        .zivex-home .z-hero-title span {
+            background:
+                linear-gradient(
+                    90deg,
+                    #c4b5fd,
+                    #8b5cf6,
+                    #6d28d9
+                );
+
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .zivex-home .z-hero-description {
+            max-width: 550px;
+            margin: 0;
+
+            color: var(--z-muted);
+            font-size: 16px;
+            line-height: 2;
+        }
+
+        /* =====================================================
+           BUTTONS
+        ===================================================== */
+
+        .zivex-home .z-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .zivex-home .z-button {
+            min-height: 48px;
+            padding: 0 20px;
+
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+
+            border-radius: 12px;
+
+            font-size: 14px;
+            font-weight: 800;
+
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                border-color 0.2s ease;
+        }
+
+        .zivex-home .z-button-primary {
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #9b6cff,
+                    #6d28d9
+                );
+
+            box-shadow:
+                0 12px 30px rgba(109,40,217,0.25),
+                inset 0 1px rgba(255,255,255,0.2);
+        }
+
+        .zivex-home .z-button-primary:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 18px 38px rgba(109,40,217,0.35);
+        }
+
+        .zivex-home .z-button-secondary {
+            color: #d0cbd9;
+            border: 1px solid rgba(255,255,255,0.09);
+            background: rgba(255,255,255,0.035);
+        }
+
+        .zivex-home .z-button-secondary:hover {
+            transform: translateY(-3px);
+            border-color: rgba(139,92,246,0.3);
+            background: rgba(139,92,246,0.07);
+        }
+
+        /* =====================================================
+           TRUST
+        ===================================================== */
+
+        .zivex-home .z-trust {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 25px;
+
+            color: #858090;
+            font-size: 12px;
+        }
+
+        .zivex-home .z-trust-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .zivex-home .z-trust-check {
+            color: #a78bfa;
+            font-weight: 900;
+        }
+
+        .zivex-home .z-trust-divider {
+            width: 1px;
+            height: 13px;
+            background: rgba(255,255,255,0.09);
+        }
+
+        /* =====================================================
+           DASHBOARD PREVIEW
+        ===================================================== */
+
+        .zivex-home .z-preview-wrapper {
+            position: relative;
+        }
+
+        .zivex-home .z-preview-glow {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            left: 10%;
+            top: 10%;
+
+            border-radius: 50%;
+            background: rgba(139,92,246,0.16);
+            filter: blur(70px);
+        }
+
+        .zivex-home .z-preview {
+            position: relative;
+            overflow: hidden;
+
+            border:
+                1px solid rgba(255,255,255,0.1);
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(24,21,35,0.96),
+                    rgba(12,11,18,0.96)
+                );
+
+            box-shadow:
+                0 35px 90px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(139,92,246,0.04);
+
+            transform: perspective(1200px) rotateY(-3deg);
+            transition: transform 0.35s ease;
+        }
+
+        .zivex-home .z-preview:hover {
+            transform: perspective(1200px) rotateY(0deg) translateY(-5px);
+        }
+
+        .zivex-home .z-preview-header {
+            height: 48px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 16px;
+
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.018);
+        }
+
+        .zivex-home .z-window-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .zivex-home .z-window-dots span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4b4655;
+        }
+
+        .zivex-home .z-preview-title {
+            color: #777181;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+
+        .zivex-home .z-preview-body {
+            display: flex;
+            min-height: 390px;
+        }
+
+        .zivex-home .z-preview-sidebar {
+            width: 62px;
+            flex-shrink: 0;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            padding: 18px 0;
+
+            border-left: 1px solid rgba(255,255,255,0.05);
+            background: rgba(5,4,9,0.55);
+        }
+
+        .zivex-home .z-preview-logo {
+            width: 32px;
+            height: 32px;
+
+            display: grid;
+            place-items: center;
+
+            margin-bottom: 24px;
+
+            border-radius: 9px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #a78bfa,
+                    #6d28d9
+                );
+
+            color: white;
+            font-weight: 900;
+            font-size: 14px;
+        }
+
+        .zivex-home .z-preview-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+        }
+
+        .zivex-home .z-preview-item {
+            width: 34px;
+            height: 34px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 9px;
+
+            color: #67616f;
+            font-size: 13px;
+        }
+
+        .zivex-home .z-preview-item.active {
+            color: #c4b5fd;
+            background: rgba(139,92,246,0.14);
+        }
+
+        .zivex-home .z-preview-content {
+            flex: 1;
+            padding: 25px;
+        }
+
+        .zivex-home .z-preview-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            margin-bottom: 23px;
+        }
+
+        .zivex-home .z-preview-small {
+            display: block;
+            margin-bottom: 5px;
+
+            color: #716b7b;
+            font-size: 9px;
+        }
+
+        .zivex-home .z-preview-heading h3 {
+            margin: 0;
+            color: #f1eff6;
+            font-size: 17px;
+        }
+
+        .zivex-home .z-avatar {
+            width: 31px;
+            height: 31px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #9b6cff,
+                    #6d28d9
+                );
+
+            color: white;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .zivex-home .z-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .zivex-home .z-stat {
+            padding: 16px;
+
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+
+            background: rgba(255,255,255,0.025);
+        }
+
+        .zivex-home .z-stat-label {
+            display: block;
+            color: #777181;
+            font-size: 9px;
+        }
+
+        .zivex-home .z-stat strong {
+            display: block;
+            margin: 7px 0 4px;
+
+            color: #eeeaf5;
+            font-size: 20px;
+        }
+
+        .zivex-home .z-stat small {
+            color: #686271;
+            font-size: 8px;
+        }
+
+        .zivex-home .z-online {
+            color: #a78bfa !important;
+            font-size: 14px !important;
+        }
+
+        .zivex-home .z-panel {
+            margin-top: 12px;
+
+            border:
+                1px solid rgba(255,255,255,0.06);
+
+            border-radius: 12px;
+
+            background: rgba(255,255,255,0.025);
+            overflow: hidden;
+        }
+
+        .zivex-home .z-panel-top {
+            padding: 15px 16px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .zivex-home .z-panel-label {
+            display: block;
+            color: #716b7b;
+            font-size: 8px;
+            margin-bottom: 4px;
+        }
+
+        .zivex-home .z-panel-top strong {
+            color: #ddd8e7;
+            font-size: 11px;
+        }
+
+        .zivex-home .z-panel-badge {
+            padding: 5px 7px;
+
+            border-radius: 6px;
+
+            background: rgba(139,92,246,0.1);
+            color: #a78bfa;
+
+            font-size: 7px;
+            font-weight: 800;
+        }
+
+        .zivex-home .z-setting {
+            min-height: 52px;
+            padding: 0 16px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            border-bottom: 1px solid rgba(255,255,255,0.035);
+        }
+
+        .zivex-home .z-setting:last-child {
+            border-bottom: 0;
+        }
+
+        .zivex-home .z-setting-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zivex-home .z-setting-icon {
+            width: 26px;
+            height: 26px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 7px;
+
+            background: rgba(139,92,246,0.09);
+            color: #a78bfa;
+
+            font-size: 9px;
+            font-weight: 800;
+        }
+
+        .zivex-home .z-setting strong {
+            display: block;
+            color: #d7d2df;
+            font-size: 9px;
+        }
+
+        .zivex-home .z-setting small {
+            display: block;
+            margin-top: 2px;
+            color: #65606d;
+            font-size: 7px;
+        }
+
+        .zivex-home .z-toggle {
+            width: 25px;
+            height: 14px;
+
+            position: relative;
+
+            border-radius: 99px;
+            background: #6d28d9;
+        }
+
+        .zivex-home .z-toggle::after {
+            content: "";
+
+            position: absolute;
+            top: 2px;
+            right: 2px;
+
+            width: 10px;
+            height: 10px;
+
+            border-radius: 50%;
+            background: white;
+        }
+
+        /* =====================================================
+           SECTIONS
+        ===================================================== */
+
+        .zivex-home .z-section {
+            position: relative;
+            z-index: 2;
+            padding: 110px 0;
+        }
+
+        .zivex-home .z-section-container {
+            width: min(1180px, calc(100% - 40px));
+            margin: auto;
+        }
+
+        .zivex-home .z-section-heading {
+            max-width: 650px;
+            margin: 0 auto 55px;
+            text-align: center;
+        }
+
+        .zivex-home .z-kicker {
+            display: block;
+
+            margin-bottom: 12px;
+
+            color: #9f8bcf;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .zivex-home .z-section-heading h2 {
+            margin: 0;
+
+            color: #f4f1fa;
+            font-size: clamp(30px, 4vw, 45px);
+            letter-spacing: -1.5px;
+        }
+
+        .zivex-home .z-section-heading h2 span {
+            color: #9f7bea;
+        }
+
+        .zivex-home .z-section-heading p {
+            margin: 15px auto 0;
+
+            color: #817b8b;
+            line-height: 1.9;
+            font-size: 14px;
+        }
+
+        /* =====================================================
+           FEATURES
+        ===================================================== */
+
+        .zivex-home .z-features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .zivex-home .z-feature {
+            position: relative;
+            min-height: 260px;
+
+            padding: 27px;
+
+            border:
+                1px solid rgba(255,255,255,0.07);
+
+            border-radius: 16px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,0.035),
+                    rgba(255,255,255,0.012)
+                );
+
+            transition:
+                transform 0.25s ease,
+                border-color 0.25s ease,
+                background 0.25s ease;
+        }
+
+        .zivex-home .z-feature:hover {
+            transform: translateY(-5px);
+
+            border-color:
+                rgba(139,92,246,0.25);
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(139,92,246,0.08),
+                    rgba(255,255,255,0.015)
+                );
+        }
+
+        .zivex-home .z-feature.featured {
+            border-color: rgba(139,92,246,0.2);
+        }
+
+        .zivex-home .z-feature-number {
+            position: absolute;
+            top: 22px;
+            left: 23px;
+
+            color: #494452;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .zivex-home .z-feature-icon {
+            width: 43px;
+            height: 43px;
+
+            display: grid;
+            place-items: center;
+
+            margin-bottom: 22px;
+
+            border-radius: 12px;
+
+            background: rgba(139,92,246,0.1);
+            border: 1px solid rgba(139,92,246,0.12);
+
+            color: #b9a2f5;
+            font-weight: 900;
+        }
+
+        .zivex-home .z-feature h3 {
+            margin: 0 0 9px;
+
+            color: #eeeaf4;
+            font-size: 17px;
+        }
+
+        .zivex-home .z-feature p {
+            margin: 0;
+
+            color: #777181;
+            line-height: 1.9;
+            font-size: 13px;
+        }
+
+        .zivex-home .z-feature-link {
+            position: absolute;
+            bottom: 22px;
+            right: 27px;
+
+            color: #8e7baa;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        /* =====================================================
+           SECURITY
+        ===================================================== */
+
+        .zivex-home .z-security {
+            border-top: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+
+            background:
+                radial-gradient(
+                    circle at 80% 50%,
+                    rgba(139,92,246,0.055),
+                    transparent 35%
+                );
+        }
+
+        .zivex-home .z-security-layout {
+            display: grid;
+            grid-template-columns: 1fr 0.9fr;
+            align-items: center;
+            gap: 100px;
+        }
+
+        .zivex-home .z-security-content h2 {
+            margin: 0 0 18px;
+
+            color: #f4f1fa;
+            font-size: clamp(32px, 4vw, 48px);
+            letter-spacing: -1.5px;
+        }
+
+        .zivex-home .z-security-content h2 span {
+            color: #9f7bea;
+        }
+
+        .zivex-home .z-security-content > p {
+            max-width: 560px;
+
+            color: #7d7788;
+            line-height: 2;
+            font-size: 14px;
+        }
+
+        .zivex-home .z-security-items {
+            margin-top: 30px;
+
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .zivex-home .z-security-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 13px;
+        }
+
+        .zivex-home .z-security-icon {
+            width: 31px;
+            height: 31px;
+            flex-shrink: 0;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 9px;
+
+            background: rgba(139,92,246,0.1);
+            color: #a78bfa;
+
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .zivex-home .z-security-item strong {
+            display: block;
+
+            color: #ddd8e7;
+            font-size: 13px;
+        }
+
+        .zivex-home .z-security-item span {
+            display: block;
+            margin-top: 4px;
+
+            color: #706a79;
+            font-size: 11px;
+        }
+
+        .zivex-home .z-security-card {
+            padding: 24px;
+
+            border:
+                1px solid rgba(255,255,255,0.08);
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(25,22,36,0.85),
+                    rgba(12,11,18,0.9)
+                );
+
+            box-shadow: 0 30px 70px rgba(0,0,0,0.3);
+        }
+
+        .zivex-home .z-security-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding-bottom: 18px;
+
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+
+            color: #8a8393;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .zivex-home .z-secure {
+            color: #a78bfa;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .zivex-home .z-shield {
+            padding: 45px 0;
+
+            display: flex;
+            justify-content: center;
+        }
+
+        .zivex-home .z-shield-circle {
+            width: 105px;
+            height: 105px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 50%;
+
+            border: 1px solid rgba(139,92,246,0.3);
+
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(139,92,246,0.16),
+                    rgba(139,92,246,0.03)
+                );
+
+            color: #bba6f7;
+            font-size: 31px;
+            font-weight: 900;
+
+            box-shadow:
+                0 0 55px rgba(139,92,246,0.12);
+        }
+
+        .zivex-home .z-security-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .zivex-home .z-security-line {
+            min-height: 42px;
+            padding: 0 13px;
+
+            display: flex;
+            align-items: center;
+            gap: 9px;
+
+            border-radius: 9px;
+            background: rgba(255,255,255,0.025);
+
+            color: #777180;
+            font-size: 10px;
+        }
+
+        .zivex-home .z-security-line > span {
+            width: 5px;
+            height: 5px;
+
+            border-radius: 50%;
+            background: #9f7bea;
+        }
+
+        .zivex-home .z-security-line b {
+            margin-right: auto;
+            color: #a78bfa;
+        }
+
+        /* =====================================================
+           CTA
+        ===================================================== */
+
+        .zivex-home .z-cta {
+            position: relative;
+            overflow: hidden;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 40px;
+
+            padding: 55px;
+
+            border:
+                1px solid rgba(139,92,246,0.16);
+
+            border-radius: 22px;
+
+            background:
+                radial-gradient(
+                    circle at 15% 50%,
+                    rgba(139,92,246,0.12),
+                    transparent 35%
+                ),
+                rgba(17,15,26,0.65);
+        }
+
+        .zivex-home .z-cta h2 {
+            margin: 0 0 12px;
+
+            color: #f4f1fa;
+            font-size: clamp(28px, 4vw, 42px);
+        }
+
+        .zivex-home .z-cta h2 span {
+            color: #9f7bea;
+        }
+
+        .zivex-home .z-cta p {
+            margin: 0 0 25px;
+
+            color: #7d7788;
+            font-size: 13px;
+        }
+
+        .zivex-home .z-large-logo {
+            width: 130px;
+            height: 130px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 35px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #9b6cff,
+                    #5b21b6
+                );
+
+            color: white;
+            font-size: 58px;
+            font-weight: 900;
+
+            box-shadow:
+                0 30px 60px rgba(109,40,217,0.3),
+                inset 0 1px rgba(255,255,255,0.25);
+        }
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .zivex-home .z-footer {
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 40px 0 25px;
+        }
+
+        .zivex-home .z-footer-container {
+            width: min(1180px, calc(100% - 40px));
+            margin: auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .zivex-home .z-footer-brand p {
+            margin: 12px 0 0;
+
+            color: #686270;
+            font-size: 11px;
+        }
+
+        .zivex-home .z-footer-nav {
+            display: flex;
+            gap: 25px;
+        }
+
+        .zivex-home .z-footer-nav a {
+            color: #77717f;
+            font-size: 11px;
+        }
+
+        .zivex-home .z-footer-nav a:hover {
+            color: #b9a8d6;
+        }
+
+        .zivex-home .z-footer-bottom {
+            width: min(1180px, calc(100% - 40px));
+            margin: 30px auto 0;
+            padding-top: 20px;
+
+            display: flex;
+            justify-content: space-between;
+
+            border-top: 1px solid rgba(255,255,255,0.04);
+
+            color: #55505d;
+            font-size: 10px;
+        }
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 1000px) {
+
+            .zivex-home .z-hero-container {
+                grid-template-columns: 1fr;
+                gap: 65px;
+            }
+
+            .zivex-home .z-hero-content {
+                text-align: center;
+            }
+
+            .zivex-home .z-hero-description {
+                margin-inline: auto;
+            }
+
+            .zivex-home .z-buttons,
+            .zivex-home .z-trust {
+                justify-content: center;
+            }
+
+            .zivex-home .z-preview {
+                max-width: 700px;
+                margin: auto;
+                transform: none;
+            }
+
+            .zivex-home .z-security-layout {
+                grid-template-columns: 1fr;
+                gap: 55px;
+            }
+
+            .zivex-home .z-security-content {
+                text-align: center;
+            }
+
+            .zivex-home .z-security-content > p {
+                margin-inline: auto;
+            }
+
+            .zivex-home .z-security-items {
+                max-width: 500px;
+                margin-inline: auto;
+                text-align: right;
+            }
+
+            .zivex-home .z-security-card {
+                max-width: 500px;
+                margin: auto;
+            }
+
+            .zivex-home .z-features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+
+            .zivex-home .z-navbar-container {
+                min-height: 68px;
+                width: min(100% - 25px, 1180px);
+            }
+
+            .zivex-home .z-navigation {
+                display: none;
+            }
+
+            .zivex-home .z-login {
+                padding: 9px 12px;
+                font-size: 11px;
+            }
+
+            .zivex-home .z-hero {
+                padding: 75px 0 65px;
+            }
+
+            .zivex-home .z-hero-container,
+            .zivex-home .z-section-container,
+            .zivex-home .z-footer-container,
+            .zivex-home .z-footer-bottom {
+                width: min(100% - 25px, 1180px);
+            }
+
+            .zivex-home .z-hero-title {
+                font-size: 44px;
+                letter-spacing: -2px;
+            }
+
+            .zivex-home .z-hero-description {
+                font-size: 14px;
+            }
+
+            .zivex-home .z-buttons {
+                flex-direction: column;
+            }
+
+            .zivex-home .z-button {
+                width: 100%;
+            }
+
+            .zivex-home .z-trust {
+                flex-wrap: wrap;
+            }
+
+            .zivex-home .z-preview-content {
+                padding: 16px;
+            }
+
+            .zivex-home .z-preview-body {
+                min-height: 340px;
+            }
+
+            .zivex-home .z-preview-sidebar {
+                width: 50px;
+            }
+
+            .zivex-home .z-section {
+                padding: 75px 0;
+            }
+
+            .zivex-home .z-features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .zivex-home .z-feature {
+                min-height: 230px;
+            }
+
+            .zivex-home .z-cta {
+                flex-direction: column;
+                text-align: center;
+                padding: 38px 25px;
+            }
+
+            .zivex-home .z-large-logo {
+                width: 90px;
+                height: 90px;
+                border-radius: 25px;
+                font-size: 40px;
+            }
+
+            .zivex-home .z-footer-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .zivex-home .z-footer-nav {
+                flex-wrap: wrap;
+            }
+
+            .zivex-home .z-footer-bottom {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
 </head>
 
 
 <body>
 
-    <!-- =====================================================
-         Background
-    ====================================================== -->
+<div class="zivex-home">
 
-    <div class="background">
-
-        <div class="background-grid"></div>
-
-        <div class="background-glow glow-one"></div>
-        <div class="background-glow glow-two"></div>
-
-    </div>
+    <div class="z-bg-grid"></div>
+    <div class="z-bg-glow z-glow-one"></div>
+    <div class="z-bg-glow z-glow-two"></div>
 
 
     <!-- =====================================================
-         Navbar
+         NAVBAR
     ====================================================== -->
 
-    <header class="navbar">
+    <header class="z-navbar">
 
-        <div class="navbar-container">
-
-            <!-- Brand -->
+        <div class="z-navbar-container">
 
             <a
                 href="{{ url_for('index') }}"
-                class="brand"
+                class="z-brand"
                 aria-label="Zivex"
             >
-
-                <span class="brand-logo">
-                    Z
-                </span>
-
-                <span class="brand-text">
-                    Zivex
-                </span>
-
+                <span class="z-brand-logo">Z</span>
+                <span class="z-brand-text">Zivex</span>
             </a>
 
 
-            <!-- Navigation -->
+            <nav class="z-navigation">
 
-            <nav class="navigation">
-
-                <a href="#features">
+                <a href="#z-features">
                     المميزات
                 </a>
 
-                <a href="#security">
+                <a href="#z-security">
                     الأمان
                 </a>
 
-                <a href="#about">
+                <a href="#z-about">
                     عن Zivex
                 </a>
 
             </nav>
 
 
-            <!-- Login -->
-
             <a
                 href="{{ url_for('login') }}"
-                class="navbar-login"
+                class="z-login"
             >
-                <span>
-                    تسجيل الدخول
-                </span>
-
-                <span class="login-arrow">
-                    ←
-                </span>
+                <span>تسجيل الدخول</span>
+                <span class="z-login-arrow">←</span>
             </a>
 
         </div>
@@ -116,136 +1472,76 @@
 
 
     <!-- =====================================================
-         Main
+         HERO
     ====================================================== -->
 
     <main>
 
+        <section class="z-hero">
 
-        <!-- =================================================
-             Hero
-        ================================================== -->
+            <div class="z-hero-container">
 
-        <section class="hero">
+                <div class="z-hero-content">
 
-            <div class="hero-container">
-
-
-                <!-- Hero Content -->
-
-                <div class="hero-content">
-
-                    <div class="hero-badge">
-
-                        <span class="badge-dot"></span>
-
-                        <span>
-                            منصة إدارة Discord احترافية
-                        </span>
-
+                    <div class="z-badge">
+                        <span class="z-badge-dot"></span>
+                        منصة إدارة Discord احترافية
                     </div>
 
 
-                    <h1 class="hero-title">
-
+                    <h1 class="z-hero-title">
                         تحكم كامل
-
                         <br>
-
-                        <span>
-                            في سيرفرك.
-                        </span>
-
+                        <span>في سيرفرك.</span>
                     </h1>
 
 
-                    <p class="hero-description">
-
+                    <p class="z-hero-description">
                         Zivex يمنحك لوحة تحكم حديثة لإدارة
                         أنظمة سيرفرك بالكامل من مكان واحد،
                         بتجربة بسيطة وسريعة وآمنة.
-
                     </p>
 
 
-                    <!-- Buttons -->
-
-                    <div class="hero-buttons">
+                    <div class="z-buttons">
 
                         <a
                             href="{{ url_for('login') }}"
-                            class="button button-primary"
+                            class="z-button z-button-primary"
                         >
-
-                            <span>
-                                ابدأ الآن
-                            </span>
-
-                            <span class="button-icon">
-                                ←
-                            </span>
-
+                            <span>ابدأ الآن</span>
+                            <span>←</span>
                         </a>
 
-
                         <a
-                            href="#features"
-                            class="button button-secondary"
+                            href="#z-features"
+                            class="z-button z-button-secondary"
                         >
-
                             اكتشف Zivex
-
                         </a>
 
                     </div>
 
 
-                    <!-- Trust -->
+                    <div class="z-trust">
 
-                    <div class="hero-trust">
-
-                        <div class="trust-item">
-
-                            <span class="trust-check">
-                                ✓
-                            </span>
-
-                            <span>
-                                آمن
-                            </span>
-
+                        <div class="z-trust-item">
+                            <span class="z-trust-check">✓</span>
+                            <span>آمن</span>
                         </div>
 
+                        <div class="z-trust-divider"></div>
 
-                        <div class="trust-divider"></div>
-
-
-                        <div class="trust-item">
-
-                            <span class="trust-check">
-                                ✓
-                            </span>
-
-                            <span>
-                                سريع
-                            </span>
-
+                        <div class="z-trust-item">
+                            <span class="z-trust-check">✓</span>
+                            <span>سريع</span>
                         </div>
 
+                        <div class="z-trust-divider"></div>
 
-                        <div class="trust-divider"></div>
-
-
-                        <div class="trust-item">
-
-                            <span class="trust-check">
-                                ✓
-                            </span>
-
-                            <span>
-                                بدون إعلانات
-                            </span>
-
+                        <div class="z-trust-item">
+                            <span class="z-trust-check">✓</span>
+                            <span>بدون إعلانات</span>
                         </div>
 
                     </div>
@@ -257,74 +1553,55 @@
                      Dashboard Preview
                 ================================================== -->
 
-                <div class="hero-dashboard">
+                <div class="z-preview-wrapper">
 
-                    <div class="dashboard-glow"></div>
+                    <div class="z-preview-glow"></div>
 
+                    <div class="z-preview">
 
-                    <div class="dashboard-window">
+                        <div class="z-preview-header">
 
-
-                        <!-- Window Header -->
-
-                        <div class="window-header">
-
-                            <div class="window-dots">
-
+                            <div class="z-window-dots">
                                 <span></span>
                                 <span></span>
                                 <span></span>
-
                             </div>
 
-
-                            <div class="window-title">
-
+                            <div class="z-preview-title">
                                 Zivex Dashboard
-
                             </div>
 
                         </div>
 
 
-                        <!-- Dashboard -->
+                        <div class="z-preview-body">
 
-                        <div class="window-body">
+                            <aside class="z-preview-sidebar">
 
-
-                            <!-- Sidebar -->
-
-                            <aside class="dashboard-sidebar">
-
-                                <div class="sidebar-brand">
-
-                                    <span>
-                                        Z
-                                    </span>
-
+                                <div class="z-preview-logo">
+                                    Z
                                 </div>
 
+                                <div class="z-preview-menu">
 
-                                <div class="sidebar-menu">
-
-                                    <div class="sidebar-item active">
-                                        <span>⌂</span>
+                                    <div class="z-preview-item active">
+                                        ⌂
                                     </div>
 
-                                    <div class="sidebar-item">
-                                        <span>⚙</span>
+                                    <div class="z-preview-item">
+                                        ⚙
                                     </div>
 
-                                    <div class="sidebar-item">
-                                        <span>◆</span>
+                                    <div class="z-preview-item">
+                                        ◆
                                     </div>
 
-                                    <div class="sidebar-item">
-                                        <span>▣</span>
+                                    <div class="z-preview-item">
+                                        ▣
                                     </div>
 
-                                    <div class="sidebar-item">
-                                        <span>♢</span>
+                                    <div class="z-preview-item">
+                                        ♢
                                     </div>
 
                                 </div>
@@ -332,18 +1609,13 @@
                             </aside>
 
 
-                            <!-- Content -->
+                            <div class="z-preview-content">
 
-                            <div class="dashboard-content">
-
-
-                                <!-- Top -->
-
-                                <div class="dashboard-heading">
+                                <div class="z-preview-heading">
 
                                     <div>
 
-                                        <span class="dashboard-small">
+                                        <span class="z-preview-small">
                                             لوحة التحكم
                                         </span>
 
@@ -353,22 +1625,18 @@
 
                                     </div>
 
-
-                                    <div class="fake-avatar">
+                                    <div class="z-avatar">
                                         Z
                                     </div>
 
                                 </div>
 
 
-                                <!-- Stats -->
+                                <div class="z-stats">
 
-                                <div class="dashboard-stats">
+                                    <div class="z-stat">
 
-
-                                    <div class="dashboard-stat">
-
-                                        <span class="stat-label">
+                                        <span class="z-stat-label">
                                             الأنظمة
                                         </span>
 
@@ -383,13 +1651,13 @@
                                     </div>
 
 
-                                    <div class="dashboard-stat">
+                                    <div class="z-stat">
 
-                                        <span class="stat-label">
+                                        <span class="z-stat-label">
                                             الحالة
                                         </span>
 
-                                        <strong class="online">
+                                        <strong class="z-online">
                                             Online
                                         </strong>
 
@@ -402,15 +1670,13 @@
                                 </div>
 
 
-                                <!-- Settings -->
+                                <div class="z-panel">
 
-                                <div class="dashboard-panel">
-
-                                    <div class="panel-top">
+                                    <div class="z-panel-top">
 
                                         <div>
 
-                                            <span class="panel-label">
+                                            <span class="z-panel-label">
                                                 الأنظمة
                                             </span>
 
@@ -420,18 +1686,18 @@
 
                                         </div>
 
-                                        <span class="panel-badge">
+                                        <span class="z-panel-badge">
                                             ACTIVE
                                         </span>
 
                                     </div>
 
 
-                                    <div class="panel-setting">
+                                    <div class="z-setting">
 
-                                        <div class="setting-info">
+                                        <div class="z-setting-info">
 
-                                            <span class="setting-icon">
+                                            <span class="z-setting-icon">
                                                 W
                                             </span>
 
@@ -449,16 +1715,16 @@
 
                                         </div>
 
-                                        <span class="setting-toggle active"></span>
+                                        <span class="z-toggle"></span>
 
                                     </div>
 
 
-                                    <div class="panel-setting">
+                                    <div class="z-setting">
 
-                                        <div class="setting-info">
+                                        <div class="z-setting-info">
 
-                                            <span class="setting-icon">
+                                            <span class="z-setting-icon">
                                                 L
                                             </span>
 
@@ -476,16 +1742,16 @@
 
                                         </div>
 
-                                        <span class="setting-toggle active"></span>
+                                        <span class="z-toggle"></span>
 
                                     </div>
 
 
-                                    <div class="panel-setting">
+                                    <div class="z-setting">
 
-                                        <div class="setting-info">
+                                        <div class="z-setting-info">
 
-                                            <span class="setting-icon">
+                                            <span class="z-setting-icon">
                                                 T
                                             </span>
 
@@ -503,10 +1769,9 @@
 
                                         </div>
 
-                                        <span class="setting-toggle active"></span>
+                                        <span class="z-toggle"></span>
 
                                     </div>
-
 
                                 </div>
 
@@ -524,28 +1789,25 @@
 
 
         <!-- =====================================================
-             Features
+             FEATURES
         ====================================================== -->
 
         <section
-            id="features"
-            class="section"
+            id="z-features"
+            class="z-section"
         >
 
-            <div class="section-container">
+            <div class="z-section-container">
 
+                <div class="z-section-heading">
 
-                <div class="section-heading">
-
-                    <span class="section-kicker">
+                    <span class="z-kicker">
                         ZIVEX FEATURES
                     </span>
 
                     <h2>
                         كل ما تحتاجه
-                        <span>
-                            في مكان واحد
-                        </span>
+                        <span>في مكان واحد</span>
                     </h2>
 
                     <p>
@@ -556,165 +1818,150 @@
                 </div>
 
 
-                <div class="features-grid">
+                <div class="z-features-grid">
 
+                    <article class="z-feature featured">
 
-                    <article class="feature-card featured">
-
-                        <div class="feature-number">
+                        <span class="z-feature-number">
                             01
-                        </div>
+                        </span>
 
-                        <div class="feature-icon">
+                        <div class="z-feature-icon">
                             W
                         </div>
 
-                        <h3>
-                            الترحيب
-                        </h3>
+                        <h3>الترحيب</h3>
 
                         <p>
-                            أنشئ تجربة دخول احترافية
-                            لأعضاء سيرفرك مع إعدادات
-                            مستقلة لكل سيرفر.
+                            أنشئ تجربة دخول احترافية لأعضاء
+                            سيرفرك مع إعدادات مستقلة لكل سيرفر.
                         </p>
 
-                        <span class="feature-link">
+                        <span class="z-feature-link">
                             Welcome System ←
                         </span>
 
                     </article>
 
 
-                    <article class="feature-card">
+                    <article class="z-feature">
 
-                        <div class="feature-number">
+                        <span class="z-feature-number">
                             02
-                        </div>
+                        </span>
 
-                        <div class="feature-icon">
+                        <div class="z-feature-icon">
                             L
                         </div>
 
-                        <h3>
-                            الليفلات
-                        </h3>
+                        <h3>الليفلات</h3>
 
                         <p>
-                            نظام مستويات يساعدك على
-                            زيادة تفاعل أعضاء المجتمع.
+                            نظام مستويات يساعدك على زيادة
+                            تفاعل أعضاء المجتمع.
                         </p>
 
-                        <span class="feature-link">
+                        <span class="z-feature-link">
                             Level System ←
                         </span>
 
                     </article>
 
 
-                    <article class="feature-card">
+                    <article class="z-feature">
 
-                        <div class="feature-number">
+                        <span class="z-feature-number">
                             03
-                        </div>
+                        </span>
 
-                        <div class="feature-icon">
+                        <div class="z-feature-icon">
                             T
                         </div>
 
-                        <h3>
-                            التذاكر
-                        </h3>
+                        <h3>التذاكر</h3>
 
                         <p>
                             إدارة طلبات الدعم والتذاكر
                             بطريقة منظمة وسريعة.
                         </p>
 
-                        <span class="feature-link">
+                        <span class="z-feature-link">
                             Ticket System ←
                         </span>
 
                     </article>
 
 
-                    <article class="feature-card">
+                    <article class="z-feature">
 
-                        <div class="feature-number">
+                        <span class="z-feature-number">
                             04
-                        </div>
+                        </span>
 
-                        <div class="feature-icon">
+                        <div class="z-feature-icon">
                             A
                         </div>
 
-                        <h3>
-                            التقديمات
-                        </h3>
+                        <h3>التقديمات</h3>
 
                         <p>
-                            استقبل طلبات الإدارة
-                            وراجعها بسهولة من خلال النظام.
+                            استقبل طلبات الإدارة وراجعها
+                            بسهولة من خلال النظام.
                         </p>
 
-                        <span class="feature-link">
+                        <span class="z-feature-link">
                             Applications ←
                         </span>
 
                     </article>
 
 
-                    <article class="feature-card">
+                    <article class="z-feature">
 
-                        <div class="feature-number">
+                        <span class="z-feature-number">
                             05
-                        </div>
+                        </span>
 
-                        <div class="feature-icon">
+                        <div class="z-feature-icon">
                             M
                         </div>
 
-                        <h3>
-                            الإدارة
-                        </h3>
+                        <h3>الإدارة</h3>
 
                         <p>
                             أدوات إدارية تساعد فريقك
                             على إدارة السيرفر بشكل أفضل.
                         </p>
 
-                        <span class="feature-link">
+                        <span class="z-feature-link">
                             Moderation ←
                         </span>
 
                     </article>
 
 
-                    <article class="feature-card">
+                    <article class="z-feature">
 
-                        <div class="feature-number">
+                        <span class="z-feature-number">
                             06
-                        </div>
+                        </span>
 
-                        <div class="feature-icon">
+                        <div class="z-feature-icon">
                             S
                         </div>
 
-                        <h3>
-                            إعدادات السيرفر
-                        </h3>
+                        <h3>إعدادات السيرفر</h3>
 
                         <p>
                             تحكم كامل في أنظمة Zivex
                             من لوحة تحكم واحدة.
                         </p>
 
-                        <span class="feature-link">
+                        <span class="z-feature-link">
                             Dashboard ←
                         </span>
 
                     </article>
-
 
                 </div>
 
@@ -724,48 +1971,42 @@
 
 
         <!-- =====================================================
-             Security
+             SECURITY
         ====================================================== -->
 
         <section
-            id="security"
-            class="section security-section"
+            id="z-security"
+            class="z-section z-security"
         >
 
-            <div class="section-container">
+            <div class="z-section-container">
+
+                <div class="z-security-layout">
 
 
-                <div class="security-layout">
+                    <div class="z-security-content">
 
-
-                    <!-- Text -->
-
-                    <div class="security-content">
-
-                        <span class="section-kicker">
+                        <span class="z-kicker">
                             SECURITY FIRST
                         </span>
 
                         <h2>
                             الأمان ليس
-                            <span>
-                                خيارًا.
-                            </span>
+                            <span>خيارًا.</span>
                         </h2>
 
                         <p>
-                            صممنا Zivex بحيث تكون صلاحيات
-                            المستخدم والتحقق من السيرفر جزءًا
-                            أساسيًا من النظام، وليس إضافة لاحقة.
+                            صممنا Zivex بحيث تكون صلاحيات المستخدم
+                            والتحقق من السيرفر جزءًا أساسيًا من النظام،
+                            وليس إضافة لاحقة.
                         </p>
 
 
-                        <div class="security-items">
+                        <div class="z-security-items">
 
+                            <div class="z-security-item">
 
-                            <div class="security-item">
-
-                                <div class="security-icon">
+                                <div class="z-security-icon">
                                     ✓
                                 </div>
 
@@ -784,9 +2025,9 @@
                             </div>
 
 
-                            <div class="security-item">
+                            <div class="z-security-item">
 
-                                <div class="security-icon">
+                                <div class="z-security-icon">
                                     ✓
                                 </div>
 
@@ -805,9 +2046,9 @@
                             </div>
 
 
-                            <div class="security-item">
+                            <div class="z-security-item">
 
-                                <div class="security-icon">
+                                <div class="z-security-icon">
                                     ✓
                                 </div>
 
@@ -825,66 +2066,58 @@
 
                             </div>
 
-
                         </div>
 
                     </div>
 
 
-                    <!-- Visual -->
+                    <div class="z-security-card">
 
-                    <div class="security-visual">
+                        <div class="z-security-top">
 
-                        <div class="security-card">
+                            <span>
+                                Zivex Security
+                            </span>
 
-                            <div class="security-card-top">
+                            <span class="z-secure">
+                                SECURE
+                            </span>
 
-                                <span>
-                                    Zivex Security
-                                </span>
+                        </div>
 
-                                <span class="security-status">
-                                    SECURE
-                                </span>
 
+                        <div class="z-shield">
+
+                            <div class="z-shield-circle">
+                                Z
                             </div>
 
+                        </div>
 
-                            <div class="security-shield">
 
-                                <div class="shield-circle">
-                                    Z
-                                </div>
+                        <div class="z-security-lines">
 
+                            <div class="z-security-line">
+                                <span></span>
+                                OAuth Protection
+                                <b>✓</b>
                             </div>
 
+                            <div class="z-security-line">
+                                <span></span>
+                                Permission Check
+                                <b>✓</b>
+                            </div>
 
-                            <div class="security-lines">
-
-                                <div>
-                                    <span></span>
-                                    OAuth Protection
-                                    <b>✓</b>
-                                </div>
-
-                                <div>
-                                    <span></span>
-                                    Permission Check
-                                    <b>✓</b>
-                                </div>
-
-                                <div>
-                                    <span></span>
-                                    Session Security
-                                    <b>✓</b>
-                                </div>
-
+                            <div class="z-security-line">
+                                <span></span>
+                                Session Security
+                                <b>✓</b>
                             </div>
 
                         </div>
 
                     </div>
-
 
                 </div>
 
@@ -894,31 +2127,27 @@
 
 
         <!-- =====================================================
-             About / CTA
+             CTA
         ====================================================== -->
 
         <section
-            id="about"
-            class="section"
+            id="z-about"
+            class="z-section"
         >
 
-            <div class="section-container">
+            <div class="z-section-container">
 
+                <div class="z-cta">
 
-                <div class="cta-card">
+                    <div>
 
-
-                    <div class="cta-content">
-
-                        <span class="section-kicker">
+                        <span class="z-kicker">
                             READY?
                         </span>
 
                         <h2>
                             ابدأ إدارة سيرفرك
-                            <span>
-                                مع Zivex.
-                            </span>
+                            <span>مع Zivex.</span>
                         </h2>
 
                         <p>
@@ -929,9 +2158,8 @@
 
                         <a
                             href="{{ url_for('login') }}"
-                            class="button button-primary"
+                            class="z-button z-button-primary"
                         >
-
                             <span>
                                 الدخول إلى لوحة التحكم
                             </span>
@@ -939,20 +2167,14 @@
                             <span>
                                 ←
                             </span>
-
                         </a>
 
                     </div>
 
 
-                    <div class="cta-logo">
-
-                        <div class="large-logo">
-                            Z
-                        </div>
-
+                    <div class="z-large-logo">
+                        Z
                     </div>
-
 
                 </div>
 
@@ -960,34 +2182,30 @@
 
         </section>
 
-
     </main>
 
 
     <!-- =====================================================
-         Footer
+         FOOTER
     ====================================================== -->
 
-    <footer class="footer">
+    <footer class="z-footer">
 
-        <div class="footer-container">
+        <div class="z-footer-container">
 
-
-            <div class="footer-brand">
+            <div class="z-footer-brand">
 
                 <a
                     href="{{ url_for('index') }}"
-                    class="brand"
+                    class="z-brand"
                 >
-
-                    <span class="brand-logo">
+                    <span class="z-brand-logo">
                         Z
                     </span>
 
-                    <span class="brand-text">
+                    <span class="z-brand-text">
                         Zivex
                     </span>
-
                 </a>
 
                 <p>
@@ -997,17 +2215,17 @@
             </div>
 
 
-            <div class="footer-navigation">
+            <nav class="z-footer-nav">
 
-                <a href="#features">
+                <a href="#z-features">
                     المميزات
                 </a>
 
-                <a href="#security">
+                <a href="#z-security">
                     الأمان
                 </a>
 
-                <a href="#about">
+                <a href="#z-about">
                     عن Zivex
                 </a>
 
@@ -1015,12 +2233,12 @@
                     لوحة التحكم
                 </a>
 
-            </div>
+            </nav>
 
         </div>
 
 
-        <div class="footer-bottom">
+        <div class="z-footer-bottom">
 
             <span>
                 © 2026 Zivex
@@ -1033,6 +2251,8 @@
         </div>
 
     </footer>
+
+</div>
 
 </body>
 
