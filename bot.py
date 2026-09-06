@@ -39,7 +39,9 @@ class Zivex(commands.Bot):
         # Global Slash Command Check
         # =====================================================
 
-        self.tree.interaction_check = self._maintenance_interaction_check
+        self.tree.interaction_check = (
+            self._maintenance_interaction_check
+        )
 
     # =========================================================
     # Database - Maintenance
@@ -47,7 +49,9 @@ class Zivex(commands.Bot):
 
     async def setup_maintenance_database(self):
 
-        async with await db.connect() as database:
+        async with db.connect() as database:
+
+            await db.configure_connection(database)
 
             await database.execute(
                 """
@@ -70,15 +74,23 @@ class Zivex(commands.Bot):
             row = await cursor.fetchone()
 
             if row:
-                self.maintenance_mode = str(row[0]) == "1"
+
+                self.maintenance_mode = (
+                    str(row[0]) == "1"
+                )
+
             else:
+
                 await database.execute(
                     """
                     INSERT INTO zivex_global_settings
                     (setting, value)
                     VALUES (?, ?)
                     """,
-                    ("maintenance_mode", "0"),
+                    (
+                        "maintenance_mode",
+                        "0",
+                    ),
                 )
 
                 await database.commit()
@@ -88,11 +100,16 @@ class Zivex(commands.Bot):
             "ON" if self.maintenance_mode else "OFF",
         )
 
-    async def set_maintenance(self, enabled: bool):
+    async def set_maintenance(
+        self,
+        enabled: bool,
+    ):
 
         self.maintenance_mode = bool(enabled)
 
-        async with await db.connect() as database:
+        async with db.connect() as database:
+
+            await db.configure_connection(database)
 
             await database.execute(
                 """
@@ -122,7 +139,9 @@ class Zivex(commands.Bot):
 
         if ctx.command:
 
-            command_name = str(ctx.command.name).lower()
+            command_name = str(
+                ctx.command.name
+            ).lower()
 
             if command_name == "صيانة":
                 return True
@@ -155,14 +174,20 @@ class Zivex(commands.Bot):
     # Slash Command Protection
     # =========================================================
 
-    async def _maintenance_interaction_check(self, interaction):
+    async def _maintenance_interaction_check(
+        self,
+        interaction,
+    ):
 
         # -----------------------------------------------------
         # إذا ليست Slash Command
         # لا نوقف الأزرار والمودالات
         # -----------------------------------------------------
 
-        if interaction.type != discord.InteractionType.application_command:
+        if (
+            interaction.type
+            != discord.InteractionType.application_command
+        ):
             return True
 
         # -----------------------------------------------------
@@ -270,9 +295,11 @@ class Zivex(commands.Bot):
                 await db.ensure_guild(
                     guild.id,
                     guild.name,
-                    str(guild.icon.url)
-                    if guild.icon
-                    else None,
+                    (
+                        str(guild.icon.url)
+                        if guild.icon
+                        else None
+                    ),
                 )
 
             except Exception as error:
@@ -324,7 +351,9 @@ async def maintenance(ctx):
 
     try:
 
-        is_owner = await bot.is_owner(ctx.author)
+        is_owner = await bot.is_owner(
+            ctx.author
+        )
 
     except Exception:
 
@@ -346,7 +375,9 @@ async def maintenance(ctx):
 
     try:
 
-        await bot.set_maintenance(new_state)
+        await bot.set_maintenance(
+            new_state
+        )
 
     except Exception as error:
 
@@ -457,9 +488,11 @@ async def on_ready():
             await db.ensure_guild(
                 guild.id,
                 guild.name,
-                str(guild.icon.url)
-                if guild.icon
-                else None,
+                (
+                    str(guild.icon.url)
+                    if guild.icon
+                    else None
+                ),
             )
 
         except Exception as error:
@@ -518,9 +551,11 @@ async def on_guild_join(guild):
         await db.ensure_guild(
             guild.id,
             guild.name,
-            str(guild.icon.url)
-            if guild.icon
-            else None,
+            (
+                str(guild.icon.url)
+                if guild.icon
+                else None
+            ),
         )
 
     except Exception as error:
@@ -637,8 +672,13 @@ def start_web():
 
     try:
 
-        # Railway provides PORT automatically.
-        railway_port = os.getenv("PORT")
+        # =====================================================
+        # Railway PORT
+        # =====================================================
+
+        railway_port = os.getenv(
+            "PORT"
+        )
 
         try:
 
