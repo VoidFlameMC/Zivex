@@ -1,32 +1,115 @@
 import os
+
 from dotenv import load_dotenv
+
+
+# =========================================================
+# Load Environment Variables
+# =========================================================
 
 load_dotenv()
 
+
 # =========================================================
-# Zivex Configuration
+# Helper
 # =========================================================
 
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "").strip()
+def get_env(name, default=""):
+    """
+    قراءة Environment Variable وتنظيفها.
+    """
 
-DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "").strip()
+    return os.getenv(
+        name,
+        default,
+    ).strip()
 
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "").strip()
 
-SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
+def get_port():
+    """
+    Railway يوفر PORT تلقائيًا.
+    WEB_PORT يستخدم كخيار احتياطي.
+    """
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///zivex.db").strip()
+    value = (
+        os.getenv("PORT")
+        or os.getenv("WEB_PORT")
+        or "8080"
+    ).strip()
 
-# الموقع
-WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0").strip()
+    try:
+        port = int(value)
 
-WEB_PORT = int(os.getenv("PORT", "8080"))
+    except (
+        TypeError,
+        ValueError,
+    ):
+        port = 8080
 
-# رابط الموقع
-WEB_URL = os.getenv(
+    # منع المنافذ غير الصالحة
+    if not 1 <= port <= 65535:
+        port = 8080
+
+    return port
+
+
+# =========================================================
+# Discord
+# =========================================================
+
+DISCORD_TOKEN = get_env(
+    "DISCORD_TOKEN"
+)
+
+DISCORD_CLIENT_ID = get_env(
+    "DISCORD_CLIENT_ID"
+)
+
+DISCORD_CLIENT_SECRET = get_env(
+    "DISCORD_CLIENT_SECRET"
+)
+
+
+# =========================================================
+# Flask / Security
+# =========================================================
+
+SESSION_SECRET = get_env(
+    "SESSION_SECRET"
+)
+
+
+# =========================================================
+# Database
+# =========================================================
+
+DATABASE_URL = get_env(
+    "DATABASE_URL",
+    "sqlite:///zivex.db",
+)
+
+
+# =========================================================
+# Web Server
+# =========================================================
+
+WEB_HOST = get_env(
+    "WEB_HOST",
+    "0.0.0.0",
+)
+
+WEB_PORT = get_port()
+
+
+# =========================================================
+# Website URL
+# =========================================================
+
+WEB_URL = get_env(
     "WEB_URL",
-    "http://localhost:8080"
-).strip().rstrip("/")
+    "http://localhost:8080",
+).rstrip("/")
+
 
 # =========================================================
 # Zivex Settings
@@ -37,18 +120,46 @@ BOT_NAME = "Zivex"
 # Prefix للأوامر القديمة
 PREFIX = "!"
 
+
 # =========================================================
-# التحقق من الإعدادات الأساسية
+# Configuration Warnings
 # =========================================================
 
 if not DISCORD_TOKEN:
-    print("⚠️ DISCORD_TOKEN غير موجود في Environment Variables.")
+    print(
+        "⚠️ DISCORD_TOKEN غير موجود في Environment Variables."
+    )
+
 
 if not DISCORD_CLIENT_ID:
-    print("⚠️ DISCORD_CLIENT_ID غير موجود في Environment Variables.")
+    print(
+        "⚠️ DISCORD_CLIENT_ID غير موجود في Environment Variables."
+    )
+
 
 if not DISCORD_CLIENT_SECRET:
-    print("⚠️ DISCORD_CLIENT_SECRET غير موجود في Environment Variables.")
+    print(
+        "⚠️ DISCORD_CLIENT_SECRET غير موجود في Environment Variables."
+    )
+
 
 if not SESSION_SECRET:
-    print("⚠️ SESSION_SECRET غير موجود في Environment Variables.")
+    print(
+        "⚠️ SESSION_SECRET غير موجود في Environment Variables."
+    )
+
+
+# =========================================================
+# Production Warning
+# =========================================================
+
+if (
+    WEB_URL.startswith("http://")
+    and not WEB_URL.startswith(
+        "http://localhost"
+    )
+):
+    print(
+        "⚠️ WEB_URL يستخدم HTTP. "
+        "في الإنتاج استخدم HTTPS."
+    )
