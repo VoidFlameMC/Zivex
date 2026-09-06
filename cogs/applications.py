@@ -7,13 +7,15 @@ from database import db
 
 
 # =========================================================
-# قاعدة بيانات التقديمات
+# Application Database
 # =========================================================
 
 class ApplicationDatabase:
+
     async def setup(self):
         async with await db.connect() as connection:
-            await connection.execute("""
+            await connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS applications (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     guild_id INTEGER NOT NULL,
@@ -22,7 +24,9 @@ class ApplicationDatabase:
                     status TEXT NOT NULL DEFAULT 'pending',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+                """
+            )
+
             await connection.commit()
 
     async def create_application(
@@ -41,7 +45,10 @@ class ApplicationDatabase:
                 )
                 VALUES (?, ?, 0, 'pending')
                 """,
-                (guild_id, user_id),
+                (
+                    guild_id,
+                    user_id,
+                ),
             )
 
             await connection.commit()
@@ -60,7 +67,10 @@ class ApplicationDatabase:
                 SET message_id = ?
                 WHERE id = ?
                 """,
-                (message_id, application_id),
+                (
+                    message_id,
+                    application_id,
+                ),
             )
 
             await connection.commit()
@@ -83,7 +93,7 @@ class ApplicationDatabase:
 
             row = await cursor.fetchone()
 
-            if row is None:
+            if not row:
                 return None
 
             return dict(row)
@@ -103,7 +113,10 @@ class ApplicationDatabase:
                 AND status = 'pending'
                 LIMIT 1
                 """,
-                (guild_id, user_id),
+                (
+                    guild_id,
+                    user_id,
+                ),
             )
 
             row = await cursor.fetchone()
@@ -122,7 +135,10 @@ class ApplicationDatabase:
                 SET status = ?
                 WHERE id = ?
                 """,
-                (status, application_id),
+                (
+                    status,
+                    application_id,
+                ),
             )
 
             await connection.commit()
@@ -164,7 +180,7 @@ application_db = ApplicationDatabase()
 
 
 # =========================================================
-# إعدادات السيرفر
+# Settings
 # =========================================================
 
 async def get_guild_settings(
@@ -194,19 +210,33 @@ async def get_guild_settings(
 
 def replace_variables(
     text: str,
-    member: discord.Member,
+    guild: discord.Guild,
+    member: discord.Member | discord.User | None = None,
+    application_id: int | None = None,
 ):
     if not text:
         return ""
 
     replacements = {
-        "{user}": member.mention,
-        "{username}": member.display_name,
-        "{server}": member.guild.name,
+        "{server}": guild.name,
         "{member_count}": str(
-            member.guild.member_count or 0
+            guild.member_count or 0
         ),
     }
+
+    if member:
+        replacements.update(
+            {
+                "{user}": member.mention,
+                "{username}": member.display_name,
+                "{user_id}": str(member.id),
+            }
+        )
+
+    if application_id is not None:
+        replacements[
+            "{application_id}"
+        ] = str(application_id)
 
     for key, value in replacements.items():
         text = text.replace(
@@ -222,10 +252,14 @@ def parse_color(value):
         if not value:
             return discord.Color.blurple()
 
-        value = str(value).strip().replace(
-            "#",
-            "",
+        value = (
+            str(value)
+            .strip()
+            .replace("#", "")
         )
+
+        if value.lower().startswith("0x"):
+            value = value[2:]
 
         if len(value) != 6:
             return discord.Color.blurple()
@@ -241,92 +275,78 @@ def parse_color(value):
         return discord.Color.blurple()
 
 
+def is_staff(
+    member: discord.Member,
+):
+    return (
+        member.guild_permissions.administrator
+        or member.guild_permissions.manage_guild
+    )
+
+
 # =========================================================
-# View مراجعة التقديم
+# Application Review View
 # =========================================================
 
-class ApplicationReviewView(discord.ui.View):
+class ApplicationReviewView(
+    discord.ui.View
+):
+
     def __init__(
         self,
         cog,
         application_id: int,
-        user_id: int,
     ):
-        super().__init__(timeout=None)
+        super().__init__(
+            timeout=None
+        )
 
         self.cog = cog
         self.application_id = application_id
-        self.user_id = user_id
 
-        accept_button = discord.ui.Button(
-            label="قبول",
-            emoji="✅",
-            style=discord.ButtonStyle.success,
-            custom_id=(
-                f"zivex_application_accept_{application_id}"
-            ),
-        )
+    # -----------------------------------------------------
+    # Accept
+    # -----------------------------------------------------
 
-        reject_button = discord.ui.Button(
-            label="رفض",
-            emoji="❌",
-            style=discord.ButtonStyle.danger,
-            custom_id=(
-                f"zivex_application_reject_{application_id}"
-            ),
-        )
-
-        accept_button.callback = self.accept_application
-        reject_button.callback = self.reject_application
-
-        self.add_item(accept_button)
-        self.add_item(reject_button)
-
-    async def check_staff(
+    @discord.ui.button(
+        label="قبول",
+        emoji="✅",
+        style=discord.ButtonStyle.success,
+        custom_id="zivex_application_accept",
+    )
+    async def accept_button(
         self,
         interaction: discord.Interaction,
+        button: discord.ui.Button,
     ):
         if interaction.guild is None:
             await interaction.response.send_message(
                 "❌ هذا الزر يعمل داخل السيرفر فقط.",
                 ephemeral=True,
             )
-            return False
+            return
 
-        member = interaction.user
-
-        if not isinstance(member, discord.Member):
+        if not isinstance(
+            interaction.user,
+            discord.Member,
+        ):
             await interaction.response.send_message(
                 "❌ تعذر التحقق من صلاحياتك.",
                 ephemeral=True,
             )
-            return False
+            return
 
-        if not (
-            member.guild_permissions.administrator
-            or member.guild_permissions.manage_guild
-        ):
+        if not is_staff(interaction.user):
             await interaction.response.send_message(
                 "❌ ما عندك صلاحية للتعامل مع التقديمات.",
                 ephemeral=True,
             )
-            return False
-
-        return True
-
-    # -----------------------------------------------------
-    # قبول
-    # -----------------------------------------------------
-
-    async def accept_application(
-        self,
-        interaction: discord.Interaction,
-    ):
-        if not await self.check_staff(interaction):
             return
 
-        application = await application_db.get_application(
-            self.application_id
+        application = (
+            await application_db.get_application(
+                self.application_id
+            )
         )
 
         if not application:
@@ -349,7 +369,9 @@ class ApplicationReviewView(discord.ui.View):
         )
 
         if interaction.message.embeds:
-            embed = interaction.message.embeds[0].copy()
+            embed = (
+                interaction.message.embeds[0].copy()
+            )
         else:
             embed = discord.Embed(
                 title="📝 تقديم"
@@ -384,64 +406,56 @@ class ApplicationReviewView(discord.ui.View):
             accepted=True,
         )
 
-        logs = self.cog.bot.get_cog("Logs")
-
-        if logs:
-            try:
-                await logs.application_received(
-                    interaction.guild.get_member(
-                        application["user_id"]
-                    )
-                    or await self.cog.bot.fetch_user(
-                        application["user_id"]
-                    )
-                )
-            except Exception:
-                pass
-
-            try:
-                await logs.send_log(
-                    interaction.guild,
-                    "✅ تم قبول تقديم",
-                    (
-                        f"تم قبول التقديم "
-                        f"`#{self.application_id}`."
-                    ),
-                    color=discord.Color.green(),
-                    fields=[
-                        {
-                            "name": "👤 المتقدم",
-                            "value": (
-                                f"<@{application['user_id']}>"
-                            ),
-                            "inline": True,
-                        },
-                        {
-                            "name": "👮 المسؤول",
-                            "value": interaction.user.mention,
-                            "inline": True,
-                        },
-                    ],
-                    user=interaction.user,
-                )
-            except Exception as error:
-                print(
-                    f"⚠️ Application accept log error: {error}"
-                )
+        await self.cog.send_log(
+            interaction.guild,
+            application,
+            interaction.user,
+            accepted=True,
+        )
 
     # -----------------------------------------------------
-    # رفض
+    # Reject
     # -----------------------------------------------------
 
-    async def reject_application(
+    @discord.ui.button(
+        label="رفض",
+        emoji="❌",
+        style=discord.ButtonStyle.danger,
+        custom_id="zivex_application_reject",
+    )
+    async def reject_button(
         self,
         interaction: discord.Interaction,
+        button: discord.ui.Button,
     ):
-        if not await self.check_staff(interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "❌ هذا الزر يعمل داخل السيرفر فقط.",
+                ephemeral=True,
+            )
             return
 
-        application = await application_db.get_application(
-            self.application_id
+        if not isinstance(
+            interaction.user,
+            discord.Member,
+        ):
+            await interaction.response.send_message(
+                "❌ تعذر التحقق من صلاحياتك.",
+                ephemeral=True,
+            )
+            return
+
+        if not is_staff(interaction.user):
+            await interaction.response.send_message(
+                "❌ ما عندك صلاحية للتعامل مع التقديمات.",
+                ephemeral=True,
+            )
+            return
+
+        application = (
+            await application_db.get_application(
+                self.application_id
+            )
         )
 
         if not application:
@@ -458,29 +472,30 @@ class ApplicationReviewView(discord.ui.View):
             )
             return
 
-        modal = RejectApplicationModal(
-            self.cog,
-            self.application_id,
-            application["user_id"],
-            interaction.message,
-        )
-
         await interaction.response.send_modal(
-            modal
+            RejectApplicationModal(
+                self.cog,
+                self.application_id,
+                application["user_id"],
+                interaction.message,
+            )
         )
 
 
 # =========================================================
-# Modal الرفض
+# Reject Modal
 # =========================================================
 
-class RejectApplicationModal(discord.ui.Modal):
+class RejectApplicationModal(
+    discord.ui.Modal
+):
+
     def __init__(
         self,
         cog,
         application_id: int,
         user_id: int,
-        message: discord.Message,
+        application_message: discord.Message,
     ):
         super().__init__(
             title="رفض التقديم"
@@ -489,7 +504,9 @@ class RejectApplicationModal(discord.ui.Modal):
         self.cog = cog
         self.application_id = application_id
         self.user_id = user_id
-        self.application_message = message
+        self.application_message = (
+            application_message
+        )
 
         self.reason = discord.ui.TextInput(
             label="سبب الرفض",
@@ -508,8 +525,34 @@ class RejectApplicationModal(discord.ui.Modal):
         self,
         interaction: discord.Interaction,
     ):
-        application = await application_db.get_application(
-            self.application_id
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "❌ هذا النظام يعمل داخل السيرفر فقط.",
+                ephemeral=True,
+            )
+            return
+
+        if not isinstance(
+            interaction.user,
+            discord.Member,
+        ):
+            await interaction.response.send_message(
+                "❌ تعذر التحقق من صلاحياتك.",
+                ephemeral=True,
+            )
+            return
+
+        if not is_staff(interaction.user):
+            await interaction.response.send_message(
+                "❌ ما عندك صلاحية للتعامل مع التقديمات.",
+                ephemeral=True,
+            )
+            return
+
+        application = (
+            await application_db.get_application(
+                self.application_id
+            )
         )
 
         if not application:
@@ -526,13 +569,13 @@ class RejectApplicationModal(discord.ui.Modal):
             )
             return
 
+        reason = str(
+            self.reason.value
+        ).strip()
+
         await application_db.set_status(
             self.application_id,
             "rejected",
-        )
-
-        reason = str(
-            self.reason.value
         )
 
         if self.application_message.embeds:
@@ -576,43 +619,13 @@ class RejectApplicationModal(discord.ui.Modal):
             reason=reason,
         )
 
-        logs = self.cog.bot.get_cog("Logs")
-
-        if logs:
-            try:
-                await logs.send_log(
-                    interaction.guild,
-                    "❌ تم رفض تقديم",
-                    (
-                        f"تم رفض التقديم "
-                        f"`#{self.application_id}`."
-                    ),
-                    color=discord.Color.red(),
-                    fields=[
-                        {
-                            "name": "👤 المتقدم",
-                            "value": (
-                                f"<@{self.user_id}>"
-                            ),
-                            "inline": True,
-                        },
-                        {
-                            "name": "👮 المسؤول",
-                            "value": interaction.user.mention,
-                            "inline": True,
-                        },
-                        {
-                            "name": "📝 السبب",
-                            "value": reason,
-                            "inline": False,
-                        },
-                    ],
-                    user=interaction.user,
-                )
-            except Exception as error:
-                print(
-                    f"⚠️ Application reject log error: {error}"
-                )
+        await self.cog.send_log(
+            interaction.guild,
+            application,
+            interaction.user,
+            accepted=False,
+            reason=reason,
+        )
 
         await interaction.response.send_message(
             "✅ تم رفض التقديم وإرسال إشعار للمتقدم.",
@@ -621,29 +634,33 @@ class RejectApplicationModal(discord.ui.Modal):
 
 
 # =========================================================
-# لوحة التقديمات
+# Application Panel
 # =========================================================
 
-class ApplicationPanelView(discord.ui.View):
-    def __init__(self, cog):
-        super().__init__(timeout=None)
+class ApplicationPanelView(
+    discord.ui.View
+):
+
+    def __init__(
+        self,
+        cog,
+    ):
+        super().__init__(
+            timeout=None
+        )
 
         self.cog = cog
 
-        button = discord.ui.Button(
-            label="تقديم",
-            emoji="📝",
-            style=discord.ButtonStyle.primary,
-            custom_id="zivex_application_open",
-        )
-
-        button.callback = self.open_application
-
-        self.add_item(button)
-
+    @discord.ui.button(
+        label="تقديم",
+        emoji="📝",
+        style=discord.ButtonStyle.primary,
+        custom_id="zivex_application_open",
+    )
     async def open_application(
         self,
         interaction: discord.Interaction,
+        button: discord.ui.Button,
     ):
         await self.cog.open_application_modal(
             interaction
@@ -651,11 +668,17 @@ class ApplicationPanelView(discord.ui.View):
 
 
 # =========================================================
-# نموذج التقديم
+# Application Modal
 # =========================================================
 
-class ApplicationModal(discord.ui.Modal):
-    def __init__(self, cog):
+class ApplicationModal(
+    discord.ui.Modal
+):
+
+    def __init__(
+        self,
+        cog,
+    ):
         super().__init__(
             title="تقديم Zivex"
         )
@@ -706,11 +729,21 @@ class ApplicationModal(discord.ui.Modal):
             style=discord.TextStyle.paragraph,
         )
 
-        self.add_item(self.server_name)
-        self.add_item(self.experience)
-        self.add_item(self.reason)
-        self.add_item(self.why_you)
-        self.add_item(self.extra)
+        self.add_item(
+            self.server_name
+        )
+        self.add_item(
+            self.experience
+        )
+        self.add_item(
+            self.reason
+        )
+        self.add_item(
+            self.why_you
+        )
+        self.add_item(
+            self.extra
+        )
 
     async def on_submit(
         self,
@@ -742,8 +775,14 @@ class ApplicationModal(discord.ui.Modal):
 # Applications Cog
 # =========================================================
 
-class Applications(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+class Applications(
+    commands.Cog
+):
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+    ):
         self.bot = bot
 
     # =====================================================
@@ -752,6 +791,10 @@ class Applications(commands.Cog):
 
     async def setup_database(self):
         await application_db.setup()
+
+    # =====================================================
+    # Restore Views
+    # =====================================================
 
     async def restore_pending_views(self):
         applications = (
@@ -765,7 +808,6 @@ class Applications(commands.Cog):
                 view = ApplicationReviewView(
                     self,
                     application["id"],
-                    application["user_id"],
                 )
 
                 self.bot.add_view(
@@ -777,7 +819,7 @@ class Applications(commands.Cog):
 
             except Exception as error:
                 print(
-                    "⚠️ Failed to restore application view "
+                    "⚠️ Failed to restore application "
                     f"#{application['id']}: "
                     f"{type(error).__name__}: {error}"
                 )
@@ -788,7 +830,7 @@ class Applications(commands.Cog):
             )
 
     # =====================================================
-    # قناة التقديمات
+    # Application Channel
     # =====================================================
 
     async def get_application_channel(
@@ -820,8 +862,8 @@ class Applications(commands.Cog):
                 int(channel_id)
             )
         except (
-            TypeError,
             ValueError,
+            TypeError,
         ):
             return None
 
@@ -834,7 +876,7 @@ class Applications(commands.Cog):
         return None
 
     # =====================================================
-    # فتح النموذج
+    # Open Modal
     # =====================================================
 
     async def open_application_modal(
@@ -889,7 +931,7 @@ class Applications(commands.Cog):
 
         if existing:
             await interaction.response.send_message(
-                "❌ عندك تقديم قيد المراجعة بالفعل. "
+                "❌ عندك تقديم قيد المراجعة بالفعل.\n"
                 "يرجى انتظار رد الإدارة.",
                 ephemeral=True,
             )
@@ -900,7 +942,7 @@ class Applications(commands.Cog):
         )
 
     # =====================================================
-    # إرسال التقديم
+    # Submit Application
     # =====================================================
 
     async def submit_application(
@@ -998,23 +1040,23 @@ class Applications(commands.Cog):
             )
             or (
                 "تم استلام تقديم جديد من {user}\n"
-                "**رقم التقديم:** `#{application_id}`"
+                "**رقم التقديم:** "
+                "`#{application_id}`"
             )
         )
 
         title = replace_variables(
             title,
+            guild,
             member,
+            application_id,
         )
 
         message = replace_variables(
             message,
+            guild,
             member,
-        )
-
-        message = message.replace(
-            "{application_id}",
-            str(application_id),
+            application_id,
         )
 
         embed = discord.Embed(
@@ -1103,7 +1145,6 @@ class Applications(commands.Cog):
         view = ApplicationReviewView(
             self,
             application_id,
-            member.id,
         )
 
         try:
@@ -1111,6 +1152,11 @@ class Applications(commands.Cog):
                 content=member.mention,
                 embed=embed,
                 view=view,
+                allowed_mentions=discord.AllowedMentions(
+                    users=True,
+                    roles=False,
+                    everyone=False,
+                ),
             )
 
         except discord.Forbidden:
@@ -1157,12 +1203,9 @@ class Applications(commands.Cog):
 
         success_message = replace_variables(
             success_message,
+            guild,
             member,
-        )
-
-        success_message = success_message.replace(
-            "{application_id}",
-            str(application_id),
+            application_id,
         )
 
         await interaction.followup.send(
@@ -1170,11 +1213,9 @@ class Applications(commands.Cog):
             ephemeral=True,
         )
 
-        # -------------------------------------------------
-        # Logs
-        # -------------------------------------------------
-
-        logs = self.bot.get_cog("Logs")
+        logs = self.bot.get_cog(
+            "Logs"
+        )
 
         if logs:
             try:
@@ -1215,7 +1256,7 @@ class Applications(commands.Cog):
                 )
 
     # =====================================================
-    # إشعار المتقدم
+    # Notify Applicant
     # =====================================================
 
     async def notify_applicant(
@@ -1239,23 +1280,30 @@ class Applications(commands.Cog):
             guild
         )
 
+        member = guild.get_member(
+            user_id
+        )
+
         if accepted:
             message = (
                 settings.get(
                     "application_accept_message"
                 )
                 or (
-                    "🎉 تم قبول تقديمك في **{server}**."
+                    "🎉 تم قبول تقديمك في "
+                    "**{server}**."
                 )
+            )
+
+            description = replace_variables(
+                message,
+                guild,
+                member,
             )
 
             embed = discord.Embed(
                 title="🎉 تم قبول تقديمك",
-                description=replace_variables(
-                    message,
-                    guild.get_member(user_id)
-                    or discord.Object(id=user_id),
-                ),
+                description=description,
                 color=discord.Color.green(),
             )
 
@@ -1265,24 +1313,16 @@ class Applications(commands.Cog):
                     "application_reject_message"
                 )
                 or (
-                    "❌ تم رفض تقديمك في **{server}**."
+                    "❌ تم رفض تقديمك في "
+                    "**{server}**."
                 )
             )
 
-            member = guild.get_member(
-                user_id
+            description = replace_variables(
+                message,
+                guild,
+                member,
             )
-
-            if member:
-                description = replace_variables(
-                    message,
-                    member,
-                )
-            else:
-                description = message.replace(
-                    "{server}",
-                    guild.name,
-                )
 
             embed = discord.Embed(
                 title="❌ تم رفض تقديمك",
@@ -1317,7 +1357,85 @@ class Applications(commands.Cog):
             pass
 
     # =====================================================
-    # إنشاء لوحة التقديم
+    # Logs
+    # =====================================================
+
+    async def send_log(
+        self,
+        guild: discord.Guild,
+        application,
+        moderator: discord.Member,
+        accepted: bool,
+        reason: str = "",
+    ):
+        logs = self.bot.get_cog(
+            "Logs"
+        )
+
+        if not logs:
+            return
+
+        try:
+            if accepted:
+                title = "✅ تم قبول تقديم"
+
+                description = (
+                    f"تم قبول التقديم "
+                    f"`#{application['id']}`."
+                )
+
+                color = discord.Color.green()
+
+            else:
+                title = "❌ تم رفض تقديم"
+
+                description = (
+                    f"تم رفض التقديم "
+                    f"`#{application['id']}`."
+                )
+
+                color = discord.Color.red()
+
+            fields = [
+                {
+                    "name": "👤 المتقدم",
+                    "value": (
+                        f"<@{application['user_id']}>"
+                    ),
+                    "inline": True,
+                },
+                {
+                    "name": "👮 المسؤول",
+                    "value": moderator.mention,
+                    "inline": True,
+                },
+            ]
+
+            if reason:
+                fields.append(
+                    {
+                        "name": "📝 السبب",
+                        "value": reason,
+                        "inline": False,
+                    }
+                )
+
+            await logs.send_log(
+                guild,
+                title,
+                description,
+                color=color,
+                fields=fields,
+                user=moderator,
+            )
+
+        except Exception as error:
+            print(
+                f"⚠️ Application log error: {error}"
+            )
+
+    # =====================================================
+    # Panel Embed
     # =====================================================
 
     def create_panel_embed(
@@ -1364,6 +1482,7 @@ class Applications(commands.Cog):
                 )
             except Exception:
                 pass
+
         elif guild.icon:
             embed.set_thumbnail(
                 url=guild.icon.url
@@ -1381,12 +1500,15 @@ class Applications(commands.Cog):
         return embed
 
     # =====================================================
-    # /application
+    # Slash /application
     # =====================================================
 
     @app_commands.command(
         name="application",
         description="إرسال لوحة التقديمات",
+    )
+    @app_commands.default_permissions(
+        manage_guild=True
     )
     async def slash_application(
         self,
@@ -1399,9 +1521,18 @@ class Applications(commands.Cog):
             )
             return
 
-        if not (
-            interaction.user.guild_permissions.administrator
-            or interaction.user.guild_permissions.manage_guild
+        if not isinstance(
+            interaction.user,
+            discord.Member,
+        ):
+            await interaction.response.send_message(
+                "❌ تعذر التحقق من صلاحياتك.",
+                ephemeral=True,
+            )
+            return
+
+        if not is_staff(
+            interaction.user
         ):
             await interaction.response.send_message(
                 "❌ تحتاج صلاحية إدارة السيرفر.",
@@ -1412,6 +1543,13 @@ class Applications(commands.Cog):
         settings = await get_guild_settings(
             interaction.guild
         )
+
+        if not settings:
+            await interaction.response.send_message(
+                "❌ تعذر تحميل إعدادات السيرفر.",
+                ephemeral=True,
+            )
+            return
 
         if not settings.get(
             "applications_enabled",
@@ -1443,7 +1581,7 @@ class Applications(commands.Cog):
         )
 
     # =====================================================
-    # !تقديم
+    # Prefix !تقديم
     # =====================================================
 
     @commands.command(
@@ -1454,9 +1592,14 @@ class Applications(commands.Cog):
         self,
         ctx: commands.Context,
     ):
-        if not (
-            ctx.author.guild_permissions.administrator
-            or ctx.author.guild_permissions.manage_guild
+        if not isinstance(
+            ctx.author,
+            discord.Member,
+        ):
+            return
+
+        if not is_staff(
+            ctx.author
         ):
             await ctx.send(
                 "❌ تحتاج صلاحية إدارة السيرفر."
@@ -1466,6 +1609,12 @@ class Applications(commands.Cog):
         settings = await get_guild_settings(
             ctx.guild
         )
+
+        if not settings:
+            await ctx.send(
+                "❌ تعذر تحميل إعدادات السيرفر."
+            )
+            return
 
         if not settings.get(
             "applications_enabled",
@@ -1492,31 +1641,6 @@ class Applications(commands.Cog):
         await ctx.send(
             embed=embed,
             view=ApplicationPanelView(self),
-        )
-
-    # =====================================================
-    # معالجة أخطاء Slash
-    # =====================================================
-
-    @slash_application.error
-    async def slash_application_error(
-        self,
-        interaction: discord.Interaction,
-        error,
-    ):
-        if isinstance(
-            error,
-            app_commands.errors.MissingPermissions,
-        ):
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    "❌ تحتاج صلاحية إدارة السيرفر.",
-                    ephemeral=True,
-                )
-            return
-
-        print(
-            f"❌ Application slash error: {error}"
         )
 
 
