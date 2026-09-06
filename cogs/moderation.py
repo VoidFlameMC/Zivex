@@ -12,7 +12,7 @@ class Moderation(commands.Cog):
     # Helpers
     # =========================================================
 
-    async def is_owner(self, user):
+    async def is_bot_owner(self, user):
         try:
             return await self.bot.is_owner(user)
         except Exception:
@@ -23,7 +23,7 @@ class Moderation(commands.Cog):
         user: discord.Member,
         permission: str,
     ):
-        if await self.is_owner(user):
+        if await self.is_bot_owner(user):
             return True
 
         return getattr(
@@ -32,12 +32,34 @@ class Moderation(commands.Cog):
             False,
         )
 
-    async def check_slash_permission(
+    async def prefix_permission(
         self,
-        interaction: discord.Interaction,
+        ctx,
         permission: str,
     ):
-        if interaction.guild is None:
+        if not ctx.guild:
+            await ctx.send(
+                "❌ هذا الأمر يعمل داخل السيرفر فقط."
+            )
+            return False
+
+        if not await self.has_permission(
+            ctx.author,
+            permission,
+        ):
+            await ctx.send(
+                "❌ ما عندك صلاحية لاستخدام هذا الأمر."
+            )
+            return False
+
+        return True
+
+    async def slash_permission(
+        self,
+        interaction,
+        permission: str,
+    ):
+        if not interaction.guild:
             await interaction.response.send_message(
                 "❌ هذا الأمر يعمل داخل السيرفر فقط.",
                 ephemeral=True,
@@ -56,40 +78,18 @@ class Moderation(commands.Cog):
 
         return True
 
-    async def check_prefix_permission(
-        self,
-        ctx: commands.Context,
-        permission: str,
-    ):
-        if ctx.guild is None:
-            await ctx.send(
-                "❌ هذا الأمر يعمل داخل السيرفر فقط."
-            )
-            return False
-
-        if not await self.has_permission(
-            ctx.author,
-            permission,
-        ):
-            await ctx.send(
-                "❌ ما عندك صلاحية لاستخدام هذا الأمر."
-            )
-            return False
-
-        return True
-
     async def hierarchy_check(
         self,
         moderator: discord.Member,
         target: discord.Member,
     ):
-        if target == moderator:
+        if target.id == moderator.id:
             return False, "❌ ما تقدر تستخدم الأمر على نفسك."
 
-        if target == moderator.guild.owner:
+        if target.id == moderator.guild.owner_id:
             return False, "❌ ما تقدر تستخدم الأمر على مالك السيرفر."
 
-        if await self.is_owner(moderator):
+        if await self.is_bot_owner(moderator):
             return True, None
 
         if target.top_role >= moderator.top_role:
@@ -100,13 +100,22 @@ class Moderation(commands.Cog):
 
         bot_member = moderator.guild.me
 
-        if bot_member and target.top_role >= bot_member.top_role:
-            return (
-                False,
-                "❌ رتبة العضو أعلى من رتبة البوت.",
-            )
+        if bot_member:
+            if target.top_role >= bot_member.top_role:
+                return (
+                    False,
+                    "❌ رتبة العضو أعلى من رتبة البوت.",
+                )
 
         return True, None
+
+    def clean_reason(self, reason):
+        reason = str(reason or "").strip()
+
+        if not reason:
+            return "بدون سبب"
+
+        return reason[:500]
 
     async def send_log(
         self,
@@ -134,16 +143,8 @@ class Moderation(commands.Cog):
                 f"⚠️ [MODERATION] Log error: {error}"
             )
 
-    def reason_text(self, reason: str):
-        reason = reason.strip()
-
-        if not reason:
-            return "بدون سبب"
-
-        return reason[:500]
-
     # =========================================================
-    # KICK - Slash
+    # Slash Commands
     # =========================================================
 
     @app_commands.command(
@@ -154,13 +155,13 @@ class Moderation(commands.Cog):
         member="العضو",
         reason="سبب الطرد",
     )
-    async def slash_kick(
+    async def kick(
         self,
         interaction: discord.Interaction,
         member: discord.Member,
         reason: str = "بدون سبب",
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "kick_members",
         ):
@@ -178,7 +179,7 @@ class Moderation(commands.Cog):
             )
             return
 
-        reason = self.reason_text(reason)
+        reason = self.clean_reason(reason)
 
         try:
             await member.kick(
@@ -188,32 +189,9 @@ class Moderation(commands.Cog):
                 )
             )
 
-            embed = discord.Embed(
-                title="👢 تم طرد العضو",
-                color=discord.Color.orange(),
-                timestamp=discord.utils.utcnow(),
-            )
-
-            embed.add_field(
-                name="👤 العضو",
-                value=f"{member.mention}\n`{member}`",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="🛡️ بواسطة",
-                value=interaction.user.mention,
-                inline=True,
-            )
-
-            embed.add_field(
-                name="📝 السبب",
-                value=reason,
-                inline=False,
-            )
-
             await interaction.response.send_message(
-                embed=embed
+                f"👢 تم طرد {member.mention}.\n"
+                f"📝 السبب: **{reason}**"
             )
 
             await self.send_log(
@@ -226,19 +204,15 @@ class Moderation(commands.Cog):
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                "❌ ما قدرت أطرد العضو. تأكد من صلاحيات البوت وترتيب الرتب.",
+                "❌ ما قدرت أطرد العضو. تأكد من ترتيب الرتب وصلاحيات البوت.",
                 ephemeral=True,
             )
 
         except discord.HTTPException:
             await interaction.response.send_message(
-                "❌ حدث خطأ أثناء تنفيذ عملية الطرد.",
+                "❌ حدث خطأ أثناء تنفيذ الأمر.",
                 ephemeral=True,
             )
-
-    # =========================================================
-    # BAN - Slash
-    # =========================================================
 
     @app_commands.command(
         name="ban",
@@ -247,16 +221,16 @@ class Moderation(commands.Cog):
     @app_commands.describe(
         member="العضو",
         reason="سبب الحظر",
-        delete_days="حذف رسائل العضو من آخر كم يوم",
+        delete_days="عدد أيام الرسائل المراد حذفها",
     )
-    async def slash_ban(
+    async def ban(
         self,
         interaction: discord.Interaction,
         member: discord.Member,
         reason: str = "بدون سبب",
         delete_days: app_commands.Range[int, 0, 7] = 0,
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "ban_members",
         ):
@@ -274,7 +248,7 @@ class Moderation(commands.Cog):
             )
             return
 
-        reason = self.reason_text(reason)
+        reason = self.clean_reason(reason)
 
         try:
             await member.ban(
@@ -285,32 +259,9 @@ class Moderation(commands.Cog):
                 delete_message_days=delete_days,
             )
 
-            embed = discord.Embed(
-                title="🔨 تم حظر العضو",
-                color=discord.Color.red(),
-                timestamp=discord.utils.utcnow(),
-            )
-
-            embed.add_field(
-                name="👤 العضو",
-                value=f"{member.mention}\n`{member}`",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="🛡️ بواسطة",
-                value=interaction.user.mention,
-                inline=True,
-            )
-
-            embed.add_field(
-                name="📝 السبب",
-                value=reason,
-                inline=False,
-            )
-
             await interaction.response.send_message(
-                embed=embed
+                f"🔨 تم حظر {member.mention}.\n"
+                f"📝 السبب: **{reason}**"
             )
 
             await self.send_log(
@@ -323,19 +274,15 @@ class Moderation(commands.Cog):
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                "❌ ما قدرت أحظر العضو. تأكد من صلاحيات البوت وترتيب الرتب.",
+                "❌ ما قدرت أحظر العضو. تأكد من ترتيب الرتب وصلاحيات البوت.",
                 ephemeral=True,
             )
 
         except discord.HTTPException:
             await interaction.response.send_message(
-                "❌ حدث خطأ أثناء تنفيذ الحظر.",
+                "❌ حدث خطأ أثناء تنفيذ الأمر.",
                 ephemeral=True,
             )
-
-    # =========================================================
-    # UNBAN - Slash
-    # =========================================================
 
     @app_commands.command(
         name="unban",
@@ -345,20 +292,20 @@ class Moderation(commands.Cog):
         user_id="ID المستخدم",
         reason="سبب فك الحظر",
     )
-    async def slash_unban(
+    async def unban(
         self,
         interaction: discord.Interaction,
         user_id: str,
         reason: str = "بدون سبب",
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "ban_members",
         ):
             return
 
         try:
-            user_id_int = int(user_id)
+            user_id = int(user_id)
         except ValueError:
             await interaction.response.send_message(
                 "❌ الـ ID غير صحيح.",
@@ -366,12 +313,12 @@ class Moderation(commands.Cog):
             )
             return
 
+        reason = self.clean_reason(reason)
+
         try:
             user = await self.bot.fetch_user(
-                user_id_int
+                user_id
             )
-
-            reason = self.reason_text(reason)
 
             await interaction.guild.unban(
                 user,
@@ -411,10 +358,6 @@ class Moderation(commands.Cog):
                 ephemeral=True,
             )
 
-    # =========================================================
-    # CLEAR - Slash
-    # =========================================================
-
     @app_commands.command(
         name="clear",
         description="حذف رسائل من الروم",
@@ -422,12 +365,12 @@ class Moderation(commands.Cog):
     @app_commands.describe(
         amount="عدد الرسائل",
     )
-    async def slash_clear(
+    async def clear(
         self,
         interaction: discord.Interaction,
         amount: app_commands.Range[int, 1, 100],
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "manage_messages",
         ):
@@ -477,10 +420,6 @@ class Moderation(commands.Cog):
                 ephemeral=True,
             )
 
-    # =========================================================
-    # TIMEOUT - Slash
-    # =========================================================
-
     @app_commands.command(
         name="timeout",
         description="إعطاء عضو تايم أوت",
@@ -490,14 +429,14 @@ class Moderation(commands.Cog):
         minutes="المدة بالدقائق",
         reason="السبب",
     )
-    async def slash_timeout(
+    async def timeout(
         self,
         interaction: discord.Interaction,
         member: discord.Member,
         minutes: app_commands.Range[int, 1, 40320],
         reason: str = "بدون سبب",
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "moderate_members",
         ):
@@ -515,7 +454,7 @@ class Moderation(commands.Cog):
             )
             return
 
-        reason = self.reason_text(reason)
+        reason = self.clean_reason(reason)
 
         try:
             until = (
@@ -532,10 +471,8 @@ class Moderation(commands.Cog):
             )
 
             await interaction.response.send_message(
-                (
-                    f"🔇 تم إعطاء {member.mention} "
-                    f"تايم أوت لمدة **{minutes} دقيقة**."
-                )
+                f"🔇 تم إعطاء {member.mention} تايم أوت "
+                f"لمدة **{minutes} دقيقة**."
             )
 
             await self.send_log(
@@ -554,27 +491,23 @@ class Moderation(commands.Cog):
 
         except discord.HTTPException:
             await interaction.response.send_message(
-                "❌ حدث خطأ أثناء إعطاء التايم أوت.",
+                "❌ حدث خطأ أثناء تنفيذ الأمر.",
                 ephemeral=True,
             )
 
-    # =========================================================
-    # UNTIMEOUT - Slash
-    # =========================================================
-
     @app_commands.command(
         name="untimeout",
-        description="إزالة التايم أوت من عضو",
+        description="إزالة التايم أوت",
     )
     @app_commands.describe(
         member="العضو",
     )
-    async def slash_untimeout(
+    async def untimeout(
         self,
         interaction: discord.Interaction,
         member: discord.Member,
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "moderate_members",
         ):
@@ -619,25 +552,15 @@ class Moderation(commands.Cog):
                 ephemeral=True,
             )
 
-        except discord.HTTPException:
-            await interaction.response.send_message(
-                "❌ حدث خطأ أثناء إزالة التايم أوت.",
-                ephemeral=True,
-            )
-
-    # =========================================================
-    # LOCK - Slash
-    # =========================================================
-
     @app_commands.command(
         name="lock",
         description="قفل الروم الحالي",
     )
-    async def slash_lock(
+    async def lock(
         self,
         interaction: discord.Interaction,
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "manage_channels",
         ):
@@ -689,25 +612,15 @@ class Moderation(commands.Cog):
                 ephemeral=True,
             )
 
-        except discord.HTTPException:
-            await interaction.response.send_message(
-                "❌ حدث خطأ أثناء قفل الروم.",
-                ephemeral=True,
-            )
-
-    # =========================================================
-    # UNLOCK - Slash
-    # =========================================================
-
     @app_commands.command(
         name="unlock",
         description="فتح الروم الحالي",
     )
-    async def slash_unlock(
+    async def unlock(
         self,
         interaction: discord.Interaction,
     ):
-        if not await self.check_slash_permission(
+        if not await self.slash_permission(
             interaction,
             "manage_channels",
         ):
@@ -759,17 +672,13 @@ class Moderation(commands.Cog):
                 ephemeral=True,
             )
 
-        except discord.HTTPException:
-            await interaction.response.send_message(
-                "❌ حدث خطأ أثناء فتح الروم.",
-                ephemeral=True,
-            )
-
     # =========================================================
-    # Arabic Prefix Commands
+    # Prefix: طرد
     # =========================================================
 
-    @commands.command(name="طرد")
+    @commands.command(
+        name="طرد",
+    )
     async def prefix_kick(
         self,
         ctx,
@@ -777,7 +686,7 @@ class Moderation(commands.Cog):
         *,
         reason: str = "بدون سبب",
     ):
-        if not await self.check_prefix_permission(
+        if not await self.prefix_permission(
             ctx,
             "kick_members",
         ):
@@ -792,7 +701,7 @@ class Moderation(commands.Cog):
             await ctx.send(error)
             return
 
-        reason = self.reason_text(reason)
+        reason = self.clean_reason(reason)
 
         try:
             await member.kick(
@@ -819,7 +728,13 @@ class Moderation(commands.Cog):
                 "❌ ما قدرت أطرد العضو."
             )
 
-    @commands.command(name="حظر")
+    # =========================================================
+    # Prefix: حظر
+    # =========================================================
+
+    @commands.command(
+        name="حظر",
+    )
     async def prefix_ban(
         self,
         ctx,
@@ -827,7 +742,7 @@ class Moderation(commands.Cog):
         *,
         reason: str = "بدون سبب",
     ):
-        if not await self.check_prefix_permission(
+        if not await self.prefix_permission(
             ctx,
             "ban_members",
         ):
@@ -842,7 +757,7 @@ class Moderation(commands.Cog):
             await ctx.send(error)
             return
 
-        reason = self.reason_text(reason)
+        reason = self.clean_reason(reason)
 
         try:
             await member.ban(
@@ -869,7 +784,27 @@ class Moderation(commands.Cog):
                 "❌ ما قدرت أحظر العضو."
             )
 
-    @commands.command(name="فك_الحظر")
+    # =========================================================
+    # Prefix Group: فك
+    # =========================================================
+
+    @commands.group(
+        name="فك",
+        invoke_without_command=True,
+    )
+    async def ungroup(
+        self,
+        ctx,
+    ):
+        await ctx.send(
+            "❌ استخدم:\n"
+            "`!فك الحظر ID`\n"
+            "`!فك تايم @عضو`"
+        )
+
+    @ungroup.command(
+        name="الحظر",
+    )
     async def prefix_unban(
         self,
         ctx,
@@ -877,7 +812,7 @@ class Moderation(commands.Cog):
         *,
         reason: str = "بدون سبب",
     ):
-        if not await self.check_prefix_permission(
+        if not await self.prefix_permission(
             ctx,
             "ban_members",
         ):
@@ -891,12 +826,12 @@ class Moderation(commands.Cog):
             )
             return
 
+        reason = self.clean_reason(reason)
+
         try:
             user = await self.bot.fetch_user(
                 user_id
             )
-
-            reason = self.reason_text(reason)
 
             await ctx.guild.unban(
                 user,
@@ -928,129 +863,15 @@ class Moderation(commands.Cog):
                 "❌ ما عندي صلاحية فك الحظر."
             )
 
-    @commands.command(name="مسح")
-    async def prefix_clear(
-        self,
-        ctx,
-        amount: int,
-    ):
-        if not await self.check_prefix_permission(
-            ctx,
-            "manage_messages",
-        ):
-            return
-
-        if amount < 1 or amount > 100:
-            await ctx.send(
-                "❌ العدد يجب أن يكون بين `1` و `100`."
-            )
-            return
-
-        if not isinstance(
-            ctx.channel,
-            discord.TextChannel,
-        ):
-            return
-
-        try:
-            deleted = await ctx.channel.purge(
-                limit=amount + 1
-            )
-
-            message = await ctx.send(
-                f"🧹 تم حذف **{max(0, len(deleted) - 1)}** رسالة."
-            )
-
-            await message.delete(
-                delay=3
-            )
-
-            await self.send_log(
-                ctx.guild,
-                "مسح رسائل",
-                None,
-                ctx.author,
-                f"تم حذف {max(0, len(deleted) - 1)} رسالة",
-            )
-
-        except discord.Forbidden:
-            await ctx.send(
-                "❌ ما عندي صلاحية حذف الرسائل."
-            )
-
-    @commands.command(name="تايم")
-    async def prefix_timeout(
-        self,
-        ctx,
-        member: discord.Member,
-        minutes: int,
-        *,
-        reason: str = "بدون سبب",
-    ):
-        if not await self.check_prefix_permission(
-            ctx,
-            "moderate_members",
-        ):
-            return
-
-        if minutes < 1 or minutes > 40320:
-            await ctx.send(
-                "❌ المدة يجب أن تكون بين `1` و `40320` دقيقة."
-            )
-            return
-
-        allowed, error = await self.hierarchy_check(
-            ctx.author,
-            member,
-        )
-
-        if not allowed:
-            await ctx.send(error)
-            return
-
-        reason = self.reason_text(reason)
-
-        try:
-            until = (
-                discord.utils.utcnow()
-                + timedelta(minutes=minutes)
-            )
-
-            await member.timeout(
-                until,
-                reason=(
-                    f"{reason} | بواسطة "
-                    f"{ctx.author}"
-                ),
-            )
-
-            await ctx.send(
-                (
-                    f"🔇 تم إعطاء {member.mention} "
-                    f"تايم أوت لمدة **{minutes} دقيقة**."
-                )
-            )
-
-            await self.send_log(
-                ctx.guild,
-                "تايم أوت",
-                member,
-                ctx.author,
-                reason,
-            )
-
-        except discord.Forbidden:
-            await ctx.send(
-                "❌ ما قدرت أعطي العضو تايم أوت."
-            )
-
-    @commands.command(name="فك_تايم")
+    @ungroup.command(
+        name="تايم",
+    )
     async def prefix_untimeout(
         self,
         ctx,
         member: discord.Member,
     ):
-        if not await self.check_prefix_permission(
+        if not await self.prefix_permission(
             ctx,
             "moderate_members",
         ):
@@ -1091,12 +912,149 @@ class Moderation(commands.Cog):
                 "❌ ما قدرت أزيل التايم أوت."
             )
 
-    @commands.command(name="قفل")
+    # =========================================================
+    # Prefix: مسح
+    # =========================================================
+
+    @commands.command(
+        name="مسح",
+    )
+    async def prefix_clear(
+        self,
+        ctx,
+        amount: int,
+    ):
+        if not await self.prefix_permission(
+            ctx,
+            "manage_messages",
+        ):
+            return
+
+        if amount < 1 or amount > 100:
+            await ctx.send(
+                "❌ العدد يجب أن يكون بين `1` و `100`."
+            )
+            return
+
+        if not isinstance(
+            ctx.channel,
+            discord.TextChannel,
+        ):
+            return
+
+        try:
+            deleted = await ctx.channel.purge(
+                limit=amount + 1
+            )
+
+            count = max(
+                0,
+                len(deleted) - 1,
+            )
+
+            message = await ctx.send(
+                f"🧹 تم حذف **{count}** رسالة."
+            )
+
+            await message.delete(
+                delay=3
+            )
+
+            await self.send_log(
+                ctx.guild,
+                "مسح رسائل",
+                None,
+                ctx.author,
+                f"تم حذف {count} رسالة",
+            )
+
+        except discord.Forbidden:
+            await ctx.send(
+                "❌ ما عندي صلاحية حذف الرسائل."
+            )
+
+    # =========================================================
+    # Prefix: تايم
+    # =========================================================
+
+    @commands.command(
+        name="تايم",
+    )
+    async def prefix_timeout(
+        self,
+        ctx,
+        member: discord.Member,
+        minutes: int,
+        *,
+        reason: str = "بدون سبب",
+    ):
+        if not await self.prefix_permission(
+            ctx,
+            "moderate_members",
+        ):
+            return
+
+        if minutes < 1 or minutes > 40320:
+            await ctx.send(
+                "❌ المدة يجب أن تكون بين `1` و `40320` دقيقة."
+            )
+            return
+
+        allowed, error = await self.hierarchy_check(
+            ctx.author,
+            member,
+        )
+
+        if not allowed:
+            await ctx.send(error)
+            return
+
+        reason = self.clean_reason(reason)
+
+        try:
+            until = (
+                discord.utils.utcnow()
+                + timedelta(minutes=minutes)
+            )
+
+            await member.timeout(
+                until,
+                reason=(
+                    f"{reason} | بواسطة "
+                    f"{ctx.author}"
+                ),
+            )
+
+            await ctx.send(
+                f"🔇 تم إعطاء {member.mention} "
+                f"تايم أوت لمدة **{minutes} دقيقة**."
+            )
+
+            await self.send_log(
+                ctx.guild,
+                "تايم أوت",
+                member,
+                ctx.author,
+                reason,
+            )
+
+        except discord.Forbidden:
+            await ctx.send(
+                "❌ ما قدرت أعطي العضو تايم أوت."
+            )
+
+    # =========================================================
+    # Prefix: قفل
+    # =========================================================
+
+    @commands.command(
+        name="قفل",
+    )
     async def prefix_lock(
         self,
         ctx,
     ):
-        if not await self.check_prefix_permission(
+        if not await self.prefix_permission(
             ctx,
             "manage_channels",
         ):
@@ -1141,12 +1099,18 @@ class Moderation(commands.Cog):
                 "❌ ما عندي صلاحية تعديل صلاحيات الروم."
             )
 
-    @commands.command(name="فتح")
+    # =========================================================
+    # Prefix: فتح
+    # =========================================================
+
+    @commands.command(
+        name="فتح",
+    )
     async def prefix_unlock(
         self,
         ctx,
     ):
-        if not await self.check_prefix_permission(
+        if not await self.prefix_permission(
             ctx,
             "manage_channels",
         ):
