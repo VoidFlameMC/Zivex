@@ -1,52 +1,50 @@
 import asyncio
+import os
+import threading
 
 import discord
 from discord.ext import commands
 
-from config import DISCORD_TOKEN, PREFIX
+from config import DISCORD_TOKEN, PREFIX, WEB_HOST, WEB_PORT
 from database import db
+from web.app import create_app
 
 
 # =========================================================
 # Zivex Bot
 # =========================================================
 
-intents = discord.Intents.default()
-
-# مهم للترحيب والليفلات
-intents.members = True
-
-# مهم لأوامر ! العربية ونظام الليفلات
-intents.message_content = True
-
-
 class Zivex(commands.Bot):
+
     def __init__(self):
+
+        intents = discord.Intents.default()
+
+        intents.members = True
+        intents.message_content = True
+
         super().__init__(
             command_prefix=PREFIX,
             intents=intents,
-            help_command=None
+            help_command=None,
         )
 
     # =====================================================
-    # تحميل الأنظمة
+    # Setup
     # =====================================================
 
     async def setup_hook(self):
 
-        # -------------------------------------------------
-        # تشغيل قاعدة البيانات
-        # -------------------------------------------------
+        print("🔧 Starting Zivex...")
 
+        # Database
         await db.setup()
 
-        print("✅ Database initialized.")
+        # =================================================
+        # Load Cogs
+        # =================================================
 
-        # -------------------------------------------------
-        # جميع Cogs
-        # -------------------------------------------------
-
-        cog_files = [
+        cogs = [
             "cogs.utility",
             "cogs.welcome",
             "cogs.levels",
@@ -56,252 +54,315 @@ class Zivex(commands.Bot):
             "cogs.owner",
         ]
 
-        for extension in cog_files:
+        for cog in cogs:
+
             try:
-                await self.load_extension(extension)
+
+                await self.load_extension(cog)
 
                 print(
-                    f"✅ Loaded: {extension}"
+                    f"✅ Loaded: {cog}"
                 )
 
             except Exception as error:
+
                 print(
-                    f"❌ Failed to load {extension}: "
-                    f"{type(error).__name__}: {error}"
+                    f"❌ Failed to load {cog}: {error}"
                 )
 
-        # -------------------------------------------------
-        # إنشاء إعدادات السيرفرات الموجودة
-        # -------------------------------------------------
+        # =================================================
+        # Ensure Guilds
+        # =================================================
 
         for guild in self.guilds:
-            try:
-                icon_url = ""
 
-                if guild.icon:
-                    icon_url = str(
-                        guild.icon.url
-                    )
+            try:
 
                 await db.ensure_guild(
-                    guild_id=guild.id,
-                    guild_name=guild.name,
-                    guild_icon=icon_url
+                    guild.id,
+                    guild.name,
+                    str(guild.icon.url)
+                    if guild.icon
+                    else None,
                 )
 
             except Exception as error:
+
                 print(
-                    f"⚠️ Failed to initialize guild "
-                    f"{guild.id}: "
-                    f"{type(error).__name__}: {error}"
+                    f"⚠️ Guild setup error "
+                    f"({guild.id}): {error}"
                 )
 
-        # -------------------------------------------------
-        # مزامنة Slash Commands
-        # -------------------------------------------------
+        # =================================================
+        # Sync Slash Commands
+        # =================================================
 
         try:
+
             synced = await self.tree.sync()
 
             print(
-                f"✅ Synced {len(synced)} Slash Commands."
+                f"✅ Synced {len(synced)} slash commands."
             )
 
         except Exception as error:
-            print(
-                "❌ Failed to sync Slash Commands: "
-                f"{type(error).__name__}: {error}"
-            )
-
-    # =====================================================
-    # Bot Ready
-    # =====================================================
-
-    async def on_ready(self):
-
-        print("=" * 60)
-        print("🤖 Zivex is online!")
-        print(f"👤 Logged in as: {self.user}")
-        print(f"🆔 Bot ID: {self.user.id}")
-        print(f"🌐 Servers: {len(self.guilds)}")
-        print("=" * 60)
-
-        # -------------------------------------------------
-        # تحديث إعدادات السيرفرات
-        # -------------------------------------------------
-
-        for guild in self.guilds:
-            try:
-                icon_url = ""
-
-                if guild.icon:
-                    icon_url = str(
-                        guild.icon.url
-                    )
-
-                await db.ensure_guild(
-                    guild_id=guild.id,
-                    guild_name=guild.name,
-                    guild_icon=icon_url
-                )
-
-            except Exception as error:
-                print(
-                    f"⚠️ Failed to update guild "
-                    f"{guild.id}: "
-                    f"{type(error).__name__}: {error}"
-                )
-
-        # -------------------------------------------------
-        # حالة البوت
-        # -------------------------------------------------
-
-        activity = discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"{len(self.guilds)} servers"
-        )
-
-        await self.change_presence(
-            status=discord.Status.online,
-            activity=activity
-        )
-
-    # =====================================================
-    # دخول سيرفر جديد
-    # =====================================================
-
-    async def on_guild_join(
-        self,
-        guild: discord.Guild
-    ):
-
-        icon_url = ""
-
-        if guild.icon:
-            icon_url = str(
-                guild.icon.url
-            )
-
-        try:
-            await db.ensure_guild(
-                guild_id=guild.id,
-                guild_name=guild.name,
-                guild_icon=icon_url
-            )
 
             print(
-                f"➕ Joined server: "
-                f"{guild.name} ({guild.id})"
+                f"❌ Slash sync failed: {error}"
             )
-
-        except Exception as error:
-            print(
-                f"❌ Failed to initialize new guild "
-                f"{guild.id}: "
-                f"{type(error).__name__}: {error}"
-            )
-
-    # =====================================================
-    # خروج من سيرفر
-    # =====================================================
-
-    async def on_guild_remove(
-        self,
-        guild: discord.Guild
-    ):
-
-        print(
-            f"➖ Left server: "
-            f"{guild.name} ({guild.id})"
-        )
-
-    # =====================================================
-    # التعامل مع أخطاء الأوامر
-    # =====================================================
-
-    async def on_command_error(
-        self,
-        ctx: commands.Context,
-        error: commands.CommandError
-    ):
-
-        # تجاهل الأمر غير الموجود
-        if isinstance(
-            error,
-            commands.CommandNotFound
-        ):
-            return
-
-        # تجاهل نقص الصلاحيات
-        if isinstance(
-            error,
-            commands.MissingPermissions
-        ):
-            await ctx.send(
-                "❌ ما عندك الصلاحيات المطلوبة."
-            )
-            return
-
-        # نقص Arguments
-        if isinstance(
-            error,
-            commands.MissingRequiredArgument
-        ):
-            await ctx.send(
-                "❌ ناقصك معلومات لاستخدام الأمر."
-            )
-            return
-
-        # Argument غير صحيح
-        if isinstance(
-            error,
-            commands.BadArgument
-        ):
-            await ctx.send(
-                "❌ المعلومات التي أدخلتها غير صحيحة."
-            )
-            return
-
-        # الخطأ الحقيقي
-        print(
-            f"❌ Command error: "
-            f"{type(error).__name__}: {error}"
-        )
-
-        try:
-            await ctx.send(
-                "❌ حدث خطأ أثناء تنفيذ الأمر."
-            )
-        except discord.HTTPException:
-            pass
 
 
 # =========================================================
-# إنشاء البوت
+# Bot Events
 # =========================================================
 
 bot = Zivex()
 
 
+@bot.event
+async def on_ready():
+
+    print(
+        f""
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🤖 Zivex Online\n"
+        f"📌 Name: {bot.user}\n"
+        f"🆔 ID: {bot.user.id}\n"
+        f"🌐 Servers: {len(bot.guilds)}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    )
+
+    # =====================================================
+    # Update Guild Information
+    # =====================================================
+
+    for guild in bot.guilds:
+
+        try:
+
+            await db.ensure_guild(
+                guild.id,
+                guild.name,
+                str(guild.icon.url)
+                if guild.icon
+                else None,
+            )
+
+        except Exception as error:
+
+            print(
+                f"⚠️ Failed to update guild "
+                f"{guild.id}: {error}"
+            )
+
+    # =====================================================
+    # Presence
+    # =====================================================
+
+    try:
+
+        activity = discord.Activity(
+            type=discord.ActivityType.watching,
+            name=f"{len(bot.guilds)} servers",
+        )
+
+        await bot.change_presence(
+            activity=activity
+        )
+
+    except Exception as error:
+
+        print(
+            f"⚠️ Presence error: {error}"
+        )
+
+
+@bot.event
+async def on_guild_join(guild):
+
+    print(
+        f"➕ Joined server: "
+        f"{guild.name} ({guild.id})"
+    )
+
+    try:
+
+        await db.ensure_guild(
+            guild.id,
+            guild.name,
+            str(guild.icon.url)
+            if guild.icon
+            else None,
+        )
+
+    except Exception as error:
+
+        print(
+            f"⚠️ Guild database error: {error}"
+        )
+
+
+@bot.event
+async def on_guild_remove(guild):
+
+    print(
+        f"➖ Left server: "
+        f"{guild.name} ({guild.id})"
+    )
+
+
 # =========================================================
-# تشغيل البوت
+# Command Errors
+# =========================================================
+
+@bot.event
+async def on_command_error(
+    ctx,
+    error,
+):
+
+    if isinstance(
+        error,
+        commands.CommandNotFound,
+    ):
+        return
+
+    if isinstance(
+        error,
+        commands.MissingPermissions,
+    ):
+
+        await ctx.send(
+            "❌ ما عندك الصلاحيات المطلوبة."
+        )
+
+        return
+
+    if isinstance(
+        error,
+        commands.MissingRequiredArgument,
+    ):
+
+        await ctx.send(
+            "❌ ناقصك بعض المعلومات في الأمر."
+        )
+
+        return
+
+    if isinstance(
+        error,
+        commands.BadArgument,
+    ):
+
+        await ctx.send(
+            "❌ البيانات التي أدخلتها غير صحيحة."
+        )
+
+        return
+
+    print(
+        f"❌ Command error: {error}"
+    )
+
+
+# =========================================================
+# Flask Dashboard
+# =========================================================
+
+def start_web():
+
+    try:
+
+        # Railway provides PORT automatically.
+        railway_port = os.getenv("PORT")
+
+        try:
+
+            port = int(
+                railway_port
+                if railway_port
+                else WEB_PORT
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            port = int(WEB_PORT)
+
+        # Create Flask using the SAME bot instance.
+        app = create_app(bot)
+
+        print(
+            f"🌐 Zivex Dashboard starting "
+            f"on {WEB_HOST}:{port}"
+        )
+
+        app.run(
+            host=WEB_HOST,
+            port=port,
+            debug=False,
+            use_reloader=False,
+        )
+
+    except Exception as error:
+
+        print(
+            f"❌ Dashboard failed to start: {error}"
+        )
+
+
+# =========================================================
+# Main
 # =========================================================
 
 async def main():
 
     if not DISCORD_TOKEN:
+
         raise RuntimeError(
-            "DISCORD_TOKEN غير موجود في Railway Variables."
+            "❌ DISCORD_TOKEN is missing "
+            "from Railway Variables."
         )
+
+    # =====================================================
+    # Start Dashboard
+    # =====================================================
+
+    web_thread = threading.Thread(
+        target=start_web,
+        name="ZivexDashboard",
+        daemon=True,
+    )
+
+    web_thread.start()
+
+    # =====================================================
+    # Start Discord Bot
+    # =====================================================
+
+    print(
+        "🚀 Starting Zivex Bot..."
+    )
 
     await bot.start(
         DISCORD_TOKEN
     )
 
 
+# =========================================================
+# Start
+# =========================================================
+
 if __name__ == "__main__":
+
     try:
+
         asyncio.run(main())
 
     except KeyboardInterrupt:
-        pass
+
+        print(
+            "🛑 Zivex stopped."
+        )
