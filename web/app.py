@@ -1,4 +1,6 @@
 import os
+import secrets
+from datetime import timedelta
 
 from flask import (
     Flask,
@@ -8,6 +10,7 @@ from flask import (
     session,
     url_for,
 )
+from flask_session import Session
 
 from config import (
     BOT_NAME,
@@ -34,7 +37,7 @@ def create_app(bot=None):
     )
 
     # =====================================================
-    # Security Configuration
+    # Security / Secret
     # =====================================================
 
     secret_key = (
@@ -54,27 +57,89 @@ def create_app(bot=None):
         )
 
     # =====================================================
+    # Environment
+    # =====================================================
+
+    railway_environment = (
+        os.getenv("RAILWAY_ENVIRONMENT")
+        or os.getenv("RAILWAY_ENVIRONMENT_NAME")
+        or ""
+    ).strip()
+
+    is_production = bool(
+        railway_environment
+        or os.getenv("RAILWAY_PROJECT_ID")
+    )
+
+    secure_cookie_env = (
+        os.getenv(
+            "SESSION_COOKIE_SECURE",
+            "",
+        )
+        .strip()
+        .lower()
+    )
+
+    if secure_cookie_env in {
+        "true",
+        "1",
+        "yes",
+        "on",
+    }:
+        secure_cookie = True
+    elif secure_cookie_env in {
+        "false",
+        "0",
+        "no",
+        "off",
+    }:
+        secure_cookie = False
+    else:
+        secure_cookie = is_production
+
+    # =====================================================
     # Flask Configuration
     # =====================================================
 
     app.config.update(
         SECRET_KEY=secret_key,
 
+        # -------------------------------------------------
+        # Server-Side Sessions
+        # -------------------------------------------------
+
+        SESSION_TYPE="filesystem",
+        SESSION_FILE_DIR=os.path.join(
+            os.getcwd(),
+            ".zivex_sessions",
+        ),
+        SESSION_PERMANENT=True,
+        SESSION_USE_SIGNER=True,
+        SESSION_KEY_PREFIX="zivex:",
+
+        # -------------------------------------------------
+        # Cookie Security
+        # -------------------------------------------------
+
         SESSION_COOKIE_NAME="zivex_session",
         SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SECURE=secure_cookie,
         SESSION_COOKIE_SAMESITE="Lax",
 
-        SESSION_COOKIE_SECURE=(
-            os.getenv(
-                "SESSION_COOKIE_SECURE",
-                "false",
-            ).lower()
-            == "true"
+        # 24 Hours
+        PERMANENT_SESSION_LIFETIME=timedelta(
+            hours=24
         ),
 
-        PERMANENT_SESSION_LIFETIME=60 * 60 * 24,
+        # -------------------------------------------------
+        # Request Limits
+        # -------------------------------------------------
 
         MAX_CONTENT_LENGTH=2 * 1024 * 1024,
+
+        # -------------------------------------------------
+        # Application
+        # -------------------------------------------------
 
         DEBUG=False,
         TESTING=False,
@@ -83,28 +148,67 @@ def create_app(bot=None):
     )
 
     # =====================================================
+    # Ensure Session Directory
+    # =====================================================
+
+    session_directory = app.config.get(
+        "SESSION_FILE_DIR"
+    )
+
+    if session_directory:
+        try:
+            os.makedirs(
+                session_directory,
+                mode=0o700,
+                exist_ok=True,
+            )
+        except OSError as error:
+            raise RuntimeError(
+                "❌ تعذر إنشاء مجلد جلسات Zivex."
+            ) from error
+
+    # =====================================================
+    # Initialize Flask-Session
+    # =====================================================
+
+    Session(app)
+
+    # =====================================================
     # Security Headers
     # =====================================================
 
     @app.after_request
     def security_headers(response):
 
-        response.headers["X-Content-Type-Options"] = "nosniff"
+        # Prevent MIME sniffing
+        response.headers[
+            "X-Content-Type-Options"
+        ] = "nosniff"
 
-        response.headers["X-Frame-Options"] = "DENY"
+        # Prevent clickjacking
+        response.headers[
+            "X-Frame-Options"
+        ] = "DENY"
 
-        response.headers["Referrer-Policy"] = (
-            "strict-origin-when-cross-origin"
-        )
+        # Referrer protection
+        response.headers[
+            "Referrer-Policy"
+        ] = "strict-origin-when-cross-origin"
 
-        response.headers["Permissions-Policy"] = (
+        # Browser permissions
+        response.headers[
+            "Permissions-Policy"
+        ] = (
             "camera=(), "
             "microphone=(), "
             "geolocation=(), "
             "payment=()"
         )
 
-        response.headers["Content-Security-Policy"] = (
+        # Content Security Policy
+        response.headers[
+            "Content-Security-Policy"
+        ] = (
             "default-src 'self'; "
             "base-uri 'self'; "
             "form-action 'self'; "
@@ -120,7 +224,7 @@ def create_app(bot=None):
             "connect-src 'self';"
         )
 
-        # HSTS عند تشغيل HTTPS
+        # HSTS only over HTTPS
         if request.is_secure:
             response.headers[
                 "Strict-Transport-Security"
@@ -129,7 +233,39 @@ def create_app(bot=None):
                 "includeSubDomains"
             )
 
+        # Prevent caching of authenticated pages
+        if session.get("discord_user"):
+            response.headers[
+                "Cache-Control"
+            ] = (
+                "no-store, "
+                "no-cache, "
+                "must-revalidate, "
+                "private"
+            )
+
+            response.headers[
+                "Pragma"
+            ] = "no-cache"
+
         return response
+
+    # =====================================================
+    # Session Security
+    # =====================================================
+
+    @app.before_request
+    def session_security():
+
+        # Make authenticated sessions permanent
+        if session.get("discord_user"):
+            session.permanent = True
+
+        # Create a CSRF token for future protected forms
+        if "csrf_token" not in session:
+            session["csrf_token"] = secrets.token_urlsafe(
+                32
+            )
 
     # =====================================================
     # Global Template Data
@@ -147,6 +283,10 @@ def create_app(bot=None):
 
             "discord_user": session.get(
                 "discord_user"
+            ),
+
+            "csrf_token": session.get(
+                "csrf_token"
             ),
         }
 
@@ -227,7 +367,7 @@ def create_app(bot=None):
         }
 
     # =====================================================
-    # Register Authentication
+    # Authentication Blueprint
     # =====================================================
 
     app.register_blueprint(
@@ -235,7 +375,7 @@ def create_app(bot=None):
     )
 
     # =====================================================
-    # Register Dashboard
+    # Dashboard Blueprint
     # =====================================================
 
     app.register_blueprint(
@@ -381,4 +521,5 @@ if __name__ == "__main__":
         host=WEB_HOST,
         port=port,
         debug=False,
+        use_reloader=False,
     )
