@@ -17,6 +17,7 @@ from web.app import create_app
 class Zivex(commands.Bot):
 
     def __init__(self):
+
         intents = discord.Intents.default()
 
         intents.members = True
@@ -36,20 +37,21 @@ class Zivex(commands.Bot):
 
         print("🔧 Starting Zivex...")
 
-        # =================================================
+        # -------------------------------------------------
         # Database
-        # =================================================
+        # -------------------------------------------------
 
         try:
             await db.setup()
             print("✅ Database ready.")
+
         except Exception as error:
             print(f"❌ Database setup failed: {error}")
             raise
 
-        # =================================================
+        # -------------------------------------------------
         # Load Cogs
-        # =================================================
+        # -------------------------------------------------
 
         cogs = [
             "cogs.utility",
@@ -65,11 +67,10 @@ class Zivex(commands.Bot):
         for cog in cogs:
 
             try:
+
                 await self.load_extension(cog)
 
-                print(
-                    f"✅ Loaded: {cog}"
-                )
+                print(f"✅ Loaded: {cog}")
 
             except Exception as error:
 
@@ -77,13 +78,14 @@ class Zivex(commands.Bot):
                     f"❌ Failed to load {cog}: {error}"
                 )
 
-        # =================================================
+        # -------------------------------------------------
         # Ensure Guilds
-        # =================================================
+        # -------------------------------------------------
 
         for guild in self.guilds:
 
             try:
+
                 await db.ensure_guild(
                     guild.id,
                     guild.name,
@@ -99,9 +101,9 @@ class Zivex(commands.Bot):
                     f"({guild.id}): {error}"
                 )
 
-        # =================================================
+        # -------------------------------------------------
         # Sync Slash Commands
-        # =================================================
+        # -------------------------------------------------
 
         try:
 
@@ -126,25 +128,26 @@ bot = Zivex()
 
 
 # =========================================================
-# Bot Events
+# Ready Event
 # =========================================================
 
 @bot.event
 async def on_ready():
 
     print(
-        f""
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🤖 Zivex Online\n"
-        f"📌 Name: {bot.user}\n"
-        f"🆔 ID: {bot.user.id}\n"
-        f"🌐 Servers: {len(bot.guilds)}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 Zivex Online
+📌 Name: {bot.user}
+🆔 ID: {bot.user.id}
+🌐 Servers: {len(bot.guilds)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
     )
 
-    # =====================================================
+    # -----------------------------------------------------
     # Update Guild Information
-    # =====================================================
+    # -----------------------------------------------------
 
     for guild in bot.guilds:
 
@@ -165,9 +168,9 @@ async def on_ready():
                 f"{guild.id}: {error}"
             )
 
-    # =====================================================
+    # -----------------------------------------------------
     # Presence
-    # =====================================================
+    # -----------------------------------------------------
 
     try:
 
@@ -230,7 +233,7 @@ async def on_guild_remove(guild):
 
 
 # =========================================================
-# Prefix Command Errors
+# Command Errors
 # =========================================================
 
 @bot.event
@@ -239,11 +242,19 @@ async def on_command_error(
     error,
 ):
 
+    # -----------------------------------------------------
+    # Unknown Command
+    # -----------------------------------------------------
+
     if isinstance(
         error,
         commands.CommandNotFound,
     ):
         return
+
+    # -----------------------------------------------------
+    # Missing Permissions
+    # -----------------------------------------------------
 
     if isinstance(
         error,
@@ -256,6 +267,10 @@ async def on_command_error(
 
         return
 
+    # -----------------------------------------------------
+    # Missing Argument
+    # -----------------------------------------------------
+
     if isinstance(
         error,
         commands.MissingRequiredArgument,
@@ -266,6 +281,10 @@ async def on_command_error(
         )
 
         return
+
+    # -----------------------------------------------------
+    # Bad Argument
+    # -----------------------------------------------------
 
     if isinstance(
         error,
@@ -278,16 +297,9 @@ async def on_command_error(
 
         return
 
-    if isinstance(
-        error,
-        commands.NoPrivateMessage,
-    ):
-
-        await ctx.send(
-            "❌ هذا الأمر لا يعمل في الخاص."
-        )
-
-        return
+    # -----------------------------------------------------
+    # Unexpected Error
+    # -----------------------------------------------------
 
     print(
         f"❌ Command error: {error}"
@@ -302,7 +314,10 @@ def start_web():
 
     try:
 
-        # Railway provides PORT automatically.
+        # -------------------------------------------------
+        # Railway PORT
+        # -------------------------------------------------
+
         railway_port = os.getenv("PORT")
 
         try:
@@ -320,9 +335,9 @@ def start_web():
 
             port = int(WEB_PORT)
 
-        # =================================================
-        # Create Flask using the SAME bot instance
-        # =================================================
+        # -------------------------------------------------
+        # Create Flask App
+        # -------------------------------------------------
 
         app = create_app(bot)
 
@@ -330,6 +345,10 @@ def start_web():
             f"🌐 Zivex Dashboard starting "
             f"on {WEB_HOST}:{port}"
         )
+
+        # -------------------------------------------------
+        # Start Flask
+        # -------------------------------------------------
 
         app.run(
             host=WEB_HOST,
@@ -351,6 +370,10 @@ def start_web():
 
 async def main():
 
+    # -----------------------------------------------------
+    # Check Token
+    # -----------------------------------------------------
+
     if not DISCORD_TOKEN:
 
         raise RuntimeError(
@@ -358,9 +381,9 @@ async def main():
             "from Railway Variables."
         )
 
-    # =====================================================
+    # -----------------------------------------------------
     # Start Dashboard
-    # =====================================================
+    # -----------------------------------------------------
 
     web_thread = threading.Thread(
         target=start_web,
@@ -370,9 +393,9 @@ async def main():
 
     web_thread.start()
 
-    # =====================================================
+    # -----------------------------------------------------
     # Start Discord Bot
-    # =====================================================
+    # -----------------------------------------------------
 
     print(
         "🚀 Starting Zivex Bot..."
