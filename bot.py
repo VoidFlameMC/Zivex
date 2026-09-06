@@ -17,7 +17,6 @@ from web.app import create_app
 class Zivex(commands.Bot):
 
     def __init__(self):
-
         intents = discord.Intents.default()
 
         intents.members = True
@@ -37,8 +36,16 @@ class Zivex(commands.Bot):
 
         print("🔧 Starting Zivex...")
 
+        # =================================================
         # Database
-        await db.setup()
+        # =================================================
+
+        try:
+            await db.setup()
+            print("✅ Database ready.")
+        except Exception as error:
+            print(f"❌ Database setup failed: {error}")
+            raise
 
         # =================================================
         # Load Cogs
@@ -52,12 +59,12 @@ class Zivex(commands.Bot):
             "cogs.tickets",
             "cogs.applications",
             "cogs.owner",
+            "cogs.logs",
         ]
 
         for cog in cogs:
 
             try:
-
                 await self.load_extension(cog)
 
                 print(
@@ -77,7 +84,6 @@ class Zivex(commands.Bot):
         for guild in self.guilds:
 
             try:
-
                 await db.ensure_guild(
                     guild.id,
                     guild.name,
@@ -113,11 +119,15 @@ class Zivex(commands.Bot):
 
 
 # =========================================================
-# Bot Events
+# Bot Instance
 # =========================================================
 
 bot = Zivex()
 
+
+# =========================================================
+# Bot Events
+# =========================================================
 
 @bot.event
 async def on_ready():
@@ -177,6 +187,10 @@ async def on_ready():
         )
 
 
+# =========================================================
+# Guild Join
+# =========================================================
+
 @bot.event
 async def on_guild_join(guild):
 
@@ -202,6 +216,10 @@ async def on_guild_join(guild):
         )
 
 
+# =========================================================
+# Guild Remove
+# =========================================================
+
 @bot.event
 async def on_guild_remove(guild):
 
@@ -212,7 +230,7 @@ async def on_guild_remove(guild):
 
 
 # =========================================================
-# Command Errors
+# Prefix Command Errors
 # =========================================================
 
 @bot.event
@@ -260,6 +278,17 @@ async def on_command_error(
 
         return
 
+    if isinstance(
+        error,
+        commands.NoPrivateMessage,
+    ):
+
+        await ctx.send(
+            "❌ هذا الأمر لا يعمل في الخاص."
+        )
+
+        return
+
     print(
         f"❌ Command error: {error}"
     )
@@ -291,7 +320,10 @@ def start_web():
 
             port = int(WEB_PORT)
 
-        # Create Flask using the SAME bot instance.
+        # =================================================
+        # Create Flask using the SAME bot instance
+        # =================================================
+
         app = create_app(bot)
 
         print(
