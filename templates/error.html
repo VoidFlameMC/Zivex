@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta
+        name="theme-color"
+        content="#09090f"
+    >
+    <meta
+        name="description"
+        content="Zivex - حدث خطأ"
+    >
+    <title>
+        {{ error_code|default(500) }} | Zivex
+    </title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+    <script
+        src="{{ url_for('static', filename='script.js') }}"
+        defer
+    ></script>
+</head>
+<body class="error-page">
+    <main class="error-container">
+        <section class="error-card">
+            <!-- Logo -->
+            <a
+                href="{{ url_for('index') }}"
+                class="error-logo"
+                aria-label="Zivex الرئيسية"
+            >
+                <span class="error-logo-mark">
+                    Z
+                </span>
+                <span class="error-logo-text">
+                    Zivex
+                </span>
+            </a>
+            <!-- Error Code -->
+            <div
+                class="error-code"
+                aria-hidden="true"
+            >
+                {{ error_code|default(500) }}
+            </div>
+            <!-- Error Content -->
+            <div class="error-content">
+                <span class="error-badge">
+                    حدث خطأ
+                </span>
+                <h1>
+                    {{ error_title|default("حدث خطأ غير متوقع") }}
+                </h1>
+                <p>
+                    {{
+                        error_message|default(
+                            "حدثت مشكلة أثناء معالجة طلبك. حاول مرة أخرى بعد قليل."
+                        )
+                    }}
+                </p>
+            </div>
+            <!-- Actions -->
+            <div class="error-actions">
+                <a
+                    href="{{ url_for('index') }}"
+                    class="btn btn-primary"
+                >
+                    <span aria-hidden="true">←</span>
+                    الصفحة الرئيسية
+                </a>
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onclick="window.history.back()"
+                >
+                    العودة للخلف
+                </button>
+            </div>
+            <!-- Help -->
+            <div class="error-help">
+                <div
+                    class="error-help-icon"
+                    aria-hidden="true"
+                >
+                    ?
+                </div>
+                <div>
+                    <strong>
+                        ما زالت المشكلة موجودة؟
+                    </strong>
+                    <p>
+                        تأكد من اتصالك بالإنترنت وحاول تحديث الصفحة.
+                    </p>
+                </div>
+            </div>
+            <!-- Footer -->
+            <footer class="error-footer">
+                <span>
+                    © {{ current_year|default(2026) }} Zivex
+                </span>
+                <span aria-hidden="true">
+                    •
+                </span>
+                <span>
+                    Discord Bot & Dashboard
+                </span>
+            </footer>
+        </section>
+    </main>
+</body>
+</html>
