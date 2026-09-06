@@ -3,2085 +3,1191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>
-        {% if selected_guild %}
-            {{ selected_guild.name }} - Zivex Dashboard
-        {% else %}
-            Zivex Dashboard
-        {% endif %}
-    </title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --bg: #080812;
-            --bg2: #0d0d1a;
-            --card: #111121;
-            --card2: #15152a;
-            --border: rgba(255,255,255,.08);
-            --text: #ffffff;
-            --muted: #9292a8;
-            --purple: #8b5cf6;
-            --purple2: #6d3df5;
-            --green: #22c55e;
-            --red: #ef4444;
-            --yellow: #f59e0b;
-        }
-
-        body {
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at top right, rgba(124,58,237,.16), transparent 32%),
-                radial-gradient(circle at bottom left, rgba(91,33,182,.10), transparent 30%),
-                var(--bg);
-            color: var(--text);
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        button {
-            font-family: inherit;
-        }
-
-        .layout {
-            min-height: 100vh;
-            display: flex;
-        }
-
-        /* =========================
-           SIDEBAR
-        ========================= */
-
-        .sidebar {
-            width: 270px;
-            min-height: 100vh;
-            position: fixed;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            background: rgba(10,10,20,.94);
-            border-left: 1px solid var(--border);
-            padding: 22px 16px;
-            z-index: 100;
-            backdrop-filter: blur(18px);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 10px 24px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 18px;
-        }
-
-        .brand-logo {
-            width: 44px;
-            height: 44px;
-            border-radius: 13px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--purple), #4f20c9);
-            box-shadow: 0 10px 30px rgba(124,58,237,.3);
-            font-size: 19px;
-            font-weight: 900;
-        }
-
-        .brand-name {
-            font-size: 21px;
-            font-weight: 900;
-        }
-
-        .brand-sub {
-            color: var(--muted);
-            font-size: 11px;
-            margin-top: 3px;
-        }
-
-        .server-mini {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 13px;
-            margin-bottom: 18px;
-        }
-
-        .server-mini-title {
-            color: var(--muted);
-            font-size: 11px;
-            margin-bottom: 9px;
-        }
-
-        .server-mini-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .server-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            object-fit: cover;
-            background: #1c1c30;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-        }
-
-        .server-name {
-            font-size: 13px;
-            font-weight: 700;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        .server-status {
-            color: var(--green);
-            font-size: 10px;
-            margin-top: 4px;
-        }
-
-        .nav-title {
-            color: #66667b;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 0 11px 8px;
-        }
-
-        .nav {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .nav a {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            padding: 12px 13px;
-            border-radius: 11px;
-            color: #b9b9c9;
-            font-size: 13px;
-            transition: .2s;
-        }
-
-        .nav a:hover,
-        .nav a.active {
-            color: #fff;
-            background: rgba(139,92,246,.14);
-        }
-
-        .nav-icon {
-            width: 20px;
-            text-align: center;
-        }
-
-        .sidebar-bottom {
-            position: absolute;
-            right: 16px;
-            left: 16px;
-            bottom: 18px;
-        }
-
-        .logout {
-            width: 100%;
-            border: 1px solid rgba(239,68,68,.15);
-            background: rgba(239,68,68,.06);
-            color: #f87171;
-            border-radius: 11px;
-            padding: 11px;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .logout:hover {
-            background: rgba(239,68,68,.12);
-        }
-
-        /* =========================
-           MAIN
-        ========================= */
-
-        .main {
-            width: calc(100% - 270px);
-            margin-right: 270px;
-            min-height: 100vh;
-        }
-
-        .topbar {
-            height: 72px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 34px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(8,8,18,.62);
-            backdrop-filter: blur(15px);
-        }
-
-        .top-title {
-            font-size: 16px;
-            font-weight: 800;
-        }
-
-        .top-subtitle {
-            color: var(--muted);
-            font-size: 11px;
-            margin-top: 4px;
-        }
-
-        .menu-btn {
-            display: none;
-            border: 0;
-            background: var(--card);
-            color: #fff;
-            padding: 9px 12px;
-            border-radius: 9px;
-            cursor: pointer;
-        }
-
-        .content {
-            padding: 34px;
-            max-width: 1400px;
-            margin: auto;
-        }
-
-        /* =========================
-           HERO
-        ========================= */
-
-        .hero {
-            padding: 28px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background:
-                linear-gradient(135deg, rgba(139,92,246,.16), rgba(17,17,33,.9) 50%),
-                var(--card);
-            margin-bottom: 24px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::after {
-            content: "";
-            position: absolute;
-            width: 220px;
-            height: 220px;
-            background: rgba(139,92,246,.13);
-            border-radius: 50%;
-            left: -80px;
-            bottom: -120px;
-            filter: blur(30px);
-        }
-
-        .hero h1 {
-            font-size: 28px;
-            margin-bottom: 9px;
-        }
-
-        .hero p {
-            color: var(--muted);
-            line-height: 1.8;
-            font-size: 13px;
-        }
-
-        /* =========================
-           SECTION
-        ========================= */
-
-        .section {
-            margin-top: 30px;
-        }
-
-        .section-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 900;
-        }
-
-        .section-description {
-            color: var(--muted);
-            font-size: 11px;
-            margin-top: 5px;
-        }
-
-        /* =========================
-           SERVERS
-        ========================= */
-
-        .servers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 14px;
-        }
-
-        .server-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 17px;
-            padding: 18px;
-            transition: .2s;
-        }
-
-        .server-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(139,92,246,.35);
-        }
-
-        .server-card.disabled {
-            opacity: .55;
-            cursor: not-allowed;
-        }
-
-        .server-card-top {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .server-card-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 15px;
-            object-fit: cover;
-            background: #1b1b2c;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 900;
-            flex-shrink: 0;
-        }
-
-        .server-card-name {
-            font-weight: 800;
-            font-size: 14px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .server-card-state {
-            color: var(--muted);
-            font-size: 11px;
-            margin-top: 5px;
-        }
-
-        .server-card-action {
-            margin-top: 15px;
-            padding-top: 13px;
-            border-top: 1px solid var(--border);
-            color: #b9a2ff;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        /* =========================
-           STATS
-        ========================= */
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-        }
-
-        .stat {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 19px;
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .stat-value {
-            font-size: 25px;
-            font-weight: 900;
-            margin-top: 8px;
-        }
-
-        /* =========================
-           SYSTEMS
-        ========================= */
-
-        .systems {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
-
-        .system-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 17px;
-            padding: 19px;
-            transition: .2s;
-        }
-
-        .system-card:hover {
-            border-color: rgba(139,92,246,.25);
-        }
-
-        .system-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .system-icon {
-            width: 43px;
-            height: 43px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(139,92,246,.12);
-            font-size: 19px;
-        }
-
-        .status {
-            padding: 5px 9px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .status.enabled {
-            color: #86efac;
-            background: rgba(34,197,94,.1);
-        }
-
-        .status.disabled {
-            color: #fca5a5;
-            background: rgba(239,68,68,.1);
-        }
-
-        .system-name {
-            font-size: 15px;
-            font-weight: 900;
-            margin-top: 15px;
-        }
-
-        .system-description {
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.7;
-            min-height: 38px;
-            margin-top: 6px;
-        }
-
-        .system-actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 16px;
-        }
-
-        .manage-link {
-            color: #b99cff;
-            font-size: 11px;
-            cursor: pointer;
-        }
-
-        .toggle {
-            width: 42px;
-            height: 23px;
-            border-radius: 999px;
-            border: 0;
-            background: #2a2a3c;
-            padding: 3px;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .toggle span {
-            display: block;
-            width: 17px;
-            height: 17px;
-            background: #fff;
-            border-radius: 50%;
-            transition: .2s;
-        }
-
-        .toggle.on {
-            background: var(--purple);
-        }
-
-        .toggle.on span {
-            transform: translateX(-19px);
-        }
-
-        /* =========================
-           SETTINGS
-        ========================= */
-
-        .settings-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 17px;
-            overflow: hidden;
-        }
-
-        .setting-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            padding: 17px 19px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .setting-row:last-child {
-            border-bottom: 0;
-        }
-
-        .setting-title {
-            font-size: 13px;
-            font-weight: 800;
-        }
-
-        .setting-description {
-            color: var(--muted);
-            font-size: 10px;
-            margin-top: 4px;
-        }
-
-        /* =========================
-           EMPTY
-        ========================= */
-
-        .empty {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 17px;
-            padding: 40px;
-            text-align: center;
-            color: var(--muted);
-        }
-
-        .empty-icon {
-            font-size: 38px;
-            margin-bottom: 12px;
-        }
-
-        .empty h3 {
-            color: #fff;
-            margin-bottom: 8px;
-        }
-
-        /* =========================
-           FOOTER
-        ========================= */
-
-        footer {
-            text-align: center;
-            color: #5f5f73;
-            font-size: 10px;
-            padding: 35px 0 20px;
-        }
-
-        /* =========================
-           TOAST
-        ========================= */
-
-        .toast-container {
-            position: fixed;
-            left: 22px;
-            bottom: 22px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .toast {
-            min-width: 230px;
-            max-width: 330px;
-            background: #171725;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 15px;
-            box-shadow: 0 15px 40px rgba(0,0,0,.3);
-            font-size: 12px;
-            animation: toastIn .25s ease;
-        }
-
-        .toast.success {
-            border-color: rgba(34,197,94,.25);
-        }
-
-        .toast.error {
-            border-color: rgba(239,68,68,.25);
-        }
-
-        @keyframes toastIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* =========================
-           MOBILE
-        ========================= */
-
-        @media (max-width: 1100px) {
-            .systems {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 800px) {
-            .sidebar {
-                transform: translateX(100%);
-                transition: .25s;
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .main {
-                width: 100%;
-                margin-right: 0;
-            }
-
-            .menu-btn {
-                display: block;
-            }
-
-            .topbar {
-                padding: 0 18px;
-            }
-
-            .content {
-                padding: 20px 15px;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .systems,
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .hero {
-                padding: 21px;
-            }
-
-            .hero h1 {
-                font-size: 23px;
-            }
-
-            .setting-row {
-                align-items: flex-start;
-            }
-        }
-    </style>
-</head>
-
-<body class="dashboard-page">
-
-<div class="layout">
-
-    <!-- =========================
-         SIDEBAR
-    ========================= -->
-
-    <aside class="sidebar" id="sidebar">
-
-        <div class="brand">
-            <div class="brand-logo">Z</div>
-
-            <div>
-                <div class="brand-name">Zivex</div>
-                <div class="brand-sub">Discord Dashboard</div>
-            </div>
-        </div>
-
-        <div class="server-mini">
-
-            <div class="server-mini-title">
-                السيرفر الحالي
-            </div>
-
-            {% if selected_guild %}
-
-                <div class="server-mini-info">
-
-                    {% if selected_guild.icon %}
-                        <img
-                            class="server-icon"
-                            src="{{ selected_guild.icon }}"
-                            alt=""
-                        >
-                    {% else %}
-                        <div class="server-icon">
-                            {{ selected_guild.name[:1] }}
-                        </div>
-                    {% endif %}
-
-                    <div style="min-width:0;">
-                        <div class="server-name">
-                            {{ selected_guild.name }}
-                        </div>
-
-                        <div class="server-status">
-                            ● متصل
-                        </div>
-                    </div>
-
-                </div>
-
-            {% else %}
-
-                <div class="server-mini-info">
-
-                    <div class="server-icon">
-                        Z
-                    </div>
-
-                    <div>
-                        <div class="server-name">
-                            اختر سيرفر
-                        </div>
-
-                        <div class="server-status" style="color:#9292a8;">
-                            من القائمة بالأسفل
-                        </div>
-                    </div>
-
-                </div>
-
-            {% endif %}
-
-        </div>
-
-        <div class="nav-title">
-            التنقل
-        </div>
-
-        <nav class="nav">
-
-            <a href="#overview" class="active">
-                <span class="nav-icon">⌂</span>
-                <span>الرئيسية</span>
-            </a>
-
-            {% if selected_guild %}
-                <a href="#systems">
-                    <span class="nav-icon">⚙</span>
-                    <span>الأنظمة</span>
-                </a>
-
-                <a href="#settings">
-                    <span class="nav-icon">☷</span>
-                    <span>الإعدادات</span>
-                </a>
-            {% endif %}
-
-            <a href="#security">
-                <span class="nav-icon">◈</span>
-                <span>الأمان</span>
-            </a>
-
-        </nav>
-
-        <div class="sidebar-bottom">
-
-            <button
-                class="logout"
-                type="button"
-                onclick="window.location.href='{{ url_for('dashboard.dashboard_logout') }}'"
-            >
-                تسجيل الخروج
-            </button>
-
-        </div>
-
-    </aside>
-
-    <!-- =========================
-         MAIN
-    ========================= -->
-
-    <main class="main">
-
-        <header class="topbar">
-
-            <div>
-                <div class="top-title">
-                    لوحة تحكم Zivex
-                </div>
-
-                <div class="top-subtitle">
-                    إدارة سيرفر Discord بسهولة
-                </div>
-            </div>
-
-            <button
-                class="menu-btn"
-                type="button"
-                onclick="toggleSidebar()"
-            >
-                ☰
-            </button>
-
-        </header>
-
-        <div class="content">
-
-            <!-- =========================
-                 HERO
-            ========================= -->
-
-            <section class="hero" id="overview">
-
-                {% if selected_guild %}
-
-                    <h1>
-                        أهلاً بك في {{ selected_guild.name }}
-                    </h1>
-
-                    <p>
-                        من هنا تقدر تتحكم بأنظمة Zivex وإعدادات السيرفر
-                        بسهولة.
-                    </p>
-
-                {% else %}
-
-                    <h1>
-                        أهلاً بك في Zivex
-                    </h1>
-
-                    <p>
-                        اختر السيرفر الذي تريد إدارته من القائمة بالأسفل.
-                    </p>
-
-                {% endif %}
-
-            </section>
-
-
-            <!-- =========================
-                 SERVER SELECTOR
-            ========================= -->
-
-            {% if not selected_guild %}
-
-                <section class="section">
-
-                    <div class="section-head">
-
-                        <div>
-                            <div class="section-title">
-                                سيرفراتك
-                            </div>
-
-                            <div class="section-description">
-                                السيرفرات التي تملك صلاحية إدارتها
-                            </div>
-                        </div>
-
-                    </div>
-
-                    {% if guilds %}
-
-                        <div class="servers-grid">
-
-                            {% for guild in guilds %}
-
-                                {% if guild.bot_installed %}
-
-                                    <a
-                                        href="{{ url_for('dashboard.guild_dashboard', guild_id=guild.id) }}"
-                                        class="server-card"
-                                    >
-
-                                        <div class="server-card-top">
-
-                                            {% if guild.icon %}
-
-                                                <img
-                                                    class="server-card-icon"
-                                                    src="{{ guild.icon }}"
-                                                    alt=""
-                                                >
-
-                                            {% else %}
-
-                                                <div class="server-card-icon">
-                                                    {{ guild.name[:1] }}
-                                                </div>
-
-                                            {% endif %}
-
-                                            <div style="min-width:0;">
-
-                                                <div class="server-card-name">
-                                                    {{ guild.name }}
-                                                </div>
-
-                                                <div class="server-card-state">
-                                                    البوت مثبت
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-
-                                        <div class="server-card-action">
-                                            إدارة السيرفر ←
-                                        </div>
-
-                                    </a>
-
-                                {% else %}
-
-                                    <article class="server-card disabled">
-
-                                        <div class="server-card-top">
-
-                                            {% if guild.icon %}
-
-                                                <img
-                                                    class="server-card-icon"
-                                                    src="{{ guild.icon }}"
-                                                    alt=""
-                                                >
-
-                                            {% else %}
-
-                                                <div class="server-card-icon">
-                                                    {{ guild.name[:1] }}
-                                                </div>
-
-                                            {% endif %}
-
-                                            <div style="min-width:0;">
-
-                                                <div class="server-card-name">
-                                                    {{ guild.name }}
-                                                </div>
-
-                                                <div class="server-card-state">
-                                                    البوت غير مثبت
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-
-                                        <div
-                                            class="server-card-action"
-                                            style="color:#777;"
-                                        >
-                                            يحتاج تثبيت البوت
-                                        </div>
-
-                                    </article>
-
-                                {% endif %}
-
-                            {% endfor %}
-
-                        </div>
-
-                    {% else %}
-
-                        <div class="empty">
-
-                            <div class="empty-icon">
-                                ⚠
-                            </div>
-
-                            <h3>
-                                لا يوجد سيرفرات
-                            </h3>
-
-                            <p>
-                                ما عندك حالياً سيرفرات تقدر تديرها.
-                            </p>
-
-                        </div>
-
-                    {% endif %}
-
-                </section>
-
-            {% endif %}
-
-
-            {% if selected_guild %}
-
-                <!-- =========================
-                     STATISTICS
-                ========================= -->
-
-                <section class="section">
-
-                    <div class="section-head">
-
-                        <div>
-                            <div class="section-title">
-                                نظرة عامة
-                            </div>
-
-                            <div class="section-description">
-                                إحصائيات السيرفر الحالية
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="stats">
-
-                        <div class="stat">
-
-                            <div class="stat-label">
-                                الأعضاء
-                            </div>
-
-                            <div class="stat-value">
-                                {{ selected_guild.statistics.members or 0 }}
-                            </div>
-
-                        </div>
-
-                        <div class="stat">
-
-                            <div class="stat-label">
-                                القنوات
-                            </div>
-
-                            <div class="stat-value">
-                                {{ selected_guild.statistics.channels or 0 }}
-                            </div>
-
-                        </div>
-
-                        <div class="stat">
-
-                            <div class="stat-label">
-                                الرتب
-                            </div>
-
-                            <div class="stat-value">
-                                {{ selected_guild.statistics.roles or 0 }}
-                            </div>
-
-                        </div>
-
-                        <div class="stat">
-
-                            <div class="stat-label">
-                                الأنظمة المفعلة
-                            </div>
-
-                            <div
-                                class="stat-value"
-                                id="enabledSystemsCount"
-                            >
-                                0
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                <!-- =========================
-                     SYSTEMS
-                ========================= -->
-
-                <section class="section" id="systems">
-
-                    <div class="section-head">
-
-                        <div>
-                            <div class="section-title">
-                                أنظمة Zivex
-                            </div>
-
-                            <div class="section-description">
-                                تحكم في الأنظمة الأساسية للبوت
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="systems">
-
-                        <!-- Welcome -->
-
-                        <div class="system-card">
-
-                            <div class="system-top">
-
-                                <div class="system-icon">
-                                    👋
-                                </div>
-
-                                <span
-                                    id="status-welcome"
-                                    class="status {% if selected_guild.systems['welcome'] %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {% if selected_guild.systems['welcome'] %}
-                                        مفعل
-                                    {% else %}
-                                        متوقف
-                                    {% endif %}
-                                </span>
-
-                            </div>
-
-                            <div class="system-name">
-                                الترحيب
-                            </div>
-
-                            <div class="system-description">
-                                إرسال رسائل ترحيب للأعضاء الجدد.
-                            </div>
-
-                            <div class="system-actions">
-
-                                <a
-                                    href="#settings"
-                                    class="manage-link"
-                                >
-                                    إدارة النظام
-                                </a>
-
-                                <button
-                                    class="toggle {% if selected_guild.systems['welcome'] %}on{% endif %}"
-                                    data-system="welcome"
-                                    type="button"
-                                    onclick="toggleSystem('welcome')"
-                                >
-                                    <span></span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- Levels -->
-
-                        <div class="system-card">
-
-                            <div class="system-top">
-
-                                <div class="system-icon">
-                                    ⭐
-                                </div>
-
-                                <span
-                                    id="status-levels"
-                                    class="status {% if selected_guild.systems['levels'] %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {% if selected_guild.systems['levels'] %}
-                                        مفعل
-                                    {% else %}
-                                        متوقف
-                                    {% endif %}
-                                </span>
-
-                            </div>
-
-                            <div class="system-name">
-                                المستويات
-                            </div>
-
-                            <div class="system-description">
-                                نظام XP ومستويات الأعضاء.
-                            </div>
-
-                            <div class="system-actions">
-
-                                <a
-                                    href="#settings"
-                                    class="manage-link"
-                                >
-                                    إدارة النظام
-                                </a>
-
-                                <button
-                                    class="toggle {% if selected_guild.systems['levels'] %}on{% endif %}"
-                                    data-system="levels"
-                                    type="button"
-                                    onclick="toggleSystem('levels')"
-                                >
-                                    <span></span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- Tickets -->
-
-                        <div class="system-card">
-
-                            <div class="system-top">
-
-                                <div class="system-icon">
-                                    🎫
-                                </div>
-
-                                <span
-                                    id="status-tickets"
-                                    class="status {% if selected_guild.systems['tickets'] %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {% if selected_guild.systems['tickets'] %}
-                                        مفعل
-                                    {% else %}
-                                        متوقف
-                                    {% endif %}
-                                </span>
-
-                            </div>
-
-                            <div class="system-name">
-                                التذاكر
-                            </div>
-
-                            <div class="system-description">
-                                نظام التذاكر والدعم الفني.
-                            </div>
-
-                            <div class="system-actions">
-
-                                <a
-                                    href="#settings"
-                                    class="manage-link"
-                                >
-                                    إدارة النظام
-                                </a>
-
-                                <button
-                                    class="toggle {% if selected_guild.systems['tickets'] %}on{% endif %}"
-                                    data-system="tickets"
-                                    type="button"
-                                    onclick="toggleSystem('tickets')"
-                                >
-                                    <span></span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- Applications -->
-
-                        <div class="system-card">
-
-                            <div class="system-top">
-
-                                <div class="system-icon">
-                                    📝
-                                </div>
-
-                                <span
-                                    id="status-applications"
-                                    class="status {% if selected_guild.systems['applications'] %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {% if selected_guild.systems['applications'] %}
-                                        مفعل
-                                    {% else %}
-                                        متوقف
-                                    {% endif %}
-                                </span>
-
-                            </div>
-
-                            <div class="system-name">
-                                التقديمات
-                            </div>
-
-                            <div class="system-description">
-                                استقبال وإدارة تقديمات الأعضاء.
-                            </div>
-
-                            <div class="system-actions">
-
-                                <a
-                                    href="#settings"
-                                    class="manage-link"
-                                >
-                                    إدارة النظام
-                                </a>
-
-                                <button
-                                    class="toggle {% if selected_guild.systems['applications'] %}on{% endif %}"
-                                    data-system="applications"
-                                    type="button"
-                                    onclick="toggleSystem('applications')"
-                                >
-                                    <span></span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- Moderation -->
-
-                        <div class="system-card">
-
-                            <div class="system-top">
-
-                                <div class="system-icon">
-                                    🛡
-                                </div>
-
-                                <span
-                                    id="status-moderation"
-                                    class="status {% if selected_guild.systems['moderation'] %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {% if selected_guild.systems['moderation'] %}
-                                        مفعل
-                                    {% else %}
-                                        متوقف
-                                    {% endif %}
-                                </span>
-
-                            </div>
-
-                            <div class="system-name">
-                                الحماية
-                            </div>
-
-                            <div class="system-description">
-                                أدوات الإدارة والحماية من المخالفات.
-                            </div>
-
-                            <div class="system-actions">
-
-                                <a
-                                    href="#settings"
-                                    class="manage-link"
-                                >
-                                    إدارة النظام
-                                </a>
-
-                                <button
-                                    class="toggle {% if selected_guild.systems['moderation'] %}on{% endif %}"
-                                    data-system="moderation"
-                                    type="button"
-                                    onclick="toggleSystem('moderation')"
-                                >
-                                    <span></span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- Logs -->
-
-                        <div class="system-card">
-
-                            <div class="system-top">
-
-                                <div class="system-icon">
-                                    📋
-                                </div>
-
-                                <span
-                                    id="status-logs"
-                                    class="status {% if selected_guild.systems['logs'] %}enabled{% else %}disabled{% endif %}"
-                                >
-                                    {% if selected_guild.systems['logs'] %}
-                                        مفعل
-                                    {% else %}
-                                        متوقف
-                                    {% endif %}
-                                </span>
-
-                            </div>
-
-                            <div class="system-name">
-                                السجلات
-                            </div>
-
-                            <div class="system-description">
-                                تسجيل الأحداث والعمليات داخل السيرفر.
-                            </div>
-
-                            <div class="system-actions">
-
-                                <a
-                                    href="#settings"
-                                    class="manage-link"
-                                >
-                                    إدارة النظام
-                                </a>
-
-                                <button
-                                    class="toggle {% if selected_guild.systems['logs'] %}on{% endif %}"
-                                    data-system="logs"
-                                    type="button"
-                                    onclick="toggleSystem('logs')"
-                                >
-                                    <span></span>
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                <!-- =========================
-                     SETTINGS
-                ========================= -->
-
-                <section class="section" id="settings">
-
-                    <div class="section-head">
-
-                        <div>
-                            <div class="section-title">
-                                الإعدادات السريعة
-                            </div>
-
-                            <div class="section-description">
-                                تشغيل وإيقاف الأنظمة
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="settings-box">
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    نظام الترحيب
-                                </div>
-
-                                <div class="setting-description">
-                                    تشغيل أو إيقاف الترحيب.
-                                </div>
-                            </div>
-
-                            <button
-                                id="setting-welcome"
-                                class="toggle {% if selected_guild.systems['welcome'] %}on{% endif %}"
-                                type="button"
-                                onclick="toggleSystem('welcome')"
-                            >
-                                <span></span>
-                            </button>
-
-                        </div>
-
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    نظام المستويات
-                                </div>
-
-                                <div class="setting-description">
-                                    تشغيل أو إيقاف نظام XP والمستويات.
-                                </div>
-                            </div>
-
-                            <button
-                                id="setting-levels"
-                                class="toggle {% if selected_guild.systems['levels'] %}on{% endif %}"
-                                type="button"
-                                onclick="toggleSystem('levels')"
-                            >
-                                <span></span>
-                            </button>
-
-                        </div>
-
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    نظام التذاكر
-                                </div>
-
-                                <div class="setting-description">
-                                    تشغيل أو إيقاف التذاكر.
-                                </div>
-                            </div>
-
-                            <button
-                                id="setting-tickets"
-                                class="toggle {% if selected_guild.systems['tickets'] %}on{% endif %}"
-                                type="button"
-                                onclick="toggleSystem('tickets')"
-                            >
-                                <span></span>
-                            </button>
-
-                        </div>
-
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    نظام التقديمات
-                                </div>
-
-                                <div class="setting-description">
-                                    تشغيل أو إيقاف التقديمات.
-                                </div>
-                            </div>
-
-                            <button
-                                id="setting-applications"
-                                class="toggle {% if selected_guild.systems['applications'] %}on{% endif %}"
-                                type="button"
-                                onclick="toggleSystem('applications')"
-                            >
-                                <span></span>
-                            </button>
-
-                        </div>
-
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    نظام الحماية
-                                </div>
-
-                                <div class="setting-description">
-                                    تشغيل أو إيقاف أدوات الحماية.
-                                </div>
-                            </div>
-
-                            <button
-                                id="setting-moderation"
-                                class="toggle {% if selected_guild.systems['moderation'] %}on{% endif %}"
-                                type="button"
-                                onclick="toggleSystem('moderation')"
-                            >
-                                <span></span>
-                            </button>
-
-                        </div>
-
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    نظام السجلات
-                                </div>
-
-                                <div class="setting-description">
-                                    تشغيل أو إيقاف تسجيل الأحداث.
-                                </div>
-                            </div>
-
-                            <button
-                                id="setting-logs"
-                                class="toggle {% if selected_guild.systems['logs'] %}on{% endif %}"
-                                type="button"
-                                onclick="toggleSystem('logs')"
-                            >
-                                <span></span>
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                <!-- =========================
-                     SECURITY
-                ========================= -->
-
-                <section class="section" id="security">
-
-                    <div class="section-head">
-
-                        <div>
-                            <div class="section-title">
-                                الأمان
-                            </div>
-
-                            <div class="section-description">
-                                معلومات الوصول والصلاحيات
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="settings-box">
-
-                        <div class="setting-row">
-
-                            <div>
-                                <div class="setting-title">
-                                    صلاحية الإدارة
-                                </div>
-
-                                <div class="setting-description">
-                                    تم التحقق من صلاحيتك لإدارة هذا السيرفر.
-                                </div>
-                            </div>
-
-                            <span class="status enabled">
-                                متاح
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-            {% endif %}
-
-
-            <footer>
-                Zivex Dashboard © 2026
-            </footer>
-
-        </div>
-
-    </main>
-
-</div>
-
-
-<div
-    class="toast-container"
-    id="toastContainer"
-></div>
-
-
-<script>
-    /* ==========================================
-       DATA
-    ========================================== */
-
-    {% if selected_guild %}
-
-    const guildId = "{{ selected_guild.id }}";
-
-    let systemState = {
-        welcome: {{ "true" if selected_guild.systems['welcome'] else "false" }},
-        levels: {{ "true" if selected_guild.systems['levels'] else "false" }},
-        tickets: {{ "true" if selected_guild.systems['tickets'] else "false" }},
-        applications: {{ "true" if selected_guild.systems['applications'] else "false" }},
-        moderation: {{ "true" if selected_guild.systems['moderation'] else "false" }},
-        logs: {{ "true" if selected_guild.systems['logs'] else "false" }}
-    };
-
-    {% else %}
-
-    const guildId = null;
-
-    let systemState = {
-        welcome: false,
-        levels: false,
-        tickets: false,
-        applications: false,
-        moderation: false,
-        logs: false
-    };
-
-    {% endif %}
-
-
-    /* ==========================================
-       SIDEBAR
-    ========================================== */
-
-    function toggleSidebar() {
-
-        const sidebar = document.getElementById("sidebar");
-
-        if (!sidebar) {
-            return;
-        }
-
-        sidebar.classList.toggle("open");
+    <meta name="theme-color" content="#080812">
+    <title>{% if selected_guild %}{{ selected_guild.name }}{% else %}Zivex Dashboard{% endif %}</title>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
     }
-
-
-    /* ==========================================
+    :root {
+        --bg: #080812;
+        --bg2: #0d0d1a;
+        --card: #111121;
+        --card2: #15152a;
+        --border: rgba(255,255,255,.08);
+        --text: #f5f5ff;
+        --muted: #9292aa;
+        --purple: #7c3aed;
+        --purple2: #a855f7;
+        --green: #22c55e;
+        --red: #ef4444;
+        --yellow: #f59e0b;
+        --blue: #3b82f6;
+    }
+    html {
+        scroll-behavior: smooth;
+        background: var(--bg);
+    }
+    body {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 15% 10%, rgba(124,58,237,.18), transparent 30%),
+            radial-gradient(circle at 85% 80%, rgba(168,85,247,.10), transparent 30%),
+            var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+        overflow-x: hidden;
+    }
+    button,
+    input,
+    select {
+        font: inherit;
+    }
+    button {
+        cursor: pointer;
+    }
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+    /* =========================
+       LAYOUT
+    ========================= */
+    .layout {
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+    }
+    .sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 270px;
+        height: 100vh;
+        padding: 22px 16px;
+        background: rgba(10,10,22,.94);
+        border-left: 1px solid var(--border);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        z-index: 1000;
+        overflow-y: auto;
+    }
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 8px 24px;
+    }
+    .brand-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 18px;
+        background: linear-gradient(135deg, var(--purple), var(--purple2));
+        box-shadow: 0 10px 30px rgba(124,58,237,.35);
+    }
+    .brand-text strong {
+        display: block;
+        font-size: 19px;
+        letter-spacing: .5px;
+    }
+    .brand-text span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+    }
+    .server-mini {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        margin-bottom: 22px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255,255,255,.035);
+    }
+    .server-mini img,
+    .server-mini-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        object-fit: cover;
+        background: linear-gradient(135deg, var(--purple), var(--purple2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    .server-mini-info {
+        min-width: 0;
+    }
+    .server-mini-info strong {
+        display: block;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 13px;
+    }
+    .server-mini-info span {
+        color: var(--green);
+        font-size: 11px;
+    }
+    .nav-title {
+        color: #6f6f89;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 0 10px 8px;
+        text-transform: uppercase;
+    }
+    .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .nav a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        color: #aaaabd;
+        transition: .2s;
+    }
+    .nav a:hover,
+    .nav a.active {
+        color: white;
+        background: rgba(124,58,237,.16);
+    }
+    .nav-icon {
+        width: 28px;
+        text-align: center;
+        font-size: 17px;
+    }
+    .logout {
+        width: 100%;
+        margin-top: 24px;
+        padding: 12px;
+        border: 1px solid rgba(239,68,68,.18);
+        border-radius: 12px;
+        background: rgba(239,68,68,.07);
+        color: #fca5a5;
+        transition: .2s;
+    }
+    .logout:hover {
+        background: rgba(239,68,68,.14);
+    }
+    /* =========================
+       MAIN
+    ========================= */
+    .main {
+        width: calc(100% - 270px);
+        min-height: 100vh;
+        margin-right: 270px;
+        padding: 28px;
+    }
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 26px;
+    }
+    .topbar-left h1 {
+        font-size: 25px;
+        margin-bottom: 5px;
+    }
+    .topbar-left p {
+        color: var(--muted);
+        font-size: 13px;
+    }
+    .online {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 13px;
+        border: 1px solid rgba(34,197,94,.15);
+        border-radius: 20px;
+        background: rgba(34,197,94,.07);
+        color: #86efac;
+        font-size: 12px;
+    }
+    .online-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 12px rgba(34,197,94,.7);
+    }
+    /* =========================
+       HERO
+    ========================= */
+    .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 30px;
+        border: 1px solid rgba(124,58,237,.2);
+        border-radius: 22px;
+        background:
+            linear-gradient(135deg, rgba(124,58,237,.18), rgba(17,17,33,.96)),
+            var(--card);
+        box-shadow: 0 20px 60px rgba(0,0,0,.22);
+        margin-bottom: 24px;
+    }
+    .hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        left: -100px;
+        top: -130px;
+        border-radius: 50%;
+        background: rgba(168,85,247,.13);
+        filter: blur(35px);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero small {
+        color: #c4b5fd;
+        font-size: 12px;
+    }
+    .hero h2 {
+        margin-top: 9px;
+        font-size: 29px;
+    }
+    .hero p {
+        margin-top: 9px;
+        max-width: 650px;
+        color: var(--muted);
+        line-height: 1.8;
+        font-size: 13px;
+    }
+    /* =========================
+       SECTION
+    ========================= */
+    .section {
+        margin-top: 28px;
+    }
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .section-head h3 {
+        font-size: 18px;
+    }
+    .section-head span {
+        color: var(--muted);
+        font-size: 12px;
+    }
+    /* =========================
+       SERVER GRID
+    ========================= */
+    .server-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 14px;
+    }
+    .server-card {
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 17px;
+        background: linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+        transition: .2s;
+    }
+    .server-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(124,58,237,.45);
+        box-shadow: 0 15px 35px rgba(0,0,0,.2);
+    }
+    .server-card-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .server-avatar {
+        width: 52px;
+        height: 52px;
+        flex: 0 0 52px;
+        border-radius: 15px;
+        object-fit: cover;
+        background: linear-gradient(135deg, var(--purple), var(--purple2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+    }
+    .server-card-info {
+        min-width: 0;
+    }
+    .server-card-info h4 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+    }
+    .server-card-info p {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 4px;
+    }
+    .open-server {
+        display: block;
+        text-align: center;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, var(--purple), var(--purple2));
+        font-size: 12px;
+        font-weight: bold;
+        transition: .2s;
+    }
+    .open-server:hover {
+        filter: brightness(1.12);
+    }
+    /* =========================
+       STATS
+    ========================= */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+    .stat {
+        padding: 19px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--card);
+    }
+    .stat-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: rgba(124,58,237,.12);
+        margin-bottom: 13px;
+        font-size: 17px;
+    }
+    .stat strong {
+        display: block;
+        font-size: 24px;
+    }
+    .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 5px;
+    }
+    /* =========================
+       SYSTEMS
+    ========================= */
+    .systems {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+    .system {
+        position: relative;
+        overflow: hidden;
+        padding: 19px;
+        border: 1px solid var(--border);
+        border-radius: 17px;
+        background: var(--card);
+        transition: .2s;
+    }
+    .system:hover {
+        border-color: rgba(124,58,237,.3);
+    }
+    .system-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .system-icon {
+        width: 43px;
+        height: 43px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: rgba(124,58,237,.12);
+        font-size: 19px;
+    }
+    .system h4 {
+        margin-top: 14px;
+        font-size: 15px;
+    }
+    .system p {
+        min-height: 38px;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.7;
+    }
+    .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 13px;
+        font-size: 11px;
+    }
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+    }
+    .status.on {
+        color: #86efac;
+    }
+    .status.on .status-dot {
+        background: var(--green);
+        box-shadow: 0 0 10px rgba(34,197,94,.65);
+    }
+    .status.off {
+        color: #a1a1aa;
+    }
+    .status.off .status-dot {
+        background: #52525b;
+    }
+    .toggle {
+        width: 46px;
+        height: 25px;
+        padding: 3px;
+        border: 0;
+        border-radius: 20px;
+        background: #272735;
+        transition: .2s;
+    }
+    .toggle span {
+        display: block;
+        width: 19px;
+        height: 19px;
+        border-radius: 50%;
+        background: #777789;
+        transition: .2s;
+    }
+    .toggle.enabled {
+        background: linear-gradient(135deg, var(--purple), var(--purple2));
+    }
+    .toggle.enabled span {
+        transform: translateX(-21px);
+        background: white;
+    }
+    /* =========================
+       SETTINGS
+    ========================= */
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .setting {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255,255,255,.025);
+    }
+    .setting-info strong {
+        display: block;
+        font-size: 13px;
+    }
+    .setting-info span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 10px;
+    }
+    /* =========================
+       SECURITY
+    ========================= */
+    .security {
+        padding: 18px;
+        border: 1px solid rgba(34,197,94,.14);
+        border-radius: 16px;
+        background: rgba(34,197,94,.045);
+    }
+    .security-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    .security p {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.7;
+        margin-top: 8px;
+    }
+    /* =========================
+       EMPTY
+    ========================= */
+    .empty {
+        padding: 55px 20px;
+        text-align: center;
+        border: 1px dashed rgba(255,255,255,.1);
+        border-radius: 18px;
+        background: rgba(255,255,255,.018);
+    }
+    .empty-icon {
+        font-size: 40px;
+        margin-bottom: 14px;
+    }
+    .empty h3 {
+        font-size: 17px;
+    }
+    .empty p {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 12px;
+    }
+    /* =========================
+       FOOTER
+    ========================= */
+    .footer {
+        padding: 35px 0 10px;
+        text-align: center;
+        color: #656579;
+        font-size: 10px;
+    }
+    /* =========================
        TOAST
-    ========================================== */
-
+    ========================= */
+    .toast {
+        position: fixed;
+        left: 25px;
+        bottom: 25px;
+        z-index: 2000;
+        min-width: 230px;
+        max-width: 360px;
+        padding: 13px 16px;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: rgba(17,17,33,.96);
+        box-shadow: 0 15px 40px rgba(0,0,0,.35);
+        opacity: 0;
+        transform: translateY(15px);
+        pointer-events: none;
+        transition: .25s;
+        font-size: 12px;
+    }
+    .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .toast.success {
+        border-color: rgba(34,197,94,.25);
+    }
+    .toast.error {
+        border-color: rgba(239,68,68,.25);
+    }
+    /* =========================
+       MOBILE
+    ========================= */
+    .mobile-menu {
+        display: none;
+        width: 42px;
+        height: 42px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        color: white;
+        font-size: 19px;
+    }
+    @media (max-width: 1100px) {
+        .systems {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 800px) {
+        .sidebar {
+            right: -285px;
+            transition: .25s;
+            box-shadow: -20px 0 50px rgba(0,0,0,.35);
+        }
+        .sidebar.open {
+            right: 0;
+        }
+        .main {
+            width: 100%;
+            margin-right: 0;
+            padding: 18px;
+        }
+        .mobile-menu {
+            display: block;
+        }
+        .topbar {
+            flex-wrap: wrap;
+        }
+        .systems,
+        .settings-grid {
+            grid-template-columns: 1fr;
+        }
+        .hero {
+            padding: 23px;
+        }
+        .hero h2 {
+            font-size: 23px;
+        }
+    }
+    @media (max-width: 520px) {
+        .stats {
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+        .stat {
+            padding: 14px;
+        }
+        .stat strong {
+            font-size: 19px;
+        }
+        .server-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="layout">
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="brand">
+        <div class="brand-icon">Z</div>
+        <div class="brand-text">
+            <strong>Zivex</strong>
+            <span>Discord Dashboard</span>
+        </div>
+    </div>
+    {% if selected_guild %}
+    <div class="server-mini">
+        {% if selected_guild.icon %}
+            <img
+                src="{{ selected_guild.icon }}"
+                alt="Server"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+            >
+            <div class="server-mini-avatar" style="display:none;">
+                {{ selected_guild.name[:1] }}
+            </div>
+        {% else %}
+            <div class="server-mini-avatar">
+                {{ selected_guild.name[:1] }}
+            </div>
+        {% endif %}
+        <div class="server-mini-info">
+            <strong>{{ selected_guild.name }}</strong>
+            <span>● متصل</span>
+        </div>
+    </div>
+    {% endif %}
+    <div class="nav-title">القائمة</div>
+    <nav class="nav">
+        <a href="#overview" class="active">
+            <span class="nav-icon">⌂</span>
+            <span>الرئيسية</span>
+        </a>
+        {% if selected_guild %}
+        <a href="#systems">
+            <span class="nav-icon">⚙</span>
+            <span>الأنظمة</span>
+        </a>
+        <a href="#settings">
+            <span class="nav-icon">◈</span>
+            <span>الإعدادات</span>
+        </a>
+        <a href="#security">
+            <span class="nav-icon">♢</span>
+            <span>الأمان</span>
+        </a>
+        {% endif %}
+    </nav>
+    <button
+        class="logout"
+        onclick="window.location.href='{{ url_for('dashboard.dashboard_logout') }}'"
+    >
+        تسجيل الخروج
+    </button>
+</aside>
+<!-- MAIN -->
+<main class="main">
+    <div class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+            <div class="topbar-left">
+                <h1>
+                    {% if selected_guild %}
+                        {{ selected_guild.name }}
+                    {% else %}
+                        لوحة التحكم
+                    {% endif %}
+                </h1>
+                <p>
+                    تحكم كامل في إعدادات سيرفر Discord من مكان واحد.
+                </p>
+            </div>
+        </div>
+        <div class="online">
+            <span class="online-dot"></span>
+            Zivex Online
+        </div>
+    </div>
+    <!-- HERO -->
+    <section class="hero" id="overview">
+        <div class="hero-content">
+            <small>WELCOME TO ZIVEX</small>
+            <h2>
+                {% if selected_guild %}
+                    إدارة {{ selected_guild.name }}
+                {% else %}
+                    أهلاً بك في Zivex Dashboard
+                {% endif %}
+            </h2>
+            <p>
+                لوحة تحكم احترافية لإدارة أنظمة البوت،
+                الترحيب، المستويات، التذاكر، التقديمات،
+                الإشراف والسجلات بسهولة.
+            </p>
+        </div>
+    </section>
+    {% if not selected_guild %}
+        <!-- SERVER SELECT -->
+        <section class="section">
+            <div class="section-head">
+                <h3>اختر السيرفر</h3>
+                <span>{{ guilds|length }} سيرفر</span>
+            </div>
+            {% if guilds %}
+                <div class="server-grid">
+                    {% for guild in guilds %}
+                    <div class="server-card">
+                        <div class="server-card-top">
+                            {% if guild.icon %}
+                                <img
+                                    class="server-avatar"
+                                    src="{{ guild.icon }}"
+                                    alt="Server"
+                                >
+                            {% else %}
+                                <div class="server-avatar">
+                                    {{ guild.name[:1] }}
+                                </div>
+                            {% endif %}
+                            <div class="server-card-info">
+                                <h4>{{ guild.name }}</h4>
+                                <p>
+                                    {% if guild.bot_installed %}
+                                        البوت موجود
+                                    {% else %}
+                                        البوت غير موجود
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <a
+                            class="open-server"
+                            href="{{ url_for('dashboard.guild_dashboard', guild_id=guild.id) }}"
+                        >
+                            فتح لوحة التحكم
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">
+                    <div class="empty-icon">🛡️</div>
+                    <h3>لا توجد سيرفرات متاحة</h3>
+                    <p>
+                        تحتاج إلى صلاحية إدارة السيرفر حتى يظهر هنا.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+    {% else %}
+        <!-- STATISTICS -->
+        <section class="section">
+            <div class="section-head">
+                <h3>إحصائيات السيرفر</h3>
+                <span>معلومات مباشرة</span>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-icon">👥</div>
+                    <strong>{{ selected_guild.statistics.members }}</strong>
+                    <span>الأعضاء</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">#</div>
+                    <strong>{{ selected_guild.statistics.text_channels }}</strong>
+                    <span>الرومات النصية</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">🔊</div>
+                    <strong>{{ selected_guild.statistics.voice_channels }}</strong>
+                    <span>الرومات الصوتية</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">🛡️</div>
+                    <strong>{{ selected_guild.statistics.roles }}</strong>
+                    <span>الرتب</span>
+                </div>
+            </div>
+        </section>
+        <!-- SYSTEMS -->
+        <section class="section" id="systems">
+            <div class="section-head">
+                <h3>أنظمة Zivex</h3>
+                <span id="enabledCount">0 مفعّل</span>
+            </div>
+            <div class="systems">
+                <!-- Welcome -->
+                <div class="system">
+                    <div class="system-top">
+                        <div class="system-icon">👋</div>
+                        <button
+                            class="toggle"
+                            data-system="welcome"
+                            onclick="toggleSystem('welcome')"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <h4>نظام الترحيب</h4>
+                    <p>
+                        إرسال رسالة ترحيبية تلقائية عند دخول عضو جديد.
+                    </p>
+                    <div class="status" data-status="welcome">
+                        <span class="status-dot"></span>
+                        <span class="status-text">متوقف</span>
+                    </div>
+                </div>
+                <!-- Levels -->
+                <div class="system">
+                    <div class="system-top">
+                        <div class="system-icon">⭐</div>
+                        <button
+                            class="toggle"
+                            data-system="levels"
+                            onclick="toggleSystem('levels')"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <h4>نظام المستويات</h4>
+                    <p>
+                        نظام XP ومستويات الأعضاء مع إمكانية التطوير لاحقاً.
+                    </p>
+                    <div class="status" data-status="levels">
+                        <span class="status-dot"></span>
+                        <span class="status-text">متوقف</span>
+                    </div>
+                </div>
+                <!-- Tickets -->
+                <div class="system">
+                    <div class="system-top">
+                        <div class="system-icon">🎫</div>
+                        <button
+                            class="toggle"
+                            data-system="tickets"
+                            onclick="toggleSystem('tickets')"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <h4>نظام التذاكر</h4>
+                    <p>
+                        إدارة التذاكر والدعم الفني من خلال نظام Zivex.
+                    </p>
+                    <div class="status" data-status="tickets">
+                        <span class="status-dot"></span>
+                        <span class="status-text">متوقف</span>
+                    </div>
+                </div>
+                <!-- Applications -->
+                <div class="system">
+                    <div class="system-top">
+                        <div class="system-icon">📝</div>
+                        <button
+                            class="toggle"
+                            data-system="applications"
+                            onclick="toggleSystem('applications')"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <h4>نظام التقديمات</h4>
+                    <p>
+                        استقبال التقديمات وإرسال إشعار للإدارة.
+                    </p>
+                    <div class="status" data-status="applications">
+                        <span class="status-dot"></span>
+                        <span class="status-text">متوقف</span>
+                    </div>
+                </div>
+                <!-- Moderation -->
+                <div class="system">
+                    <div class="system-top">
+                        <div class="system-icon">🛡️</div>
+                        <button
+                            class="toggle"
+                            data-system="moderation"
+                            onclick="toggleSystem('moderation')"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <h4>الإشراف</h4>
+                    <p>
+                        أدوات الإشراف والحماية الخاصة بالسيرفر.
+                    </p>
+                    <div class="status" data-status="moderation">
+                        <span class="status-dot"></span>
+                        <span class="status-text">متوقف</span>
+                    </div>
+                </div>
+                <!-- Logs -->
+                <div class="system">
+                    <div class="system-top">
+                        <div class="system-icon">📋</div>
+                        <button
+                            class="toggle"
+                            data-system="logs"
+                            onclick="toggleSystem('logs')"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <h4>السجلات</h4>
+                    <p>
+                        تسجيل الأحداث المهمة داخل السيرفر.
+                    </p>
+                    <div class="status" data-status="logs">
+                        <span class="status-dot"></span>
+                        <span class="status-text">متوقف</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- SETTINGS -->
+        <section class="section" id="settings">
+            <div class="section-head">
+                <h3>الإعدادات السريعة</h3>
+                <span>إدارة الأنظمة</span>
+            </div>
+            <div class="settings-grid">
+                <div class="setting">
+                    <div class="setting-info">
+                        <strong>الترحيب</strong>
+                        <span>تشغيل أو إيقاف نظام الترحيب</span>
+                    </div>
+                    <button
+                        class="toggle"
+                        data-system="welcome"
+                        onclick="toggleSystem('welcome')"
+                    >
+                        <span></span>
+                    </button>
+                </div>
+                <div class="setting">
+                    <div class="setting-info">
+                        <strong>المستويات</strong>
+                        <span>تشغيل أو إيقاف نظام المستويات</span>
+                    </div>
+                    <button
+                        class="toggle"
+                        data-system="levels"
+                        onclick="toggleSystem('levels')"
+                    >
+                        <span></span>
+                    </button>
+                </div>
+                <div class="setting">
+                    <div class="setting-info">
+                        <strong>التذاكر</strong>
+                        <span>تشغيل أو إيقاف نظام التذاكر</span>
+                    </div>
+                    <button
+                        class="toggle"
+                        data-system="tickets"
+                        onclick="toggleSystem('tickets')"
+                    >
+                        <span></span>
+                    </button>
+                </div>
+                <div class="setting">
+                    <div class="setting-info">
+                        <strong>التقديمات</strong>
+                        <span>تشغيل أو إيقاف نظام التقديمات</span>
+                    </div>
+                    <button
+                        class="toggle"
+                        data-system="applications"
+                        onclick="toggleSystem('applications')"
+                    >
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- SECURITY -->
+        <section class="section" id="security">
+            <div class="security">
+                <div class="security-title">
+                    <span>🔒</span>
+                    <span>حالة الأمان</span>
+                </div>
+                <p>
+                    لوحة التحكم مرتبطة بصلاحيات Discord.
+                    لا يمكن للمستخدم إدارة السيرفر إلا إذا كان لديه
+                    صلاحية إدارة السيرفر أو Administrator.
+                </p>
+            </div>
+        </section>
+    {% endif %}
+    <footer class="footer">
+        Zivex Dashboard • Powered by Zivex
+    </footer>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+    const guildId = {% if selected_guild %}"{{ selected_guild.id }}"{% else %}null{% endif %};
+    let systemState = {
+        welcome: {{ 'true' if selected_guild and selected_guild.systems.welcome else 'false' }},
+        levels: {{ 'true' if selected_guild and selected_guild.systems.levels else 'false' }},
+        tickets: {{ 'true' if selected_guild and selected_guild.systems.tickets else 'false' }},
+        applications: {{ 'true' if selected_guild and selected_guild.systems.applications else 'false' }},
+        moderation: {{ 'true' if selected_guild and selected_guild.systems.moderation else 'false' }},
+        logs: {{ 'true' if selected_guild and selected_guild.systems.logs else 'false' }}
+    };
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar) {
+            sidebar.classList.toggle("open");
+        }
+    }
     function showToast(message, type = "success") {
-
-        const container = document.getElementById("toastContainer");
-
-        if (!container) {
+        const toast = document.getElementById("toast");
+        if (!toast) {
             return;
         }
-
-        const toast = document.createElement("div");
-
-        toast.className = "toast " + type;
         toast.textContent = message;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-
-            toast.style.opacity = "0";
-            toast.style.transform = "translateY(10px)";
-
-            setTimeout(() => {
-                toast.remove();
-            }, 250);
-
-        }, 2500);
+        toast.className = "toast show " + type;
+        clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(() => {
+            toast.className = "toast";
+        }, 2800);
     }
-
-
-    /* ==========================================
-       UPDATE SYSTEM UI
-    ========================================== */
-
     function updateSystemUI(system, enabled) {
-
-        systemState[system] = Boolean(enabled);
-
-        const status = document.getElementById("status-" + system);
-
-        if (status) {
-
-            status.textContent = enabled
-                ? "مفعل"
-                : "متوقف";
-
-            status.classList.toggle(
-                "enabled",
-                Boolean(enabled)
-            );
-
-            status.classList.toggle(
-                "disabled",
-                !Boolean(enabled)
-            );
-        }
-
-
-        const buttons = document.querySelectorAll(
-            '[data-system="' + system + '"], #setting-' + system
-        );
-
-        buttons.forEach(button => {
-
-            button.classList.toggle(
-                "on",
-                Boolean(enabled)
-            );
-
+        document.querySelectorAll(
+            `.toggle[data-system="${system}"]`
+        ).forEach(button => {
+            button.classList.toggle("enabled", enabled);
         });
-
-
-        updateEnabledCount();
-    }
-
-
-    /* ==========================================
-       ENABLED COUNT
-    ========================================== */
-
-    function updateEnabledCount() {
-
-        const counter = document.getElementById(
-            "enabledSystemsCount"
-        );
-
-        if (!counter) {
-            return;
-        }
-
-        let count = 0;
-
-        Object.keys(systemState).forEach(system => {
-
-            if (systemState[system] === true) {
-                count++;
+        document.querySelectorAll(
+            `.status[data-status="${system}"]`
+        ).forEach(status => {
+            status.classList.toggle("on", enabled);
+            status.classList.toggle("off", !enabled);
+            const text = status.querySelector(".status-text");
+            if (text) {
+                text.textContent = enabled ? "مفعّل" : "متوقف";
             }
-
         });
-
-        counter.textContent = count;
     }
-
-
-    /* ==========================================
-       TOGGLE SYSTEM
-    ========================================== */
-
+    function updateEnabledCount() {
+        const count = Object.values(systemState)
+            .filter(Boolean)
+            .length;
+        const element = document.getElementById("enabledCount");
+        if (element) {
+            element.textContent = `${count} مفعّل`;
+        }
+    }
     async function toggleSystem(system) {
-
         if (!guildId) {
             return;
         }
-
-        if (!Object.prototype.hasOwnProperty.call(systemState, system)) {
-            return;
-        }
-
-        const oldValue = systemState[system];
+        const oldValue = !!systemState[system];
         const newValue = !oldValue;
-
-        /*
-         * نحدث الواجهة مباشرة حتى ما يصير فيه
-         * "جاري التحميل".
-         */
+        systemState[system] = newValue;
         updateSystemUI(system, newValue);
-
-
-        const buttons = document.querySelectorAll(
-            '[data-system="' + system + '"], #setting-' + system
-        );
-
-        buttons.forEach(button => {
-            button.disabled = true;
-        });
-
-
+        updateEnabledCount();
         try {
-
             const response = await fetch(
-                "/dashboard/api/" +
-                encodeURIComponent(guildId) +
-                "/system/" +
-                encodeURIComponent(system),
+                `/dashboard/api/${guildId}/system/${encodeURIComponent(system)}`,
                 {
                     method: "POST",
-
                     headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
+                        "Content-Type": "application/json"
                     },
-
                     body: JSON.stringify({
                         enabled: newValue
                     })
                 }
             );
-
-
-            let data = {};
-
-            try {
-                data = await response.json();
-            } catch (e) {
-                data = {};
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "حدث خطأ أثناء الحفظ");
             }
-
-
-            if (!response.ok || data.success === false) {
-
-                updateSystemUI(system, oldValue);
-
-                showToast(
-                    data.error ||
-                    data.message ||
-                    "تعذر حفظ الإعداد.",
-                    "error"
-                );
-
-                return;
-            }
-
-
             const finalValue =
                 typeof data.enabled === "boolean"
                     ? data.enabled
                     : newValue;
-
+            systemState[system] = finalValue;
             updateSystemUI(system, finalValue);
-
+            updateEnabledCount();
             showToast(
                 finalValue
-                    ? "تم تفعيل النظام بنجاح."
-                    : "تم إيقاف النظام بنجاح.",
-                "success"
+                    ? "تم تفعيل النظام بنجاح"
+                    : "تم إيقاف النظام بنجاح"
             );
-
         } catch (error) {
-
-            console.error(error);
-
+            systemState[system] = oldValue;
             updateSystemUI(system, oldValue);
-
+            updateEnabledCount();
             showToast(
-                "حدث خطأ أثناء الاتصال بالسيرفر.",
+                error.message || "تعذر حفظ التغيير",
                 "error"
             );
-
-        } finally {
-
-            buttons.forEach(button => {
-                button.disabled = false;
-            });
-
         }
     }
-
-
-    /* ==========================================
-       INITIALIZE
-    ========================================== */
-
-    document.addEventListener(
-        "DOMContentLoaded",
-        function () {
-
-            {% if selected_guild %}
-
-            Object.keys(systemState).forEach(system => {
-
-                updateSystemUI(
-                    system,
-                    systemState[system]
-                );
-
+    document.addEventListener("DOMContentLoaded", () => {
+        Object.entries(systemState).forEach(
+            ([system, enabled]) => {
+                updateSystemUI(system, !!enabled);
+            }
+        );
+        updateEnabledCount();
+        document.querySelectorAll(".nav a").forEach(link => {
+            link.addEventListener("click", () => {
+                if (window.innerWidth <= 800) {
+                    document
+                        .getElementById("sidebar")
+                        ?.classList.remove("open");
+                }
             });
-
-            updateEnabledCount();
-
-            {% endif %}
-
-        }
-    );
-
-
-    /* ==========================================
-       SMOOTH SCROLL
-    ========================================== */
-
-    document.querySelectorAll(
-        'a[href^="#"]'
-    ).forEach(link => {
-
-        link.addEventListener(
-            "click",
-            function (event) {
-
-                const targetId =
-                    this.getAttribute("href");
-
-                if (!targetId || targetId === "#") {
-                    return;
-                }
-
-                const target =
-                    document.querySelector(targetId);
-
-                if (!target) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                target.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                });
-
-
-                document.querySelectorAll(
-                    ".nav a"
-                ).forEach(item => {
-                    item.classList.remove("active");
-                });
-
-                this.classList.add("active");
-
-            }
-        );
-
-    });
-
-
-    /* ==========================================
-       MOBILE SIDEBAR CLOSE
-    ========================================== */
-
-    document.querySelectorAll(
-        ".sidebar .nav a"
-    ).forEach(link => {
-
-        link.addEventListener(
-            "click",
-            function () {
-
-                const sidebar =
-                    document.getElementById("sidebar");
-
-                if (
-                    sidebar &&
-                    window.innerWidth <= 800
-                ) {
-                    sidebar.classList.remove("open");
-                }
-
-            }
-        );
-
+        });
     });
 </script>
-
 </body>
 </html>
