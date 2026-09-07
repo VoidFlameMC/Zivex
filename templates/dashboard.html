@@ -3,44 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0b0615">
-    <title>{{ bot_name or "Zivex" }} Dashboard</title>
+    <title>Zivex Dashboard</title>
     <style>
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
         }
         :root {
-            --bg: #08050f;
-            --panel: #0f0a1a;
-            --panel-2: #140d22;
+            --bg: #080611;
+            --panel: #100c1d;
+            --panel-2: #151025;
             --border: rgba(255,255,255,.08);
-            --text: #f7f3ff;
-            --muted: #9d94aa;
             --purple: #8b5cf6;
             --purple-2: #a78bfa;
-            --purple-dark: #5b21b6;
-            --green: #22c55e;
-            --red: #ef4444;
-            --orange: #f59e0b;
-            --shadow: 0 20px 60px rgba(0,0,0,.35);
-        }
-        html {
-            scroll-behavior: smooth;
+            --text: #f7f5ff;
+            --muted: #9d97ad;
+            --danger: #ef4444;
+            --success: #22c55e;
         }
         body {
-            min-height: 100vh;
+            margin: 0;
             background:
                 radial-gradient(
                     circle at 80% 0%,
-                    rgba(124,58,237,.18),
-                    transparent 32%
-                ),
-                radial-gradient(
-                    circle at 15% 100%,
-                    rgba(139,92,246,.10),
-                    transparent 28%
+                    rgba(139,92,246,.18),
+                    transparent 30%
                 ),
                 var(--bg);
             color: var(--text);
@@ -48,1820 +34,1938 @@
                 -apple-system,
                 BlinkMacSystemFont,
                 "Segoe UI",
-                Tahoma,
                 Arial,
                 sans-serif;
-            overflow-x: hidden;
         }
         button,
-        a {
+        input,
+        textarea,
+        select {
             font: inherit;
         }
         button {
-            border: 0;
+            cursor: pointer;
         }
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-        /* =====================================================
-           Layout
-        ===================================================== */
-        .app {
+        .layout {
             min-height: 100vh;
             display: flex;
         }
         .sidebar {
-            position: fixed;
-            top: 0;
-            right: 0;
             width: 270px;
-            height: 100vh;
+            position: fixed;
+            right: 0;
+            top: 0;
+            bottom: 0;
             padding: 22px 16px;
-            background: rgba(10, 6, 18, .94);
+            background: rgba(10,7,18,.95);
             border-left: 1px solid var(--border);
             backdrop-filter: blur(18px);
-            z-index: 100;
-            overflow-y: auto;
+            z-index: 20;
         }
-        .main {
-            width: calc(100% - 270px);
-            margin-right: 270px;
-            min-height: 100vh;
-            padding: 28px;
-        }
-        /* =====================================================
-           Brand
-        ===================================================== */
         .brand {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 5px 8px 24px;
+            padding: 8px 10px 22px;
         }
         .brand-logo {
             width: 44px;
             height: 44px;
             border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: grid;
+            place-items: center;
             background:
                 linear-gradient(
                     135deg,
-                    #7c3aed,
-                    #a855f7
+                    var(--purple),
+                    #5b21b6
                 );
+            font-weight: 900;
             box-shadow:
-                0 10px 30px rgba(124,58,237,.35);
+                0 10px 35px rgba(139,92,246,.25);
+        }
+        .brand-name {
             font-size: 21px;
             font-weight: 900;
         }
-        .brand-text strong {
-            display: block;
-            font-size: 18px;
-            font-weight: 900;
-            letter-spacing: .4px;
-        }
-        .brand-text span {
-            display: block;
-            color: var(--muted);
+        .brand-sub {
             font-size: 11px;
+            color: var(--muted);
             margin-top: 2px;
         }
-        /* =====================================================
-           User
-        ===================================================== */
-        .user-card {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .server-box {
             padding: 12px;
-            margin-bottom: 20px;
-            background: rgba(255,255,255,.035);
             border: 1px solid var(--border);
+            background: rgba(255,255,255,.025);
             border-radius: 16px;
+            margin-bottom: 18px;
         }
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #241638;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .user-avatar img {
+        .server-select {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .user-info {
-            min-width: 0;
-        }
-        .user-info strong {
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 13px;
-        }
-        .user-info span {
-            display: block;
-            color: var(--muted);
-            font-size: 11px;
-            margin-top: 3px;
-        }
-        /* =====================================================
-           Navigation
-        ===================================================== */
-        .nav-title {
-            color: #6f667b;
-            font-size: 10px;
-            font-weight: 800;
-            margin: 20px 10px 8px;
-            letter-spacing: 1px;
+            color: var(--text);
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 11px;
+            outline: none;
         }
         .nav {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
-        .nav-item {
+        .nav button {
             width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            border: 0;
+            background: transparent;
+            color: var(--muted);
             padding: 12px 13px;
             border-radius: 12px;
-            color: #aaa1b6;
-            background: transparent;
-            cursor: pointer;
             text-align: right;
-            transition:
-                background .2s ease,
-                color .2s ease,
-                transform .2s ease;
+            transition: .18s;
         }
-        .nav-item:hover {
-            background: rgba(139,92,246,.10);
-            color: #fff;
-            transform: translateX(-2px);
+        .nav button:hover,
+        .nav button.active {
+            background: rgba(139,92,246,.13);
+            color: white;
         }
-        .nav-item.active {
-            color: #fff;
-            background:
-                linear-gradient(
-                    90deg,
-                    rgba(139,92,246,.22),
-                    rgba(139,92,246,.08)
-                );
+        .nav button.active {
             box-shadow:
-                inset 3px 0 0 var(--purple);
+                inset -3px 0 0 var(--purple);
         }
-        .nav-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255,255,255,.045);
-            font-size: 15px;
-            flex-shrink: 0;
-        }
-        .nav-item.active .nav-icon {
-            background: rgba(139,92,246,.20);
+        .sidebar-bottom {
+            position: absolute;
+            right: 16px;
+            left: 16px;
+            bottom: 18px;
         }
         .logout {
-            margin-top: 25px;
             width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 13px;
+            padding: 11px;
             border-radius: 12px;
+            border: 1px solid rgba(239,68,68,.18);
             color: #fca5a5;
-            background: rgba(239,68,68,.06);
-            transition: .2s;
+            background: rgba(239,68,68,.07);
+            text-decoration: none;
+            display: block;
+            text-align: center;
         }
-        .logout:hover {
-            background: rgba(239,68,68,.12);
+        .main {
+            width: calc(100% - 270px);
+            margin-right: 270px;
+            padding: 32px;
         }
-        /* =====================================================
-           Topbar
-        ===================================================== */
         .topbar {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            gap: 15px;
-            margin-bottom: 25px;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
         }
-        .page-title h1 {
-            font-size: 28px;
+        .page-title {
+            font-size: 30px;
             font-weight: 900;
-            letter-spacing: -.5px;
+            margin: 0;
         }
-        .page-title p {
+        .page-description {
             color: var(--muted);
-            font-size: 13px;
-            margin-top: 6px;
+            margin-top: 7px;
         }
-        .server-select {
-            position: relative;
-        }
-        .server-button {
-            min-width: 220px;
+        .status {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            color: #fff;
-            background: rgba(255,255,255,.045);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            cursor: pointer;
-        }
-        .server-button:hover {
-            border-color: rgba(139,92,246,.35);
-        }
-        .server-button-text {
-            flex: 1;
-            min-width: 0;
-            text-align: right;
-        }
-        .server-button-text strong {
-            display: block;
-            font-size: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .server-button-text span {
-            color: var(--muted);
-            display: block;
-            font-size: 10px;
-            margin-top: 2px;
-        }
-        .server-arrow {
-            color: var(--muted);
-        }
-        /* =====================================================
-           Server Icons
-        ===================================================== */
-        .server-icon {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
+            gap: 8px;
+            padding: 10px 13px;
             border-radius: 12px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background:
-                linear-gradient(
-                    135deg,
-                    #4c1d95,
-                    #7c3aed
-                );
-            color: white;
-            font-weight: 900;
-            font-size: 15px;
-            position: relative;
-        }
-        .server-icon img {
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: cover;
-            object-position: center;
-        }
-        .server-icon .fallback-letter {
-            display: none;
-            width: 100%;
-            height: 100%;
-            align-items: center;
-            justify-content: center;
-        }
-        .server-icon.image-error img {
-            display: none;
-        }
-        .server-icon.image-error .fallback-letter {
-            display: flex;
-        }
-        .server-menu {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            width: 280px;
-            max-height: 360px;
-            overflow-y: auto;
-            padding: 8px;
-            background: #110b1c;
             border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            z-index: 200;
-        }
-        .server-menu.open {
-            display: block;
-        }
-        .server-option {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px;
-            border-radius: 12px;
-            background: transparent;
-            color: #fff;
-            text-align: right;
-            cursor: pointer;
-        }
-        .server-option:hover {
-            background: rgba(139,92,246,.10);
-        }
-        .server-option.active {
-            background: rgba(139,92,246,.14);
-        }
-        .server-option-info {
-            min-width: 0;
-            flex: 1;
-        }
-        .server-option-info strong {
-            display: block;
-            font-size: 12px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-        .server-option-info span {
-            display: block;
+            background: rgba(255,255,255,.025);
             color: var(--muted);
-            font-size: 10px;
-            margin-top: 2px;
         }
-        /* =====================================================
-           Sections
-        ===================================================== */
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+        .dot.online {
+            background: var(--success);
+            box-shadow: 0 0 12px rgba(34,197,94,.65);
+        }
         .section {
             display: none;
-            animation: fadeIn .22s ease;
         }
         .section.active {
             display: block;
         }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        /* =====================================================
-           Hero
-        ===================================================== */
-        .hero {
-            position: relative;
-            overflow: hidden;
-            padding: 28px;
-            margin-bottom: 20px;
-            border-radius: 22px;
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(124,58,237,.25),
-                    rgba(22,12,38,.9)
-                );
-            border: 1px solid rgba(139,92,246,.18);
-            box-shadow: var(--shadow);
-        }
-        .hero::after {
-            content: "";
-            position: absolute;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            left: -80px;
-            bottom: -120px;
-            background: rgba(168,85,247,.16);
-            filter: blur(5px);
-        }
-        .hero h2 {
-            font-size: 23px;
-            font-weight: 900;
-        }
-        .hero p {
-            max-width: 700px;
-            color: #bcb3c7;
-            margin-top: 8px;
-            font-size: 13px;
-            line-height: 1.8;
-        }
-        /* =====================================================
-           Stats
-        ===================================================== */
         .stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 13px;
+            grid-template-columns:
+                repeat(4, minmax(0,1fr));
+            gap: 15px;
             margin-bottom: 20px;
         }
         .stat {
-            padding: 18px;
-            background: rgba(255,255,255,.035);
+            background: rgba(255,255,255,.025);
             border: 1px solid var(--border);
             border-radius: 18px;
+            padding: 20px;
         }
-        .stat-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-        .stat-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(139,92,246,.12);
-        }
-        .stat small {
-            display: block;
+        .stat-label {
             color: var(--muted);
-            font-size: 11px;
-            margin-bottom: 5px;
+            font-size: 13px;
         }
-        .stat strong {
-            display: block;
-            font-size: 22px;
+        .stat-value {
+            font-size: 27px;
             font-weight: 900;
+            margin-top: 8px;
         }
-        /* =====================================================
-           Cards
-        ===================================================== */
         .grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
+            grid-template-columns:
+                repeat(2, minmax(0,1fr));
+            gap: 18px;
         }
         .card {
-            padding: 18px;
-            background: rgba(255,255,255,.035);
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,.045),
+                    rgba(255,255,255,.018)
+                );
             border: 1px solid var(--border);
-            border-radius: 18px;
-            transition: .2s ease;
+            border-radius: 20px;
+            padding: 22px;
         }
-        .card:hover {
-            border-color: rgba(139,92,246,.22);
-            transform: translateY(-1px);
+        .card.full {
+            grid-column: 1 / -1;
         }
         .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         .card-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 18px;
+            font-weight: 850;
         }
-        .card-title-icon {
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 11px;
-            background: rgba(139,92,246,.12);
-        }
-        .card-title strong {
-            font-size: 14px;
-        }
-        .card p {
+        .card-desc {
             color: var(--muted);
-            font-size: 11px;
-            line-height: 1.8;
+            font-size: 13px;
+            margin-top: 4px;
         }
-        /* =====================================================
-           Toggle
-        ===================================================== */
-        .toggle {
-            width: 46px;
-            height: 25px;
-            padding: 3px;
-            border-radius: 999px;
-            background: #2a2134;
-            cursor: pointer;
-            transition: .2s;
-            flex-shrink: 0;
+        .field {
+            margin-bottom: 15px;
         }
-        .toggle span {
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        .field label {
             display: block;
-            width: 19px;
-            height: 19px;
-            border-radius: 50%;
-            background: #aaa2b2;
-            transition: .2s;
+            color: #dcd7e9;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 7px;
         }
-        .toggle.on {
-            background: var(--purple);
+        .field input,
+        .field textarea,
+        .field select {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,.18);
+            color: white;
+            outline: none;
+            border-radius: 12px;
+            padding: 12px 13px;
         }
-        .toggle.on span {
-            transform: translateX(-21px);
-            background: white;
+        .field textarea {
+            min-height: 115px;
+            resize: vertical;
         }
-        /* =====================================================
-           Quick Settings
-        ===================================================== */
-        .settings-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        .field input:focus,
+        .field textarea:focus,
+        .field select:focus {
+            border-color:
+                rgba(139,92,246,.65);
+            box-shadow:
+                0 0 0 3px
+                rgba(139,92,246,.08);
         }
-        .setting-row {
+        .row {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0,1fr));
+            gap: 12px;
+        }
+        .row-3 {
+            display: grid;
+            grid-template-columns:
+                repeat(3, minmax(0,1fr));
+            gap: 12px;
+        }
+        .toggle-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 15px;
-            padding: 14px;
-            border-radius: 14px;
+            gap: 20px;
+            padding: 13px;
             background: rgba(255,255,255,.025);
-            border: 1px solid rgba(255,255,255,.045);
+            border: 1px solid var(--border);
+            border-radius: 14px;
         }
-        .setting-info strong {
+        .toggle-info strong {
             display: block;
-            font-size: 13px;
+            font-size: 14px;
         }
-        .setting-info span {
+        .toggle-info span {
             display: block;
             color: var(--muted);
-            font-size: 10px;
-            margin-top: 3px;
+            font-size: 12px;
+            margin-top: 4px;
         }
-        /* =====================================================
-           Empty / Info
-        ===================================================== */
-        .empty {
-            padding: 45px 20px;
-            text-align: center;
-            background: rgba(255,255,255,.025);
-            border: 1px dashed rgba(255,255,255,.10);
-            border-radius: 18px;
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            flex: 0 0 auto;
         }
-        .empty-icon {
-            font-size: 34px;
-            margin-bottom: 12px;
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
-        .empty strong {
+        .slider {
+            position: absolute;
+            inset: 0;
+            border-radius: 99px;
+            background: #292334;
+            transition: .2s;
+        }
+        .slider::before {
+            content: "";
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            right: 3px;
+            top: 3px;
+            border-radius: 50%;
+            background: white;
+            transition: .2s;
+        }
+        .switch input:checked + .slider {
+            background: var(--purple);
+        }
+        .switch input:checked + .slider::before {
+            transform: translateX(-22px);
+        }
+        .save {
+            margin-top: 18px;
+            width: 100%;
+            border: 0;
+            border-radius: 12px;
+            padding: 13px;
+            color: white;
+            font-weight: 800;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--purple),
+                    #6d28d9
+                );
+            box-shadow:
+                0 10px 25px
+                rgba(139,92,246,.16);
+        }
+        .save:hover {
+            filter: brightness(1.08);
+        }
+        .message {
+            position: fixed;
+            left: 25px;
+            bottom: 25px;
+            z-index: 100;
+            max-width: 350px;
+            padding: 14px 17px;
+            border-radius: 13px;
+            background: #171224;
+            border: 1px solid var(--border);
+            box-shadow:
+                0 20px 50px rgba(0,0,0,.35);
+            display: none;
+        }
+        .message.show {
             display: block;
-            font-size: 16px;
         }
-        .empty p {
+        .message.success {
+            border-color:
+                rgba(34,197,94,.3);
+        }
+        .message.error {
+            border-color:
+                rgba(239,68,68,.3);
+        }
+        .hint {
             color: var(--muted);
             font-size: 12px;
             margin-top: 7px;
         }
-        /* =====================================================
-           Toast
-        ===================================================== */
-        .toast {
-            position: fixed;
-            left: 25px;
-            bottom: 25px;
-            min-width: 230px;
-            max-width: 340px;
-            padding: 13px 16px;
-            border-radius: 13px;
-            background: #171020;
-            border: 1px solid rgba(139,92,246,.25);
-            box-shadow: var(--shadow);
-            color: white;
-            font-size: 12px;
-            opacity: 0;
-            transform: translateY(15px);
-            pointer-events: none;
-            transition: .25s;
-            z-index: 999;
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        /* =====================================================
-           Responsive
-        ===================================================== */
-        @media (max-width: 1100px) {
+        @media (max-width: 1050px) {
             .stats {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns:
+                    repeat(2, minmax(0,1fr));
             }
             .grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr;
             }
         }
-        @media (max-width: 800px) {
+        @media (max-width: 760px) {
             .sidebar {
-                position: relative;
+                position: static;
                 width: 100%;
                 height: auto;
                 border-left: 0;
                 border-bottom: 1px solid var(--border);
+            }
+            .sidebar-bottom {
+                position: static;
+                margin-top: 18px;
+            }
+            .layout {
+                display: block;
             }
             .main {
                 width: 100%;
                 margin-right: 0;
                 padding: 18px;
             }
-            .app {
-                display: block;
-            }
-            .topbar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .server-button {
-                width: 100%;
-            }
-            .server-menu {
-                width: 100%;
-            }
-        }
-        @media (max-width: 600px) {
-            .stats,
-            .grid {
+            .row,
+            .row-3,
+            .stats {
                 grid-template-columns: 1fr;
             }
-            .hero {
-                padding: 21px;
-            }
-            .hero h2 {
-                font-size: 19px;
-            }
-            .page-title h1 {
-                font-size: 23px;
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
-<div class="app">
+<div class="layout">
     <!-- =====================================================
          SIDEBAR
     ====================================================== -->
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-logo">Z</div>
-            <div class="brand-text">
-                <strong>Zivex</strong>
-                <span>Discord Management</span>
+            <div>
+                <div class="brand-name">Zivex</div>
+                <div class="brand-sub">
+                    Discord Management
+                </div>
             </div>
         </div>
-        {% if discord_user %}
-        <div class="user-card">
-            <div class="user-avatar">
-                {% if discord_user.avatar %}
-                    <img
-                        src="https://cdn.discordapp.com/avatars/{{ discord_user.id }}/{{ discord_user.avatar }}.png?size=128"
-                        alt="Avatar"
-                        onerror="this.style.display='none';"
-                    >
+        <div class="server-box">
+            <select
+                id="serverSelect"
+                class="server-select"
+            >
+                {% if guilds %}
+                    {% for guild in guilds %}
+                        <option
+                            value="{{ guild.id }}"
+                            {% if selected_guild and selected_guild.id|string == guild.id|string %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ guild.name }}
+                        </option>
+                    {% endfor %}
                 {% else %}
-                    {{ (discord_user.username or "U")[0]|upper }}
+                    <option>
+                        لا توجد سيرفرات
+                    </option>
                 {% endif %}
-            </div>
-            <div class="user-info">
-                <strong>
-                    {{ discord_user.global_name or discord_user.username or "User" }}
-                </strong>
-                <span>
-                    Discord Account
-                </span>
-            </div>
-        </div>
-        {% endif %}
-        <div class="nav-title">
-            الرئيسية
+            </select>
         </div>
         <nav class="nav">
             <button
-                class="nav-item active"
-                type="button"
+                class="nav-btn active"
                 data-section="home"
             >
-                <span class="nav-icon">⌂</span>
-                <span>الرئيسية</span>
+                🏠 الرئيسية
             </button>
             <button
-                class="nav-item"
-                type="button"
-                data-section="settings"
-            >
-                <span class="nav-icon">⚙</span>
-                <span>الإعدادات</span>
-            </button>
-        </nav>
-        <div class="nav-title">
-            الأنظمة
-        </div>
-        <nav class="nav">
-            <button
-                class="nav-item"
-                type="button"
+                class="nav-btn"
                 data-section="welcome"
             >
-                <span class="nav-icon">👋</span>
-                <span>الترحيب</span>
+                👋 الترحيب
             </button>
             <button
-                class="nav-item"
-                type="button"
+                class="nav-btn"
                 data-section="levels"
             >
-                <span class="nav-icon">📈</span>
-                <span>المستويات</span>
+                ⭐ اللفلات
             </button>
             <button
-                class="nav-item"
-                type="button"
+                class="nav-btn"
                 data-section="tickets"
             >
-                <span class="nav-icon">🎫</span>
-                <span>التذاكر</span>
+                🎫 التذاكر
             </button>
             <button
-                class="nav-item"
-                type="button"
+                class="nav-btn"
                 data-section="applications"
             >
-                <span class="nav-icon">📝</span>
-                <span>التقديمات</span>
+                📝 التقديمات
             </button>
             <button
-                class="nav-item"
-                type="button"
+                class="nav-btn"
                 data-section="moderation"
             >
-                <span class="nav-icon">🛡</span>
-                <span>الحماية</span>
+                🛡️ الحماية
             </button>
             <button
-                class="nav-item"
-                type="button"
+                class="nav-btn"
                 data-section="logs"
             >
-                <span class="nav-icon">📋</span>
-                <span>السجلات</span>
+                📋 السجلات
             </button>
         </nav>
-        <a
-            class="logout"
-            href="/dashboard/logout"
-        >
-            <span class="nav-icon">↪</span>
-            <span>تسجيل الخروج</span>
-        </a>
+        <div class="sidebar-bottom">
+            <a
+                class="logout"
+                href="/dashboard/logout"
+            >
+                تسجيل الخروج
+            </a>
+        </div>
     </aside>
     <!-- =====================================================
          MAIN
     ====================================================== -->
     <main class="main">
-        <!-- TOPBAR -->
         <div class="topbar">
-            <div class="page-title">
-                <h1 id="pageTitle">
-                    الرئيسية
+            <div>
+                <h1
+                    class="page-title"
+                    id="pageTitle"
+                >
+                    لوحة التحكم
                 </h1>
-                <p id="pageDescription">
-                    إدارة سيرفر Discord من مكان واحد.
-                </p>
-            </div>
-            <!-- SERVER SELECTOR -->
-            <div class="server-select">
-                {% if guilds and guilds|length > 0 %}
-                {% set current_guild = selected_guild or guilds[0] %}
-                <button
-                    class="server-button"
-                    id="serverButton"
-                    type="button"
-                >
-                    <div
-                        class="server-icon"
-                        data-server-icon
-                    >
-                        {% if current_guild.icon %}
-                        <img
-                            src="{{ current_guild.icon }}"
-                            alt=""
-                            onerror="this.parentElement.classList.add('image-error')"
-                        >
-                        {% endif %}
-                        <span class="fallback-letter">
-                            {{ (current_guild.name or "S")[0]|upper }}
-                        </span>
-                    </div>
-                    <div class="server-button-text">
-                        <strong>
-                            {{ current_guild.name }}
-                        </strong>
-                        <span>
-                            إدارة السيرفر
-                        </span>
-                    </div>
-                    <span class="server-arrow">
-                        ▾
-                    </span>
-                </button>
-                <div
-                    class="server-menu"
-                    id="serverMenu"
-                >
-                    {% for guild in guilds %}
-                    <button
-                        class="server-option {% if current_guild.id|string == guild.id|string %}active{% endif %}"
-                        type="button"
-                        data-guild-url="/dashboard/{{ guild.id }}"
-                    >
-                        <div class="server-icon">
-                            {% if guild.icon %}
-                            <img
-                                src="{{ guild.icon }}"
-                                alt=""
-                                onerror="this.parentElement.classList.add('image-error')"
-                            >
-                            {% endif %}
-                            <span class="fallback-letter">
-                                {{ (guild.name or "S")[0]|upper }}
-                            </span>
-                        </div>
-                        <div class="server-option-info">
-                            <strong>
-                                {{ guild.name }}
-                            </strong>
-                            <span>
-                                {{ guild.id }}
-                            </span>
-                        </div>
-                    </button>
-                    {% endfor %}
+                <div class="page-description">
+                    تحكم كامل في أنظمة Zivex.
                 </div>
-                {% endif %}
+            </div>
+            <div class="status">
+                <span
+                    id="statusDot"
+                    class="dot"
+                ></span>
+                <span id="statusText">
+                    جاري التحقق...
+                </span>
             </div>
         </div>
         <!-- =================================================
              HOME
         ================================================== -->
         <section
-            class="section active"
             id="section-home"
+            class="section active"
         >
-            <div class="hero">
-                <h2>
-                    مرحبًا بك في Zivex
-                </h2>
-                <p>
-                    تحكم في أنظمة سيرفرك وإعداداته من لوحة تحكم واحدة،
-                    مع إدارة سهلة للترحيب والمستويات والتذاكر والتقديمات
-                    والحماية والسجلات.
-                </p>
-            </div>
-            {% if selected_guild or guilds %}
-            {% set overview_guild = selected_guild or guilds[0] %}
             <div class="stats">
                 <div class="stat">
-                    <div class="stat-top">
-                        <div>
-                            <small>الأعضاء</small>
-                            <strong>
-                                {{ overview_guild.statistics.members }}
-                            </strong>
-                        </div>
-                        <div class="stat-icon">
-                            👥
-                        </div>
+                    <div class="stat-label">
+                        الأعضاء
+                    </div>
+                    <div
+                        class="stat-value"
+                        id="statMembers"
+                    >
+                        0
                     </div>
                 </div>
                 <div class="stat">
-                    <div class="stat-top">
-                        <div>
-                            <small>القنوات</small>
-                            <strong>
-                                {{ overview_guild.statistics.channels }}
-                            </strong>
-                        </div>
-                        <div class="stat-icon">
-                            💬
-                        </div>
+                    <div class="stat-label">
+                        الرومات
+                    </div>
+                    <div
+                        class="stat-value"
+                        id="statChannels"
+                    >
+                        0
                     </div>
                 </div>
                 <div class="stat">
-                    <div class="stat-top">
-                        <div>
-                            <small>الرتب</small>
-                            <strong>
-                                {{ overview_guild.statistics.roles }}
-                            </strong>
-                        </div>
-                        <div class="stat-icon">
-                            🏷
-                        </div>
+                    <div class="stat-label">
+                        الرتب
+                    </div>
+                    <div
+                        class="stat-value"
+                        id="statRoles"
+                    >
+                        0
                     </div>
                 </div>
                 <div class="stat">
-                    <div class="stat-top">
-                        <div>
-                            <small>الأنظمة المفعلة</small>
-                            <strong id="enabledCount">
-                                0
-                            </strong>
-                        </div>
-                        <div class="stat-icon">
-                            ⚡
-                        </div>
+                    <div class="stat-label">
+                        البوت
+                    </div>
+                    <div
+                        class="stat-value"
+                        id="statBot"
+                    >
+                        —
                     </div>
                 </div>
             </div>
             <div class="grid">
-                <!-- Welcome -->
-                <div class="card">
+                <div class="card full">
                     <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">
-                                👋
+                        <div>
+                            <div class="card-title">
+                                أنظمة Zivex
                             </div>
-                            <strong>
-                                الترحيب
-                            </strong>
-                        </div>
-                        <button
-                            class="toggle system-toggle {% if overview_guild.systems.welcome %}on{% endif %}"
-                            data-system="welcome"
-                            type="button"
-                        >
-                            <span></span>
-                        </button>
-                    </div>
-                    <p>
-                        إرسال رسالة ترحيب تلقائية للأعضاء الجدد.
-                    </p>
-                </div>
-                <!-- Levels -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">
-                                📈
+                            <div class="card-desc">
+                                تشغيل أو إيقاف أنظمة البوت.
                             </div>
-                            <strong>
-                                المستويات
-                            </strong>
                         </div>
-                        <button
-                            class="toggle system-toggle {% if overview_guild.systems.levels %}on{% endif %}"
-                            data-system="levels"
-                            type="button"
-                        >
-                            <span></span>
-                        </button>
                     </div>
-                    <p>
-                        نظام XP ومستويات الأعضاء والتقدم.
-                    </p>
-                </div>
-                <!-- Tickets -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">
-                                🎫
+                    <div class="grid">
+                        {% for system, title in {
+                            "welcome": "الترحيب",
+                            "levels": "اللفلات",
+                            "tickets": "التذاكر",
+                            "applications": "التقديمات",
+                            "moderation": "الحماية",
+                            "logs": "السجلات"
+                        }.items() %}
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <strong>
+                                    {{ title }}
+                                </strong>
+                                <span>
+                                    تشغيل نظام {{ title }}
+                                </span>
                             </div>
-                            <strong>
-                                التذاكر
-                            </strong>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    class="system-toggle"
+                                    data-system="{{ system }}"
+                                >
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <button
-                            class="toggle system-toggle {% if overview_guild.systems.tickets %}on{% endif %}"
-                            data-system="tickets"
-                            type="button"
-                        >
-                            <span></span>
-                        </button>
+                        {% endfor %}
                     </div>
-                    <p>
-                        نظام تذاكر الدعم والتواصل مع الإدارة.
-                    </p>
-                </div>
-                <!-- Applications -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">
-                                📝
-                            </div>
-                            <strong>
-                                التقديمات
-                            </strong>
-                        </div>
-                        <button
-                            class="toggle system-toggle {% if overview_guild.systems.applications %}on{% endif %}"
-                            data-system="applications"
-                            type="button"
-                        >
-                            <span></span>
-                        </button>
-                    </div>
-                    <p>
-                        إدارة نظام التقديمات واستقبال طلبات الأعضاء.
-                    </p>
-                </div>
-                <!-- Moderation -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">
-                                🛡
-                            </div>
-                            <strong>
-                                الحماية
-                            </strong>
-                        </div>
-                        <button
-                            class="toggle system-toggle {% if overview_guild.systems.moderation %}on{% endif %}"
-                            data-system="moderation"
-                            type="button"
-                        >
-                            <span></span>
-                        </button>
-                    </div>
-                    <p>
-                        أدوات الإدارة والحماية ومراقبة المخالفات.
-                    </p>
-                </div>
-                <!-- Logs -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">
-                                📋
-                            </div>
-                            <strong>
-                                السجلات
-                            </strong>
-                        </div>
-                        <button
-                            class="toggle system-toggle {% if overview_guild.systems.logs %}on{% endif %}"
-                            data-system="logs"
-                            type="button"
-                        >
-                            <span></span>
-                        </button>
-                    </div>
-                    <p>
-                        تسجيل الأحداث المهمة داخل السيرفر.
-                    </p>
                 </div>
             </div>
-            {% else %}
-            <div class="empty">
-                <div class="empty-icon">
-                    🏠
-                </div>
-                <strong>
-                    لا يوجد سيرفر متاح
-                </strong>
-                <p>
-                    تأكد من أنك تملك صلاحية إدارة السيرفر.
-                </p>
-            </div>
-            {% endif %}
-        </section>
-        <!-- =================================================
-             SETTINGS
-        ================================================== -->
-        <section
-            class="section"
-            id="section-settings"
-        >
-            <div class="hero">
-                <h2>
-                    إعدادات السيرفر
-                </h2>
-                <p>
-                    تحكم سريع في أنظمة Zivex الأساسية.
-                </p>
-            </div>
-            {% if selected_guild %}
-            <div class="settings-list">
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <strong>
-                            الترحيب
-                        </strong>
-                        <span>
-                            تشغيل أو إيقاف نظام الترحيب.
-                        </span>
-                    </div>
-                    <button
-                        class="toggle system-toggle {% if selected_guild.systems.welcome %}on{% endif %}"
-                        data-system="welcome"
-                        type="button"
-                    >
-                        <span></span>
-                    </button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <strong>
-                            المستويات
-                        </strong>
-                        <span>
-                            تشغيل نظام XP والمستويات.
-                        </span>
-                    </div>
-                    <button
-                        class="toggle system-toggle {% if selected_guild.systems.levels %}on{% endif %}"
-                        data-system="levels"
-                        type="button"
-                    >
-                        <span></span>
-                    </button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <strong>
-                            التذاكر
-                        </strong>
-                        <span>
-                            تشغيل نظام التذاكر.
-                        </span>
-                    </div>
-                    <button
-                        class="toggle system-toggle {% if selected_guild.systems.tickets %}on{% endif %}"
-                        data-system="tickets"
-                        type="button"
-                    >
-                        <span></span>
-                    </button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <strong>
-                            التقديمات
-                        </strong>
-                        <span>
-                            تشغيل نظام التقديمات.
-                        </span>
-                    </div>
-                    <button
-                        class="toggle system-toggle {% if selected_guild.systems.applications %}on{% endif %}"
-                        data-system="applications"
-                        type="button"
-                    >
-                        <span></span>
-                    </button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <strong>
-                            الحماية
-                        </strong>
-                        <span>
-                            تشغيل أنظمة الحماية والإدارة.
-                        </span>
-                    </div>
-                    <button
-                        class="toggle system-toggle {% if selected_guild.systems.moderation %}on{% endif %}"
-                        data-system="moderation"
-                        type="button"
-                    >
-                        <span></span>
-                    </button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <strong>
-                            السجلات
-                        </strong>
-                        <span>
-                            تسجيل الأحداث المهمة.
-                        </span>
-                    </div>
-                    <button
-                        class="toggle system-toggle {% if selected_guild.systems.logs %}on{% endif %}"
-                        data-system="logs"
-                        type="button"
-                    >
-                        <span></span>
-                    </button>
-                </div>
-            </div>
-            {% else %}
-            <div class="empty">
-                <div class="empty-icon">⚙</div>
-                <strong>اختر سيرفرًا أولًا</strong>
-                <p>اختر السيرفر من القائمة الموجودة بالأعلى.</p>
-            </div>
-            {% endif %}
         </section>
         <!-- =================================================
              WELCOME
         ================================================== -->
         <section
-            class="section"
             id="section-welcome"
+            class="section"
         >
-            <div class="hero">
-                <h2>
-                    نظام الترحيب
-                </h2>
-                <p>
-                    تحكم في نظام الترحيب الخاص بالسيرفر.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon">
-                            👋
+            <div class="grid">
+                <div class="card full">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">
+                                إعدادات الترحيب
+                            </div>
+                            <div class="card-desc">
+                                خصص رسالة الترحيب بالكامل.
+                            </div>
                         </div>
-                        <strong>
-                            حالة النظام
-                        </strong>
                     </div>
-                    {% if selected_guild %}
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <strong>
+                                تفعيل الترحيب
+                            </strong>
+                            <span>
+                                إرسال رسالة عند دخول عضو جديد.
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="welcome_enabled"
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                روم الترحيب
+                            </label>
+                            <select
+                                id="welcome_channel_id"
+                                class="channel-select"
+                            >
+                                <option value="">
+                                    اختر الروم
+                                </option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>
+                                اللون
+                            </label>
+                            <input
+                                id="welcome_color"
+                                placeholder="#8b5cf6"
+                            >
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            العنوان
+                        </label>
+                        <input
+                            id="welcome_title"
+                            placeholder="أهلًا وسهلًا!"
+                        >
+                    </div>
+                    <div class="field">
+                        <label>
+                            الرسالة
+                        </label>
+                        <textarea
+                            id="welcome_message"
+                            placeholder="أهلًا {user} في {server}"
+                        ></textarea>
+                        <div class="hint">
+                            يمكنك استخدام:
+                            {user} ، {server} ، {member_count}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            الفوتر
+                        </label>
+                        <input
+                            id="welcome_footer"
+                            placeholder="Zivex"
+                        >
+                    </div>
                     <button
-                        class="toggle system-toggle {% if selected_guild.systems.welcome %}on{% endif %}"
-                        data-system="welcome"
-                        type="button"
+                        class="save"
+                        onclick="saveSystem('welcome')"
                     >
-                        <span></span>
+                        حفظ إعدادات الترحيب
                     </button>
-                    {% endif %}
                 </div>
-                <p>
-                    يمكنك تفعيل أو إيقاف نظام الترحيب من الزر أعلاه.
-                </p>
             </div>
         </section>
         <!-- =================================================
              LEVELS
         ================================================== -->
         <section
-            class="section"
             id="section-levels"
+            class="section"
         >
-            <div class="hero">
-                <h2>
-                    نظام المستويات
-                </h2>
-                <p>
-                    إدارة نظام XP والمستويات الخاص بالأعضاء.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon">
-                            📈
+            <div class="grid">
+                <div class="card full">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">
+                                إعدادات اللفلات
+                            </div>
+                            <div class="card-desc">
+                                تحكم في XP والـCooldown ورسائل اللفل.
+                            </div>
                         </div>
-                        <strong>
-                            حالة النظام
-                        </strong>
                     </div>
-                    {% if selected_guild %}
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <strong>
+                                تفعيل نظام اللفلات
+                            </strong>
+                            <span>
+                                منح XP للأعضاء ورفع مستوياتهم.
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="level_enabled"
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="row-3">
+                        <div class="field">
+                            <label>
+                                XP Min
+                            </label>
+                            <input
+                                type="number"
+                                id="level_xp_min"
+                                min="0"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                XP Max
+                            </label>
+                            <input
+                                type="number"
+                                id="level_xp_max"
+                                min="0"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                XP لكل Level
+                            </label>
+                            <input
+                                type="number"
+                                id="level_xp_per_level"
+                                min="1"
+                            >
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                Cooldown بالثواني
+                            </label>
+                            <input
+                                type="number"
+                                id="level_cooldown"
+                                min="0"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                روم اللفلات
+                            </label>
+                            <select
+                                id="level_channel_id"
+                                class="channel-select"
+                            >
+                                <option value="">
+                                    اختر الروم
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            عنوان رسالة اللفل
+                        </label>
+                        <input
+                            id="level_title"
+                            placeholder="Level Up!"
+                        >
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة اللفل
+                        </label>
+                        <textarea
+                            id="level_message"
+                            placeholder="مبروك {user}! وصلت إلى Level {level}"
+                        ></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                لون الرسالة
+                            </label>
+                            <input
+                                id="level_color"
+                                placeholder="#8b5cf6"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                الفوتر
+                            </label>
+                            <input
+                                id="level_footer"
+                                placeholder="Zivex Levels"
+                            >
+                        </div>
+                    </div>
                     <button
-                        class="toggle system-toggle {% if selected_guild.systems.levels %}on{% endif %}"
-                        data-system="levels"
-                        type="button"
+                        class="save"
+                        onclick="saveSystem('levels')"
                     >
-                        <span></span>
+                        حفظ إعدادات اللفلات
                     </button>
-                    {% endif %}
                 </div>
-                <p>
-                    فعّل النظام من الزر للتحكم في المستويات.
-                </p>
             </div>
         </section>
         <!-- =================================================
              TICKETS
         ================================================== -->
         <section
-            class="section"
             id="section-tickets"
+            class="section"
         >
-            <div class="hero">
-                <h2>
-                    نظام التذاكر
-                </h2>
-                <p>
-                    إدارة تذاكر الدعم الخاصة بالسيرفر.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon">
-                            🎫
+            <div class="grid">
+                <div class="card full">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">
+                                إعدادات التذاكر
+                            </div>
+                            <div class="card-desc">
+                                تخصيص نظام التذاكر والرسائل والأزرار.
+                            </div>
                         </div>
-                        <strong>
-                            حالة النظام
-                        </strong>
                     </div>
-                    {% if selected_guild %}
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <strong>
+                                تفعيل التذاكر
+                            </strong>
+                            <span>
+                                السماح للأعضاء بفتح التذاكر.
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="tickets_enabled"
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                كاتيجوري التذاكر
+                            </label>
+                            <select
+                                id="tickets_category_id"
+                                class="channel-select"
+                            >
+                                <option value="">
+                                    اختر الكاتيجوري
+                                </option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>
+                                روم اللوق
+                            </label>
+                            <select
+                                id="tickets_log_channel_id"
+                                class="channel-select"
+                            >
+                                <option value="">
+                                    اختر الروم
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            اسم التذكرة
+                        </label>
+                        <input
+                            id="tickets_name"
+                            placeholder="ticket-{username}"
+                        >
+                    </div>
+                    <div class="field">
+                        <label>
+                            العنوان
+                        </label>
+                        <input
+                            id="tickets_title"
+                            placeholder="نظام التذاكر"
+                        >
+                    </div>
+                    <div class="field">
+                        <label>
+                            الرسالة
+                        </label>
+                        <textarea
+                            id="tickets_message"
+                            placeholder="اختر نوع التذكرة من الأزرار بالأسفل."
+                        ></textarea>
+                    </div>
+                    <div class="row-3">
+                        <div class="field">
+                            <label>
+                                نص الزر
+                            </label>
+                            <input
+                                id="tickets_button_text"
+                                placeholder="فتح تذكرة"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                إيموجي الزر
+                            </label>
+                            <input
+                                id="tickets_button_emoji"
+                                placeholder="🎫"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                لون الزر
+                            </label>
+                            <input
+                                id="tickets_button_color"
+                                placeholder="purple"
+                            >
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة الإغلاق
+                        </label>
+                        <textarea
+                            id="tickets_close_message"
+                            placeholder="تم إغلاق التذكرة."
+                        ></textarea>
+                    </div>
                     <button
-                        class="toggle system-toggle {% if selected_guild.systems.tickets %}on{% endif %}"
-                        data-system="tickets"
-                        type="button"
+                        class="save"
+                        onclick="saveSystem('tickets')"
                     >
-                        <span></span>
+                        حفظ إعدادات التذاكر
                     </button>
-                    {% endif %}
                 </div>
-                <p>
-                    فعّل نظام التذاكر من هنا.
-                </p>
             </div>
         </section>
         <!-- =================================================
              APPLICATIONS
         ================================================== -->
         <section
-            class="section"
             id="section-applications"
+            class="section"
         >
-            <div class="hero">
-                <h2>
-                    نظام التقديمات
-                </h2>
-                <p>
-                    إدارة طلبات التقديم الخاصة بالسيرفر.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon">
-                            📝
+            <div class="grid">
+                <div class="card full">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">
+                                إعدادات التقديمات
+                            </div>
+                            <div class="card-desc">
+                                إدارة روم التقديم ورسالة التقديم واللوق.
+                            </div>
                         </div>
-                        <strong>
-                            حالة النظام
-                        </strong>
                     </div>
-                    {% if selected_guild %}
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <strong>
+                                تفعيل التقديمات
+                            </strong>
+                            <span>
+                                السماح للأعضاء بالتقديم.
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="applications_enabled"
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                روم التقديم
+                            </label>
+                            <select
+                                id="application_channel_id"
+                                class="channel-select"
+                            >
+                                <option value="">
+                                    اختر الروم
+                                </option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>
+                                روم اللوق
+                            </label>
+                            <select
+                                id="application_log_channel_id"
+                                class="channel-select"
+                            >
+                                <option value="">
+                                    اختر الروم
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            العنوان
+                        </label>
+                        <input
+                            id="application_title"
+                            placeholder="التقديمات"
+                        >
+                    </div>
+                    <div class="field">
+                        <label>
+                            الرسالة
+                        </label>
+                        <textarea
+                            id="application_message"
+                            placeholder="اضغط على الزر لبدء التقديم."
+                        ></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                نص الزر
+                            </label>
+                            <input
+                                id="application_button_text"
+                                placeholder="تقديم"
+                            >
+                        </div>
+                        <div class="field">
+                            <label>
+                                إيموجي الزر
+                            </label>
+                            <input
+                                id="application_button_emoji"
+                                placeholder="📝"
+                            >
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة نجاح التقديم
+                        </label>
+                        <textarea
+                            id="application_success_message"
+                            placeholder="تم إرسال تقديمك، يرجى انتظار رد الإدارة."
+                        ></textarea>
+                    </div>
                     <button
-                        class="toggle system-toggle {% if selected_guild.systems.applications %}on{% endif %}"
-                        data-system="applications"
-                        type="button"
+                        class="save"
+                        onclick="saveSystem('applications')"
                     >
-                        <span></span>
+                        حفظ إعدادات التقديمات
                     </button>
-                    {% endif %}
                 </div>
-                <p>
-                    فعّل نظام التقديمات من هنا.
-                </p>
             </div>
         </section>
         <!-- =================================================
              MODERATION
         ================================================== -->
         <section
-            class="section"
             id="section-moderation"
+            class="section"
         >
-            <div class="hero">
-                <h2>
-                    الحماية
-                </h2>
-                <p>
-                    أدوات الإدارة والحماية الخاصة بالسيرفر.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon">
-                            🛡
+            <div class="grid">
+                <div class="card full">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">
+                                الحماية والإدارة
+                            </div>
+                            <div class="card-desc">
+                                إعدادات رسائل الإجراءات وروم اللوق.
+                            </div>
                         </div>
-                        <strong>
-                            حالة الحماية
-                        </strong>
                     </div>
-                    {% if selected_guild %}
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <strong>
+                                تفعيل الحماية
+                            </strong>
+                            <span>
+                                تشغيل نظام الإدارة والحماية.
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="moderation_enabled"
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="field">
+                        <label>
+                            روم لوق الحماية
+                        </label>
+                        <select
+                            id="moderation_log_channel_id"
+                            class="channel-select"
+                        >
+                            <option value="">
+                                اختر الروم
+                            </option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة التحذير
+                        </label>
+                        <textarea
+                            id="moderation_warn_message"
+                        ></textarea>
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة الطرد
+                        </label>
+                        <textarea
+                            id="moderation_kick_message"
+                        ></textarea>
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة الحظر
+                        </label>
+                        <textarea
+                            id="moderation_ban_message"
+                        ></textarea>
+                    </div>
+                    <div class="field">
+                        <label>
+                            رسالة الميوت
+                        </label>
+                        <textarea
+                            id="moderation_mute_message"
+                        ></textarea>
+                    </div>
                     <button
-                        class="toggle system-toggle {% if selected_guild.systems.moderation %}on{% endif %}"
-                        data-system="moderation"
-                        type="button"
+                        class="save"
+                        onclick="saveSystem('moderation')"
                     >
-                        <span></span>
+                        حفظ إعدادات الحماية
                     </button>
-                    {% endif %}
                 </div>
-                <p>
-                    فعّل أنظمة الحماية والإدارة.
-                </p>
             </div>
         </section>
         <!-- =================================================
              LOGS
         ================================================== -->
         <section
-            class="section"
             id="section-logs"
+            class="section"
         >
-            <div class="hero">
-                <h2>
-                    السجلات
-                </h2>
-                <p>
-                    إدارة وتفعيل نظام تسجيل الأحداث.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon">
-                            📋
+            <div class="grid">
+                <div class="card full">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">
+                                السجلات
+                            </div>
+                            <div class="card-desc">
+                                تحديد روم سجلات البوت.
+                            </div>
                         </div>
-                        <strong>
-                            حالة السجلات
-                        </strong>
                     </div>
-                    {% if selected_guild %}
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <strong>
+                                تفعيل السجلات
+                            </strong>
+                            <span>
+                                تسجيل أحداث السيرفر.
+                            </span>
+                        </div>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                id="logs_enabled"
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="field">
+                        <label>
+                            روم السجلات
+                        </label>
+                        <select
+                            id="logs_channel_id"
+                            class="channel-select"
+                        >
+                            <option value="">
+                                اختر الروم
+                            </option>
+                        </select>
+                    </div>
                     <button
-                        class="toggle system-toggle {% if selected_guild.systems.logs %}on{% endif %}"
-                        data-system="logs"
-                        type="button"
+                        class="save"
+                        onclick="saveSystem('logs')"
                     >
-                        <span></span>
+                        حفظ إعدادات السجلات
                     </button>
-                    {% endif %}
                 </div>
-                <p>
-                    فعّل السجلات لمتابعة الأحداث المهمة.
-                </p>
             </div>
         </section>
     </main>
 </div>
 <!-- =========================================================
-     TOAST
+     MESSAGE
 ========================================================== -->
 <div
-    class="toast"
-    id="toast"
+    id="message"
+    class="message"
 ></div>
 <script>
-    /* =====================================================
-       Current Guild
-    ====================================================== */
-    const guildId = "{{ (selected_guild.id if selected_guild else (guilds[0].id if guilds else '')) }}";
-    /* =====================================================
-       Page Titles
-    ====================================================== */
-    const pageData = {
-        home: {
-            title: "الرئيسية",
-            description: "إدارة سيرفر Discord من مكان واحد."
-        },
-        settings: {
-            title: "الإعدادات",
-            description: "تحكم في أنظمة Zivex الأساسية."
-        },
-        welcome: {
-            title: "الترحيب",
-            description: "إدارة نظام الترحيب."
-        },
-        levels: {
-            title: "المستويات",
-            description: "إدارة نظام XP والمستويات."
-        },
-        tickets: {
-            title: "التذاكر",
-            description: "إدارة نظام تذاكر الدعم."
-        },
-        applications: {
-            title: "التقديمات",
-            description: "إدارة نظام التقديمات."
-        },
-        moderation: {
-            title: "الحماية",
-            description: "إدارة أنظمة الحماية."
-        },
-        logs: {
-            title: "السجلات",
-            description: "إدارة سجل أحداث السيرفر."
-        }
+    const selectedGuild =
+        "{{ selected_guild.id if selected_guild else '' }}";
+    const apiBase =
+        selectedGuild
+            ? `/dashboard/api/${selectedGuild}`
+            : null;
+    const fieldMap = {
+        welcome: [
+            "welcome_enabled",
+            "welcome_channel_id",
+            "welcome_title",
+            "welcome_message",
+            "welcome_color",
+            "welcome_footer"
+        ],
+        levels: [
+            "level_enabled",
+            "level_channel_id",
+            "level_title",
+            "level_message",
+            "level_color",
+            "level_footer",
+            "level_xp_min",
+            "level_xp_max",
+            "level_cooldown",
+            "level_xp_per_level"
+        ],
+        tickets: [
+            "tickets_enabled",
+            "tickets_category_id",
+            "tickets_log_channel_id",
+            "tickets_name",
+            "tickets_title",
+            "tickets_message",
+            "tickets_button_text",
+            "tickets_button_emoji",
+            "tickets_button_color",
+            "tickets_close_message"
+        ],
+        applications: [
+            "applications_enabled",
+            "application_channel_id",
+            "application_log_channel_id",
+            "application_title",
+            "application_message",
+            "application_button_text",
+            "application_button_emoji",
+            "application_success_message"
+        ],
+        moderation: [
+            "moderation_enabled",
+            "moderation_log_channel_id",
+            "moderation_warn_message",
+            "moderation_kick_message",
+            "moderation_ban_message",
+            "moderation_mute_message"
+        ],
+        logs: [
+            "logs_enabled",
+            "logs_channel_id"
+        ]
     };
-    /* =====================================================
-       Navigation
-    ====================================================== */
-    const navItems = document.querySelectorAll(
-        ".nav-item[data-section]"
-    );
-    const sections = document.querySelectorAll(
-        ".section"
-    );
-    const pageTitle = document.getElementById(
-        "pageTitle"
-    );
-    const pageDescription = document.getElementById(
-        "pageDescription"
-    );
-    function openSection(sectionName) {
-        if (!document.getElementById(
-            "section-" + sectionName
-        )) {
-            sectionName = "home";
-        }
-        sections.forEach(section => {
-            section.classList.toggle(
-                "active",
-                section.id === "section-" + sectionName
-            );
-        });
-        navItems.forEach(item => {
-            item.classList.toggle(
-                "active",
-                item.dataset.section === sectionName
-            );
-        });
-        const data = pageData[sectionName];
-        if (data) {
-            pageTitle.textContent = data.title;
-            pageDescription.textContent =
-                data.description;
-        }
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-    }
-    navItems.forEach(item => {
-        item.addEventListener(
-            "click",
-            () => {
-                openSection(
-                    item.dataset.section
-                );
-            }
-        );
-    });
-    /* =====================================================
-       Toast
-    ====================================================== */
-    let toastTimer = null;
-    function showToast(message) {
-        const toast = document.getElementById(
-            "toast"
-        );
-        toast.textContent = message;
-        toast.classList.add("show");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => {
-            toast.classList.remove("show");
-        }, 2500);
-    }
-    /* =====================================================
-       System Toggle
-    ====================================================== */
-    function updateEnabledCount() {
-        const toggles = document.querySelectorAll(
-            ".system-toggle"
-        );
-        const systems = new Set();
-        toggles.forEach(toggle => {
-            if (
-                toggle.classList.contains("on")
-                && toggle.dataset.system
-            ) {
-                systems.add(
-                    toggle.dataset.system
-                );
-            }
-        });
-        const count = document.getElementById(
-            "enabledCount"
-        );
-        if (count) {
-            count.textContent =
-                systems.size;
-        }
-    }
-    function updateSystemUI(
-        system,
-        enabled
+    function showMessage(
+        text,
+        type = "success"
     ) {
-        document
-            .querySelectorAll(
-                '.system-toggle[data-system="' +
-                system +
-                '"]'
-            )
-            .forEach(toggle => {
-                toggle.classList.toggle(
-                    "on",
-                    enabled
-                );
-            });
-        updateEnabledCount();
-    }
-    async function toggleSystem(
-        system,
-        clickedToggle
-    ) {
-        if (!guildId) {
-            showToast(
-                "لم يتم اختيار سيرفر."
+        const box =
+            document.getElementById(
+                "message"
             );
+        box.textContent = text;
+        box.className =
+            `message show ${type}`;
+        clearTimeout(
+            window.messageTimer
+        );
+        window.messageTimer =
+            setTimeout(
+                () => {
+                    box.className =
+                        "message";
+                },
+                3000
+            );
+    }
+    function setField(
+        id,
+        value
+    ) {
+        const element =
+            document.getElementById(id);
+        if (!element) {
             return;
         }
-        const wasEnabled =
-            clickedToggle.classList.contains("on");
-        const newValue =
-            !wasEnabled;
-        /* Optimistic UI */
-        updateSystemUI(
-            system,
-            newValue
-        );
-        clickedToggle.disabled = true;
-        try {
-            const response = await fetch(
-                "/dashboard/api/" +
-                encodeURIComponent(guildId) +
-                "/system/" +
-                encodeURIComponent(system),
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-                    credentials: "same-origin",
-                    body: JSON.stringify({
-                        enabled: newValue
-                    })
-                }
-            );
-            let data = {};
-            try {
-                data = await response.json();
-            } catch (_) {
-                data = {};
-            }
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.error ||
-                    "تعذر حفظ الإعداد."
+        if (
+            element.type ===
+            "checkbox"
+        ) {
+            element.checked =
+                Boolean(
+                    Number(value || 0)
                 );
+            return;
+        }
+        element.value =
+            value === null ||
+            value === undefined
+                ? ""
+                : value;
+    }
+    function getField(
+        id
+    ) {
+        const element =
+            document.getElementById(id);
+        if (!element) {
+            return null;
+        }
+        if (
+            element.type ===
+            "checkbox"
+        ) {
+            return element.checked;
+        }
+        return element.value;
+    }
+    async function loadChannels() {
+        if (!apiBase) {
+            return;
+        }
+        try {
+            const response =
+                await fetch(
+                    `${apiBase}/channels`,
+                    {
+                        credentials: "same-origin"
+                    }
+                );
+            const data =
+                await response.json();
+            if (!data.success) {
+                return;
             }
-            const finalValue =
-                Boolean(data.enabled);
-            updateSystemUI(
-                system,
-                finalValue
-            );
-            showToast(
-                finalValue
-                    ? "تم تفعيل النظام بنجاح."
-                    : "تم إيقاف النظام بنجاح."
-            );
-        }
-        catch (error) {
-            /* Revert */
-            updateSystemUI(
-                system,
-                wasEnabled
-            );
-            showToast(
-                error.message ||
-                "حدث خطأ أثناء الحفظ."
-            );
-        }
-        finally {
             document
                 .querySelectorAll(
-                    '.system-toggle[data-system="' +
-                    system +
-                    '"]'
+                    ".channel-select"
                 )
-                .forEach(toggle => {
-                    toggle.disabled = false;
-                });
-        }
-    }
-    document
-        .querySelectorAll(".system-toggle")
-        .forEach(toggle => {
-            toggle.addEventListener(
-                "click",
-                () => {
-                    toggleSystem(
-                        toggle.dataset.system,
-                        toggle
-                    );
-                }
-            );
-        });
-    /* =====================================================
-       Server Selector
-    ====================================================== */
-    const serverButton =
-        document.getElementById(
-            "serverButton"
-        );
-    const serverMenu =
-        document.getElementById(
-            "serverMenu"
-        );
-    if (serverButton && serverMenu) {
-        serverButton.addEventListener(
-            "click",
-            event => {
-                event.stopPropagation();
-                serverMenu.classList.toggle(
-                    "open"
-                );
-            }
-        );
-        document
-            .querySelectorAll(
-                ".server-option"
-            )
-            .forEach(option => {
-                option.addEventListener(
-                    "click",
-                    event => {
-                        event.stopPropagation();
-                        const url =
-                            option.dataset.guildUrl;
-                        if (url) {
-                            window.location.href =
-                                url;
+                .forEach(
+                    select => {
+                        const current =
+                            select.value;
+                        select.innerHTML = "";
+                        const empty =
+                            document.createElement(
+                                "option"
+                            );
+                        empty.value = "";
+                        empty.textContent =
+                            select.id.includes(
+                                "category"
+                            )
+                                ? "اختر الكاتيجوري"
+                                : "اختر الروم";
+                        select.appendChild(
+                            empty
+                        );
+                        data.channels
+                            .forEach(
+                                channel => {
+                                    const option =
+                                        document.createElement(
+                                            "option"
+                                        );
+                                    option.value =
+                                        channel.id;
+                                    let prefix =
+                                        "# ";
+                                    if (
+                                        channel.type ===
+                                        "category"
+                                    ) {
+                                        prefix = "📁 ";
+                                    }
+                                    option.textContent =
+                                        prefix +
+                                        channel.name;
+                                    select.appendChild(
+                                        option
+                                    );
+                                }
+                            );
+                        if (current) {
+                            select.value =
+                                current;
                         }
                     }
                 );
-            });
-        document.addEventListener(
-            "click",
-            () => {
-                serverMenu.classList.remove(
-                    "open"
+        } catch (error) {
+            console.error(
+                error
+            );
+        }
+    }
+    async function loadSettings() {
+        if (!apiBase) {
+            return;
+        }
+        try {
+            const response =
+                await fetch(
+                    `${apiBase}/settings`,
+                    {
+                        credentials:
+                            "same-origin"
+                    }
+                );
+            const data =
+                await response.json();
+            if (!data.success) {
+                throw new Error(
+                    data.message ||
+                    "تعذر جلب الإعدادات"
+                );
+            }
+            const settings =
+                data.settings || {};
+            Object.keys(
+                fieldMap
+            ).forEach(
+                system => {
+                    fieldMap[system]
+                        .forEach(
+                            id => {
+                                setField(
+                                    id,
+                                    settings[id]
+                                );
+                            }
+                        );
+                }
+            );
+        } catch (error) {
+            console.error(
+                error
+            );
+            showMessage(
+                "تعذر تحميل الإعدادات.",
+                "error"
+            );
+        }
+    }
+    async function saveSystem(
+        system
+    ) {
+        if (!apiBase) {
+            showMessage(
+                "لم يتم اختيار سيرفر.",
+                "error"
+            );
+            return;
+        }
+        const fields =
+            fieldMap[system];
+        if (!fields) {
+            return;
+        }
+        const settings = {};
+        fields.forEach(
+            id => {
+                const value =
+                    getField(id);
+                if (
+                    value !==
+                    null
+                ) {
+                    settings[id] =
+                        value;
+                }
+            }
+        );
+        // تحويل الأرقام
+        [
+            "level_xp_min",
+            "level_xp_max",
+            "level_cooldown",
+            "level_xp_per_level"
+        ].forEach(
+            key => {
+                if (
+                    key in settings
+                ) {
+                    settings[key] =
+                        Number(
+                            settings[key]
+                        );
+                }
+            }
+        );
+        try {
+            const response =
+                await fetch(
+                    `${apiBase}/system/${system}/settings`,
+                    {
+                        method: "POST",
+                        credentials:
+                            "same-origin",
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify(
+                                settings
+                            )
+                    }
+                );
+            const data =
+                await response.json();
+            if (!response.ok ||
+                !data.success
+            ) {
+                throw new Error(
+                    data.message ||
+                    "تعذر حفظ الإعدادات."
+                );
+            }
+            showMessage(
+                "تم حفظ الإعدادات بنجاح.",
+                "success"
+            );
+        } catch (error) {
+            console.error(
+                error
+            );
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء الحفظ.",
+                "error"
+            );
+        }
+    }
+    async function toggleSystem(
+        system,
+        enabled
+    ) {
+        if (!apiBase) {
+            return;
+        }
+        try {
+            const response =
+                await fetch(
+                    `${apiBase}/system/${system}`,
+                    {
+                        method: "POST",
+                        credentials:
+                            "same-origin",
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify({
+                                enabled
+                            })
+                    }
+                );
+            const data =
+                await response.json();
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+                throw new Error(
+                    data.message ||
+                    "تعذر تغيير النظام."
+                );
+            }
+            showMessage(
+                enabled
+                    ? "تم تشغيل النظام."
+                    : "تم إيقاف النظام."
+            );
+        } catch (error) {
+            console.error(
+                error
+            );
+            showMessage(
+                error.message ||
+                "حدث خطأ.",
+                "error"
+            );
+        }
+    }
+    async function loadOverview() {
+        if (!apiBase) {
+            return;
+        }
+        try {
+            const response =
+                await fetch(
+                    `${apiBase}/overview`,
+                    {
+                        credentials:
+                            "same-origin"
+                    }
+                );
+            const data =
+                await response.json();
+            if (!data.success) {
+                return;
+            }
+            const stats =
+                data.statistics || {};
+            document.getElementById(
+                "statMembers"
+            ).textContent =
+                Number(
+                    stats.members || 0
+                ).toLocaleString();
+            document.getElementById(
+                "statChannels"
+            ).textContent =
+                Number(
+                    stats.channels || 0
+                ).toLocaleString();
+            document.getElementById(
+                "statRoles"
+            ).textContent =
+                Number(
+                    stats.roles || 0
+                ).toLocaleString();
+            document.getElementById(
+                "statBot"
+            ).textContent =
+                data.guild &&
+                data.guild.bot_installed
+                    ? "Online"
+                    : "غير مثبت";
+            const systems =
+                data.systems || {};
+            document
+                .querySelectorAll(
+                    ".system-toggle"
+                )
+                .forEach(
+                    checkbox => {
+                        const system =
+                            checkbox.dataset
+                                .system;
+                        checkbox.checked =
+                            Boolean(
+                                systems[
+                                    system
+                                ]
+                            );
+                    }
+                );
+        } catch (error) {
+            console.error(
+                error
+            );
+        }
+    }
+    async function loadBotStatus() {
+        try {
+            const response =
+                await fetch(
+                    "/dashboard/api/status",
+                    {
+                        credentials:
+                            "same-origin"
+                    }
+                );
+            const data =
+                await response.json();
+            const dot =
+                document.getElementById(
+                    "statusDot"
+                );
+            const text =
+                document.getElementById(
+                    "statusText"
+                );
+            if (
+                data.online &&
+                data.ready
+            ) {
+                dot.classList.add(
+                    "online"
+                );
+                text.textContent =
+                    data.latency !== null
+                        ? `البوت متصل • ${data.latency}ms`
+                        : "البوت متصل";
+            } else {
+                dot.classList.remove(
+                    "online"
+                );
+                text.textContent =
+                    "البوت غير متصل";
+            }
+        } catch (error) {
+            console.error(
+                error
+            );
+        }
+    }
+    // =====================================================
+    // Navigation
+    // =====================================================
+    document
+        .querySelectorAll(
+            ".nav-btn"
+        )
+        .forEach(
+            button => {
+                button.addEventListener(
+                    "click",
+                    () => {
+                        const section =
+                            button.dataset
+                                .section;
+                        document
+                            .querySelectorAll(
+                                ".nav-btn"
+                            )
+                            .forEach(
+                                item =>
+                                    item.classList
+                                        .remove(
+                                            "active"
+                                        )
+                            );
+                        button.classList.add(
+                            "active"
+                        );
+                        document
+                            .querySelectorAll(
+                                ".section"
+                            )
+                            .forEach(
+                                item =>
+                                    item.classList
+                                        .remove(
+                                            "active"
+                                        )
+                            );
+                        const target =
+                            document.getElementById(
+                                `section-${section}`
+                            );
+                        if (target) {
+                            target.classList.add(
+                                "active"
+                            );
+                        }
+                        const titles = {
+                            home:
+                                "لوحة التحكم",
+                            welcome:
+                                "الترحيب",
+                            levels:
+                                "اللفلات",
+                            tickets:
+                                "التذاكر",
+                            applications:
+                                "التقديمات",
+                            moderation:
+                                "الحماية",
+                            logs:
+                                "السجلات"
+                        };
+                        document.getElementById(
+                            "pageTitle"
+                        ).textContent =
+                            titles[section] ||
+                            "لوحة التحكم";
+                    }
                 );
             }
         );
+    // =====================================================
+    // Server Selector
+    // =====================================================
+    const serverSelect =
+        document.getElementById(
+            "serverSelect"
+        );
+    if (serverSelect) {
+        serverSelect.addEventListener(
+            "change",
+            () => {
+                const id =
+                    serverSelect.value;
+                if (!id) {
+                    return;
+                }
+                window.location.href =
+                    `/dashboard/${id}`;
+            }
+        );
     }
-    /* =====================================================
-       Fix Server Images
-    ====================================================== */
+    // =====================================================
+    // System Toggles
+    // =====================================================
     document
         .querySelectorAll(
-            ".server-icon img"
+            ".system-toggle"
         )
-        .forEach(img => {
-            img.addEventListener(
-                "error",
-                () => {
-                    img.parentElement.classList.add(
-                        "image-error"
-                    );
-                }
-            );
-            /*
-             * بعض المتصفحات قد تنفذ onerror
-             * قبل تسجيل المستمع، لذلك نتحقق أيضًا
-             * من complete/naturalWidth.
-             */
-            if (
-                img.complete &&
-                img.naturalWidth === 0
-            ) {
-                img.parentElement.classList.add(
-                    "image-error"
+        .forEach(
+            checkbox => {
+                checkbox.addEventListener(
+                    "change",
+                    () => {
+                        toggleSystem(
+                            checkbox.dataset
+                                .system,
+                            checkbox.checked
+                        );
+                    }
                 );
             }
-        });
-    /* =====================================================
-       Initial State
-    ====================================================== */
-    updateEnabledCount();
-    /*
-     * إذا كان هناك Guild محدد، نبدأ من الرئيسية.
-     */
-    openSection("home");
+        );
+    // =====================================================
+    // Init
+    // =====================================================
+    document.addEventListener(
+        "DOMContentLoaded",
+        async () => {
+            await loadChannels();
+            await loadSettings();
+            await loadOverview();
+            await loadBotStatus();
+            setInterval(
+                loadBotStatus,
+                15000
+            );
+        }
+    );
 </script>
 </body>
 </html>
