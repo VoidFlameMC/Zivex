@@ -3,1431 +3,1662 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#080812">
-<title>
-    {% if selected_guild %}
-        {{ selected_guild.name }} — Zivex
-    {% else %}
-        Zivex Dashboard
-    {% endif %}
-</title>
-<style>
-    * {
-        box-sizing: border-box;
-    }
-    html {
-        background: #080812;
-        scroll-behavior: smooth;
-    }
-    body {
-        margin: 0;
-        min-height: 100vh;
-        background:
-            radial-gradient(
-                circle at 15% 15%,
-                rgba(124, 58, 237, 0.18),
-                transparent 32%
-            ),
-            radial-gradient(
-                circle at 85% 85%,
-                rgba(168, 85, 247, 0.10),
-                transparent 30%
-            ),
-            #080812;
-        color: #f5f5ff;
-        font-family:
-            Arial,
-            "Segoe UI",
-            Tahoma,
-            sans-serif;
-        overflow-x: hidden;
-    }
-    a {
-        color: inherit;
-        text-decoration: none;
-    }
-    button {
-        font: inherit;
-    }
-    /* =========================================
-       VARIABLES
-    ========================================= */
-    :root {
-        --bg: #080812;
-        --bg2: #0d0d1a;
-        --card: #111121;
-        --card2: #15152a;
-        --border: rgba(255, 255, 255, 0.08);
-        --text: #f5f5ff;
-        --muted: #9292aa;
-        --purple: #7c3aed;
-        --purple2: #a855f7;
-        --green: #22c55e;
-        --red: #ef4444;
-        --yellow: #f59e0b;
-    }
-    /* =========================================
-       LAYOUT
-    ========================================= */
-    .layout {
-        min-height: 100vh;
-        width: 100%;
-    }
-    .sidebar {
-        position: fixed;
-        z-index: 1000;
-        top: 0;
-        right: 0;
-        width: 270px;
-        height: 100vh;
-        padding: 22px 16px;
-        background: rgba(10, 10, 22, 0.96);
-        border-left: 1px solid var(--border);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        overflow-y: auto;
-    }
-    .main {
-        width: calc(100% - 270px);
-        min-height: 100vh;
-        margin-right: 270px;
-        padding: 28px;
-    }
-    /* =========================================
-       BRAND
-    ========================================= */
-    .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 7px 8px 24px;
-    }
-    .brand-logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background:
-            linear-gradient(
-                135deg,
-                var(--purple),
-                var(--purple2)
-            );
-        font-size: 20px;
-        font-weight: 900;
-        box-shadow:
-            0 12px 35px rgba(124, 58, 237, 0.35);
-    }
-    .brand-text strong {
-        display: block;
-        font-size: 20px;
-        line-height: 1;
-    }
-    .brand-text span {
-        display: block;
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 10px;
-    }
-    /* =========================================
-       SERVER MINI
-    ========================================= */
-    .server-mini {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px;
-        margin-bottom: 24px;
-        border: 1px solid var(--border);
-        border-radius: 15px;
-        background: rgba(255, 255, 255, 0.035);
-    }
-    .server-mini-avatar {
-        width: 42px;
-        height: 42px;
-        flex-shrink: 0;
-        border-radius: 13px;
-        object-fit: cover;
-        background:
-            linear-gradient(
-                135deg,
-                var(--purple),
-                var(--purple2)
-            );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 16px;
-        font-weight: 900;
-    }
-    .server-mini-info {
-        min-width: 0;
-    }
-    .server-mini-info strong {
-        display: block;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        font-size: 13px;
-    }
-    .server-mini-info span {
-        display: block;
-        margin-top: 4px;
-        color: #86efac;
-        font-size: 10px;
-    }
-    /* =========================================
-       NAV
-    ========================================= */
-    .nav-title {
-        padding: 0 10px 9px;
-        color: #6d6d83;
-        font-size: 10px;
-        font-weight: 800;
-    }
-    .nav {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-    .nav a {
-        display: flex;
-        align-items: center;
-        gap: 11px;
-        padding: 12px;
-        border-radius: 12px;
-        color: #aaaabd;
-        transition:
-            background 0.2s ease,
-            color 0.2s ease,
-            transform 0.2s ease;
-    }
-    .nav a:hover {
-        color: white;
-        background:
-            rgba(124, 58, 237, 0.12);
-        transform: translateX(-2px);
-    }
-    .nav a.active {
-        color: white;
-        background:
-            linear-gradient(
-                90deg,
-                rgba(124, 58, 237, 0.22),
-                rgba(124, 58, 237, 0.08)
-            );
-        border: 1px solid rgba(124, 58, 237, 0.16);
-    }
-    .nav-icon {
-        width: 28px;
-        text-align: center;
-        font-size: 17px;
-    }
-    /* =========================================
-       LOGOUT
-    ========================================= */
-    .logout {
-        width: 100%;
-        margin-top: 25px;
-        padding: 12px;
-        border: 1px solid rgba(239, 68, 68, 0.16);
-        border-radius: 12px;
-        background:
-            rgba(239, 68, 68, 0.06);
-        color: #fca5a5;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .logout:hover {
-        background:
-            rgba(239, 68, 68, 0.13);
-        border-color:
-            rgba(239, 68, 68, 0.3);
-    }
-    /* =========================================
-       TOPBAR
-    ========================================= */
-    .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 15px;
-        margin-bottom: 25px;
-    }
-    .topbar-title {
-        min-width: 0;
-    }
-    .topbar-title h1 {
-        margin: 0;
-        font-size: 25px;
-        font-weight: 800;
-    }
-    .topbar-title p {
-        margin: 7px 0 0;
-        color: var(--muted);
-        font-size: 12px;
-    }
-    .online {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-        padding: 9px 13px;
-        border:
-            1px solid rgba(34, 197, 94, 0.15);
-        border-radius: 20px;
-        background:
-            rgba(34, 197, 94, 0.06);
-        color: #86efac;
-        font-size: 11px;
-    }
-    .online-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--green);
-        box-shadow:
-            0 0 12px rgba(34, 197, 94, 0.7);
-    }
-    /* =========================================
-       MOBILE MENU
-    ========================================= */
-    .mobile-menu {
-        display: none;
-        width: 42px;
-        height: 42px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: var(--card);
-        color: white;
-        cursor: pointer;
-        font-size: 19px;
-    }
-    /* =========================================
-       HERO
-    ========================================= */
-    .hero {
-        position: relative;
-        overflow: hidden;
-        padding: 30px;
-        border:
-            1px solid rgba(124, 58, 237, 0.18);
-        border-radius: 22px;
-        background:
-            linear-gradient(
-                135deg,
-                rgba(124, 58, 237, 0.19),
-                rgba(17, 17, 33, 0.96)
-            );
-        box-shadow:
-            0 20px 60px rgba(0, 0, 0, 0.25);
-        margin-bottom: 26px;
-    }
-    .hero::after {
-        content: "";
-        position: absolute;
-        width: 300px;
-        height: 300px;
-        left: -140px;
-        top: -150px;
-        border-radius: 50%;
-        background:
-            rgba(168, 85, 247, 0.11);
-        filter: blur(35px);
-    }
-    .hero-content {
-        position: relative;
-        z-index: 2;
-    }
-    .hero-label {
-        color: #c4b5fd;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 1px;
-    }
-    .hero h2 {
-        margin: 9px 0 0;
-        font-size: 29px;
-    }
-    .hero p {
-        max-width: 700px;
-        margin: 9px 0 0;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.9;
-    }
-    /* =========================================
-       SECTIONS
-    ========================================= */
-    .section {
-        margin-top: 28px;
-    }
-    .section-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-    .section-head h3 {
-        margin: 0;
-        font-size: 18px;
-    }
-    .section-head span {
-        color: var(--muted);
-        font-size: 10px;
-    }
-    /* =========================================
-       SERVER CARDS
-    ========================================= */
-    .server-grid {
-        display: grid;
-        grid-template-columns:
-            repeat(
-                auto-fill,
-                minmax(230px, 1fr)
-            );
-        gap: 14px;
-    }
-    .server-card {
-        padding: 18px;
-        border:
-            1px solid var(--border);
-        border-radius: 17px;
-        background:
-            linear-gradient(
-                145deg,
-                rgba(255, 255, 255, 0.045),
-                rgba(255, 255, 255, 0.015)
-            );
-        transition: 0.2s;
-    }
-    .server-card:hover {
-        border-color:
-            rgba(124, 58, 237, 0.4);
-        transform: translateY(-2px);
-        box-shadow:
-            0 18px 40px rgba(0, 0, 0, 0.25);
-    }
-    .server-card-top {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .server-avatar {
-        width: 52px;
-        height: 52px;
-        flex-shrink: 0;
-        border-radius: 15px;
-        object-fit: cover;
-        background:
-            linear-gradient(
-                135deg,
-                var(--purple),
-                var(--purple2)
-            );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        font-weight: 900;
-    }
-    .server-card-info {
-        min-width: 0;
-    }
-    .server-card-info h4 {
-        margin: 0;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        font-size: 14px;
-    }
-    .server-card-info p {
-        margin: 5px 0 0;
-        color: var(--muted);
-        font-size: 10px;
-    }
-    .open-server {
-        display: block;
-        margin-top: 15px;
-        padding: 10px;
-        border-radius: 11px;
-        background:
-            linear-gradient(
-                135deg,
-                var(--purple),
-                var(--purple2)
-            );
-        text-align: center;
-        font-size: 11px;
-        font-weight: 800;
-        box-shadow:
-            0 8px 20px rgba(124, 58, 237, 0.2);
-        transition: 0.2s;
-    }
-    .open-server:hover {
-        filter: brightness(1.12);
-    }
-    /* =========================================
-       STATISTICS
-    ========================================= */
-    .stats {
-        display: grid;
-        grid-template-columns:
-            repeat(4, minmax(0, 1fr));
-        gap: 13px;
-    }
-    .stat {
-        padding: 18px;
-        border:
-            1px solid var(--border);
-        border-radius: 16px;
-        background: var(--card);
-    }
-    .stat-icon {
-        width: 38px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 12px;
-        border-radius: 11px;
-        background:
-            rgba(124, 58, 237, 0.12);
-        font-size: 17px;
-    }
-    .stat strong {
-        display: block;
-        font-size: 23px;
-    }
-    .stat span {
-        display: block;
-        margin-top: 5px;
-        color: var(--muted);
-        font-size: 10px;
-    }
-    /* =========================================
-       SYSTEMS
-    ========================================= */
-    .systems {
-        display: grid;
-        grid-template-columns:
-            repeat(3, minmax(0, 1fr));
-        gap: 14px;
-    }
-    .system {
-        padding: 19px;
-        border:
-            1px solid var(--border);
-        border-radius: 17px;
-        background: var(--card);
-        transition: 0.2s;
-    }
-    .system:hover {
-        border-color:
-            rgba(124, 58, 237, 0.28);
-    }
-    .system-top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-    }
-    .system-icon {
-        width: 43px;
-        height: 43px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 13px;
-        background:
-            rgba(124, 58, 237, 0.12);
-        font-size: 19px;
-    }
-    .system h4 {
-        margin: 14px 0 0;
-        font-size: 15px;
-    }
-    .system p {
-        min-height: 38px;
-        margin: 7px 0 0;
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 1.8;
-    }
-    /* =========================================
-       TOGGLE
-    ========================================= */
-    .toggle {
-        position: relative;
-        width: 47px;
-        height: 26px;
-        padding: 3px;
-        border: 0;
-        border-radius: 30px;
-        background: #282838;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .toggle span {
-        display: block;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #77778a;
-        transition: 0.2s;
-    }
-    .toggle.enabled {
-        background:
-            linear-gradient(
-                135deg,
-                var(--purple),
-                var(--purple2)
-            );
-    }
-    .toggle.enabled span {
-        transform: translateX(-21px);
-        background: white;
-        box-shadow:
-            0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-    /* =========================================
-       STATUS
-    ========================================= */
-    .status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 13px;
-        font-size: 10px;
-    }
-    .status-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-    }
-    .status.on {
-        color: #86efac;
-    }
-    .status.on .status-dot {
-        background: var(--green);
-        box-shadow:
-            0 0 10px rgba(34, 197, 94, 0.65);
-    }
-    .status.off {
-        color: #858596;
-    }
-    .status.off .status-dot {
-        background: #4b4b5c;
-    }
-    /* =========================================
-       SETTINGS
-    ========================================= */
-    .settings-grid {
-        display: grid;
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-        gap: 12px;
-    }
-    .setting {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 15px;
-        padding: 16px;
-        border:
-            1px solid var(--border);
-        border-radius: 14px;
-        background:
-            rgba(255, 255, 255, 0.025);
-    }
-    .setting-info {
-        min-width: 0;
-    }
-    .setting-info strong {
-        display: block;
-        font-size: 12px;
-    }
-    .setting-info span {
-        display: block;
-        margin-top: 5px;
-        color: var(--muted);
-        font-size: 9px;
-    }
-    /* =========================================
-       SECURITY
-    ========================================= */
-    .security {
-        padding: 18px;
-        border:
-            1px solid rgba(34, 197, 94, 0.14);
-        border-radius: 16px;
-        background:
-            rgba(34, 197, 94, 0.04);
-    }
-    .security-title {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        font-size: 13px;
-        font-weight: 800;
-    }
-    .security p {
-        margin: 8px 0 0;
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 1.8;
-    }
-    /* =========================================
-       EMPTY
-    ========================================= */
-    .empty {
-        padding: 55px 20px;
-        text-align: center;
-        border:
-            1px dashed rgba(255, 255, 255, 0.1);
-        border-radius: 18px;
-        background:
-            rgba(255, 255, 255, 0.018);
-    }
-    .empty-icon {
-        margin-bottom: 13px;
-        font-size: 38px;
-    }
-    .empty h3 {
-        margin: 0;
-        font-size: 17px;
-    }
-    .empty p {
-        margin: 7px 0 0;
-        color: var(--muted);
-        font-size: 11px;
-    }
-    /* =========================================
-       FOOTER
-    ========================================= */
-    .footer {
-        padding: 35px 0 10px;
-        text-align: center;
-        color: #5e5e72;
-        font-size: 9px;
-    }
-    /* =========================================
-       TOAST
-    ========================================= */
-    .toast {
-        position: fixed;
-        left: 24px;
-        bottom: 24px;
-        z-index: 3000;
-        min-width: 220px;
-        max-width: 350px;
-        padding: 13px 16px;
-        border:
-            1px solid var(--border);
-        border-radius: 13px;
-        background:
-            rgba(17, 17, 33, 0.97);
-        box-shadow:
-            0 15px 45px rgba(0, 0, 0, 0.4);
-        color: white;
-        font-size: 11px;
-        opacity: 0;
-        transform: translateY(15px);
-        pointer-events: none;
-        transition: 0.25s;
-    }
-    .toast.show {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    .toast.success {
-        border-color:
-            rgba(34, 197, 94, 0.25);
-    }
-    .toast.error {
-        border-color:
-            rgba(239, 68, 68, 0.25);
-    }
-    /* =========================================
-       RESPONSIVE
-    ========================================= */
-    @media (max-width: 1100px) {
-        .systems {
-            grid-template-columns:
-                repeat(2, minmax(0, 1fr));
+    <meta name="theme-color" content="#0b0615">
+    <title>{{ bot_name or "Zivex" }} Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        .stats {
-            grid-template-columns:
-                repeat(2, minmax(0, 1fr));
+        :root {
+            --bg: #08050f;
+            --panel: #0f0a1a;
+            --panel-2: #140d22;
+            --border: rgba(255,255,255,.08);
+            --text: #f7f3ff;
+            --muted: #9d94aa;
+            --purple: #8b5cf6;
+            --purple-2: #a78bfa;
+            --purple-dark: #5b21b6;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --shadow: 0 20px 60px rgba(0,0,0,.35);
         }
-    }
-    @media (max-width: 800px) {
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at 80% 0%,
+                    rgba(124,58,237,.18),
+                    transparent 32%
+                ),
+                radial-gradient(
+                    circle at 15% 100%,
+                    rgba(139,92,246,.10),
+                    transparent 28%
+                ),
+                var(--bg);
+            color: var(--text);
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Tahoma,
+                Arial,
+                sans-serif;
+            overflow-x: hidden;
+        }
+        button,
+        a {
+            font: inherit;
+        }
+        button {
+            border: 0;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        /* =====================================================
+           Layout
+        ===================================================== */
+        .app {
+            min-height: 100vh;
+            display: flex;
+        }
         .sidebar {
-            right: -285px;
-            transition: right 0.25s ease;
-            box-shadow:
-                -20px 0 60px rgba(0, 0, 0, 0.4);
-        }
-        .sidebar.open {
+            position: fixed;
+            top: 0;
             right: 0;
+            width: 270px;
+            height: 100vh;
+            padding: 22px 16px;
+            background: rgba(10, 6, 18, .94);
+            border-left: 1px solid var(--border);
+            backdrop-filter: blur(18px);
+            z-index: 100;
+            overflow-y: auto;
         }
         .main {
-            width: 100%;
-            margin-right: 0;
-            padding: 18px;
+            width: calc(100% - 270px);
+            margin-right: 270px;
+            min-height: 100vh;
+            padding: 28px;
         }
-        .mobile-menu {
+        /* =====================================================
+           Brand
+        ===================================================== */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 5px 8px 24px;
+        }
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(
+                    135deg,
+                    #7c3aed,
+                    #a855f7
+                );
+            box-shadow:
+                0 10px 30px rgba(124,58,237,.35);
+            font-size: 21px;
+            font-weight: 900;
+        }
+        .brand-text strong {
+            display: block;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: .4px;
+        }
+        .brand-text span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        /* =====================================================
+           User
+        ===================================================== */
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #241638;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .user-info {
+            min-width: 0;
+        }
+        .user-info strong {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 13px;
+        }
+        .user-info span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        /* =====================================================
+           Navigation
+        ===================================================== */
+        .nav-title {
+            color: #6f667b;
+            font-size: 10px;
+            font-weight: 800;
+            margin: 20px 10px 8px;
+            letter-spacing: 1px;
+        }
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .nav-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 13px;
+            border-radius: 12px;
+            color: #aaa1b6;
+            background: transparent;
+            cursor: pointer;
+            text-align: right;
+            transition:
+                background .2s ease,
+                color .2s ease,
+                transform .2s ease;
+        }
+        .nav-item:hover {
+            background: rgba(139,92,246,.10);
+            color: #fff;
+            transform: translateX(-2px);
+        }
+        .nav-item.active {
+            color: #fff;
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(139,92,246,.22),
+                    rgba(139,92,246,.08)
+                );
+            box-shadow:
+                inset 3px 0 0 var(--purple);
+        }
+        .nav-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,.045);
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .nav-item.active .nav-icon {
+            background: rgba(139,92,246,.20);
+        }
+        .logout {
+            margin-top: 25px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 13px;
+            border-radius: 12px;
+            color: #fca5a5;
+            background: rgba(239,68,68,.06);
+            transition: .2s;
+        }
+        .logout:hover {
+            background: rgba(239,68,68,.12);
+        }
+        /* =====================================================
+           Topbar
+        ===================================================== */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .page-title h1 {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -.5px;
+        }
+        .page-title p {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        .server-select {
+            position: relative;
+        }
+        .server-button {
+            min-width: 220px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            color: #fff;
+            background: rgba(255,255,255,.045);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+        }
+        .server-button:hover {
+            border-color: rgba(139,92,246,.35);
+        }
+        .server-button-text {
+            flex: 1;
+            min-width: 0;
+            text-align: right;
+        }
+        .server-button-text strong {
+            display: block;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .server-button-text span {
+            color: var(--muted);
+            display: block;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+        .server-arrow {
+            color: var(--muted);
+        }
+        /* =====================================================
+           Server Icons
+        ===================================================== */
+        .server-icon {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(
+                    135deg,
+                    #4c1d95,
+                    #7c3aed
+                );
+            color: white;
+            font-weight: 900;
+            font-size: 15px;
+            position: relative;
+        }
+        .server-icon img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            object-position: center;
+        }
+        .server-icon .fallback-letter {
+            display: none;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+        .server-icon.image-error img {
+            display: none;
+        }
+        .server-icon.image-error .fallback-letter {
+            display: flex;
+        }
+        .server-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 280px;
+            max-height: 360px;
+            overflow-y: auto;
+            padding: 8px;
+            background: #110b1c;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            z-index: 200;
+        }
+        .server-menu.open {
             display: block;
         }
-        .systems,
-        .settings-grid {
-            grid-template-columns: 1fr;
+        .server-option {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px;
+            border-radius: 12px;
+            background: transparent;
+            color: #fff;
+            text-align: right;
+            cursor: pointer;
         }
-        .topbar {
-            align-items: flex-start;
+        .server-option:hover {
+            background: rgba(139,92,246,.10);
         }
+        .server-option.active {
+            background: rgba(139,92,246,.14);
+        }
+        .server-option-info {
+            min-width: 0;
+            flex: 1;
+        }
+        .server-option-info strong {
+            display: block;
+            font-size: 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .server-option-info span {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            margin-top: 2px;
+        }
+        /* =====================================================
+           Sections
+        ===================================================== */
+        .section {
+            display: none;
+            animation: fadeIn .22s ease;
+        }
+        .section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* =====================================================
+           Hero
+        ===================================================== */
         .hero {
-            padding: 23px;
+            position: relative;
+            overflow: hidden;
+            padding: 28px;
+            margin-bottom: 20px;
+            border-radius: 22px;
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(124,58,237,.25),
+                    rgba(22,12,38,.9)
+                );
+            border: 1px solid rgba(139,92,246,.18);
+            box-shadow: var(--shadow);
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            left: -80px;
+            bottom: -120px;
+            background: rgba(168,85,247,.16);
+            filter: blur(5px);
         }
         .hero h2 {
             font-size: 23px;
+            font-weight: 900;
         }
-    }
-    @media (max-width: 520px) {
+        .hero p {
+            max-width: 700px;
+            color: #bcb3c7;
+            margin-top: 8px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        /* =====================================================
+           Stats
+        ===================================================== */
         .stats {
-            grid-template-columns:
-                repeat(2, minmax(0, 1fr));
-            gap: 9px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 13px;
+            margin-bottom: 20px;
         }
         .stat {
-            padding: 14px;
+            padding: 18px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+        }
+        .stat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .stat-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(139,92,246,.12);
+        }
+        .stat small {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            margin-bottom: 5px;
         }
         .stat strong {
-            font-size: 19px;
+            display: block;
+            font-size: 22px;
+            font-weight: 900;
         }
-        .online {
-            display: none;
+        /* =====================================================
+           Cards
+        ===================================================== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
         }
-    }
-</style>
+        .card {
+            padding: 18px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            transition: .2s ease;
+        }
+        .card:hover {
+            border-color: rgba(139,92,246,.22);
+            transform: translateY(-1px);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title-icon {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 11px;
+            background: rgba(139,92,246,.12);
+        }
+        .card-title strong {
+            font-size: 14px;
+        }
+        .card p {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.8;
+        }
+        /* =====================================================
+           Toggle
+        ===================================================== */
+        .toggle {
+            width: 46px;
+            height: 25px;
+            padding: 3px;
+            border-radius: 999px;
+            background: #2a2134;
+            cursor: pointer;
+            transition: .2s;
+            flex-shrink: 0;
+        }
+        .toggle span {
+            display: block;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: #aaa2b2;
+            transition: .2s;
+        }
+        .toggle.on {
+            background: var(--purple);
+        }
+        .toggle.on span {
+            transform: translateX(-21px);
+            background: white;
+        }
+        /* =====================================================
+           Quick Settings
+        ===================================================== */
+        .settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.025);
+            border: 1px solid rgba(255,255,255,.045);
+        }
+        .setting-info strong {
+            display: block;
+            font-size: 13px;
+        }
+        .setting-info span {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            margin-top: 3px;
+        }
+        /* =====================================================
+           Empty / Info
+        ===================================================== */
+        .empty {
+            padding: 45px 20px;
+            text-align: center;
+            background: rgba(255,255,255,.025);
+            border: 1px dashed rgba(255,255,255,.10);
+            border-radius: 18px;
+        }
+        .empty-icon {
+            font-size: 34px;
+            margin-bottom: 12px;
+        }
+        .empty strong {
+            display: block;
+            font-size: 16px;
+        }
+        .empty p {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 7px;
+        }
+        /* =====================================================
+           Toast
+        ===================================================== */
+        .toast {
+            position: fixed;
+            left: 25px;
+            bottom: 25px;
+            min-width: 230px;
+            max-width: 340px;
+            padding: 13px 16px;
+            border-radius: 13px;
+            background: #171020;
+            border: 1px solid rgba(139,92,246,.25);
+            box-shadow: var(--shadow);
+            color: white;
+            font-size: 12px;
+            opacity: 0;
+            transform: translateY(15px);
+            pointer-events: none;
+            transition: .25s;
+            z-index: 999;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* =====================================================
+           Responsive
+        ===================================================== */
+        @media (max-width: 1100px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 800px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-left: 0;
+                border-bottom: 1px solid var(--border);
+            }
+            .main {
+                width: 100%;
+                margin-right: 0;
+                padding: 18px;
+            }
+            .app {
+                display: block;
+            }
+            .topbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .server-button {
+                width: 100%;
+            }
+            .server-menu {
+                width: 100%;
+            }
+        }
+        @media (max-width: 600px) {
+            .stats,
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .hero {
+                padding: 21px;
+            }
+            .hero h2 {
+                font-size: 19px;
+            }
+            .page-title h1 {
+                font-size: 23px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="layout">
-<!-- =========================
-     SIDEBAR
-========================== -->
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <div class="brand-logo">
-            Z
-        </div>
-        <div class="brand-text">
-            <strong>Zivex</strong>
-            <span>Discord Dashboard</span>
-        </div>
-    </div>
-    {% if selected_guild %}
-    <div class="server-mini">
-        {% if selected_guild.icon %}
-            <img
-                class="server-mini-avatar"
-                src="{{ selected_guild.icon }}"
-                alt="Server"
-            >
-        {% else %}
-            <div class="server-mini-avatar">
-                {{ selected_guild.name[:1] }}
-            </div>
-        {% endif %}
-        <div class="server-mini-info">
-            <strong>
-                {{ selected_guild.name }}
-            </strong>
-            <span>
-                ● متصل
-            </span>
-        </div>
-    </div>
-    {% endif %}
-    <div class="nav-title">
-        القائمة
-    </div>
-    <nav class="nav">
-        <a href="#overview" class="active">
-            <span class="nav-icon">⌂</span>
-            <span>الرئيسية</span>
-        </a>
-        {% if selected_guild %}
-        <a href="#systems">
-            <span class="nav-icon">⚙</span>
-            <span>الأنظمة</span>
-        </a>
-        <a href="#settings">
-            <span class="nav-icon">◈</span>
-            <span>الإعدادات</span>
-        </a>
-        <a href="#security">
-            <span class="nav-icon">♢</span>
-            <span>الأمان</span>
-        </a>
-        {% endif %}
-    </nav>
-    <button
-        class="logout"
-        type="button"
-        onclick="window.location.href='{{ url_for('dashboard.dashboard_logout') }}'"
-    >
-        تسجيل الخروج
-    </button>
-</aside>
-<!-- =========================
-     MAIN
-========================== -->
-<main class="main">
-    <!-- TOPBAR -->
-    <div class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-            <button
-                class="mobile-menu"
-                type="button"
-                onclick="toggleSidebar()"
-            >
-                ☰
-            </button>
-            <div class="topbar-title">
-                <h1>
-                    {% if selected_guild %}
-                        {{ selected_guild.name }}
-                    {% else %}
-                        لوحة التحكم
-                    {% endif %}
-                </h1>
-                <p>
-                    تحكم كامل في أنظمة Zivex داخل سيرفر Discord.
-                </p>
+<div class="app">
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">Z</div>
+            <div class="brand-text">
+                <strong>Zivex</strong>
+                <span>Discord Management</span>
             </div>
         </div>
-        <div class="online">
-            <span class="online-dot"></span>
-            Zivex Online
-        </div>
-    </div>
-    <!-- HERO -->
-    <section class="hero" id="overview">
-        <div class="hero-content">
-            <div class="hero-label">
-                ZIVEX DASHBOARD
-            </div>
-            <h2>
-                {% if selected_guild %}
-                    إدارة {{ selected_guild.name }}
+        {% if discord_user %}
+        <div class="user-card">
+            <div class="user-avatar">
+                {% if discord_user.avatar %}
+                    <img
+                        src="https://cdn.discordapp.com/avatars/{{ discord_user.id }}/{{ discord_user.avatar }}.png?size=128"
+                        alt="Avatar"
+                        onerror="this.style.display='none';"
+                    >
                 {% else %}
-                    أهلاً بك في Zivex
+                    {{ (discord_user.username or "U")[0]|upper }}
                 {% endif %}
-            </h2>
-            <p>
-                لوحة تحكم احترافية لإدارة أنظمة السيرفر
-                ومتابعة حالة البوت والإعدادات بسهولة.
-            </p>
-        </div>
-    </section>
-    {% if not selected_guild %}
-    <!-- =========================
-         SERVER SELECT
-    ========================== -->
-    <section class="section">
-        <div class="section-head">
-            <h3>
-                اختر السيرفر
-            </h3>
-            <span>
-                {{ guilds|length }} سيرفر
-            </span>
-        </div>
-        {% if guilds %}
-        <div class="server-grid">
-            {% for guild in guilds %}
-            <div class="server-card">
-                <div class="server-card-top">
-                    {% if guild.icon %}
-                        <img
-                            class="server-avatar"
-                            src="{{ guild.icon }}"
-                            alt="Server"
-                        >
-                    {% else %}
-                        <div class="server-avatar">
-                            {{ guild.name[:1] }}
-                        </div>
-                    {% endif %}
-                    <div class="server-card-info">
-                        <h4>
-                            {{ guild.name }}
-                        </h4>
-                        <p>
-                            {% if guild.bot_installed %}
-                                البوت موجود
-                            {% else %}
-                                البوت غير موجود
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-                <a
-                    class="open-server"
-                    href="{{ url_for('dashboard.guild_dashboard', guild_id=guild.id) }}"
-                >
-                    فتح لوحة التحكم
-                </a>
             </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty">
-            <div class="empty-icon">
-                🛡️
+            <div class="user-info">
+                <strong>
+                    {{ discord_user.global_name or discord_user.username or "User" }}
+                </strong>
+                <span>
+                    Discord Account
+                </span>
             </div>
-            <h3>
-                لا توجد سيرفرات متاحة
-            </h3>
-            <p>
-                تحتاج إلى صلاحية إدارة السيرفر حتى يظهر هنا.
-            </p>
         </div>
         {% endif %}
-    </section>
-    {% else %}
-    <!-- =========================
-         STATISTICS
-    ========================== -->
-    <section class="section">
-        <div class="section-head">
-            <h3>
-                إحصائيات السيرفر
-            </h3>
-            <span>
-                معلومات السيرفر
-            </span>
+        <div class="nav-title">
+            الرئيسية
         </div>
-        <div class="stats">
-            <div class="stat">
-                <div class="stat-icon">
-                    👥
-                </div>
-                <strong>
-                    {{ selected_guild.statistics.members }}
-                </strong>
-                <span>
-                    الأعضاء
-                </span>
+        <nav class="nav">
+            <button
+                class="nav-item active"
+                type="button"
+                data-section="home"
+            >
+                <span class="nav-icon">⌂</span>
+                <span>الرئيسية</span>
+            </button>
+            <button
+                class="nav-item"
+                type="button"
+                data-section="settings"
+            >
+                <span class="nav-icon">⚙</span>
+                <span>الإعدادات</span>
+            </button>
+        </nav>
+        <div class="nav-title">
+            الأنظمة
+        </div>
+        <nav class="nav">
+            <button
+                class="nav-item"
+                type="button"
+                data-section="welcome"
+            >
+                <span class="nav-icon">👋</span>
+                <span>الترحيب</span>
+            </button>
+            <button
+                class="nav-item"
+                type="button"
+                data-section="levels"
+            >
+                <span class="nav-icon">📈</span>
+                <span>المستويات</span>
+            </button>
+            <button
+                class="nav-item"
+                type="button"
+                data-section="tickets"
+            >
+                <span class="nav-icon">🎫</span>
+                <span>التذاكر</span>
+            </button>
+            <button
+                class="nav-item"
+                type="button"
+                data-section="applications"
+            >
+                <span class="nav-icon">📝</span>
+                <span>التقديمات</span>
+            </button>
+            <button
+                class="nav-item"
+                type="button"
+                data-section="moderation"
+            >
+                <span class="nav-icon">🛡</span>
+                <span>الحماية</span>
+            </button>
+            <button
+                class="nav-item"
+                type="button"
+                data-section="logs"
+            >
+                <span class="nav-icon">📋</span>
+                <span>السجلات</span>
+            </button>
+        </nav>
+        <a
+            class="logout"
+            href="/dashboard/logout"
+        >
+            <span class="nav-icon">↪</span>
+            <span>تسجيل الخروج</span>
+        </a>
+    </aside>
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+    <main class="main">
+        <!-- TOPBAR -->
+        <div class="topbar">
+            <div class="page-title">
+                <h1 id="pageTitle">
+                    الرئيسية
+                </h1>
+                <p id="pageDescription">
+                    إدارة سيرفر Discord من مكان واحد.
+                </p>
             </div>
-            <div class="stat">
-                <div class="stat-icon">
-                    #
+            <!-- SERVER SELECTOR -->
+            <div class="server-select">
+                {% if guilds and guilds|length > 0 %}
+                {% set current_guild = selected_guild or guilds[0] %}
+                <button
+                    class="server-button"
+                    id="serverButton"
+                    type="button"
+                >
+                    <div
+                        class="server-icon"
+                        data-server-icon
+                    >
+                        {% if current_guild.icon %}
+                        <img
+                            src="{{ current_guild.icon }}"
+                            alt=""
+                            onerror="this.parentElement.classList.add('image-error')"
+                        >
+                        {% endif %}
+                        <span class="fallback-letter">
+                            {{ (current_guild.name or "S")[0]|upper }}
+                        </span>
+                    </div>
+                    <div class="server-button-text">
+                        <strong>
+                            {{ current_guild.name }}
+                        </strong>
+                        <span>
+                            إدارة السيرفر
+                        </span>
+                    </div>
+                    <span class="server-arrow">
+                        ▾
+                    </span>
+                </button>
+                <div
+                    class="server-menu"
+                    id="serverMenu"
+                >
+                    {% for guild in guilds %}
+                    <button
+                        class="server-option {% if current_guild.id|string == guild.id|string %}active{% endif %}"
+                        type="button"
+                        data-guild-url="/dashboard/{{ guild.id }}"
+                    >
+                        <div class="server-icon">
+                            {% if guild.icon %}
+                            <img
+                                src="{{ guild.icon }}"
+                                alt=""
+                                onerror="this.parentElement.classList.add('image-error')"
+                            >
+                            {% endif %}
+                            <span class="fallback-letter">
+                                {{ (guild.name or "S")[0]|upper }}
+                            </span>
+                        </div>
+                        <div class="server-option-info">
+                            <strong>
+                                {{ guild.name }}
+                            </strong>
+                            <span>
+                                {{ guild.id }}
+                            </span>
+                        </div>
+                    </button>
+                    {% endfor %}
                 </div>
-                <strong>
-                    {{ selected_guild.statistics.text_channels }}
-                </strong>
-                <span>
-                    الرومات النصية
-                </span>
-            </div>
-            <div class="stat">
-                <div class="stat-icon">
-                    🔊
-                </div>
-                <strong>
-                    {{ selected_guild.statistics.voice_channels }}
-                </strong>
-                <span>
-                    الرومات الصوتية
-                </span>
-            </div>
-            <div class="stat">
-                <div class="stat-icon">
-                    🛡️
-                </div>
-                <strong>
-                    {{ selected_guild.statistics.roles }}
-                </strong>
-                <span>
-                    الرتب
-                </span>
+                {% endif %}
             </div>
         </div>
-    </section>
-    <!-- =========================
-         SYSTEMS
-    ========================== -->
-    <section class="section" id="systems">
-        <div class="section-head">
-            <h3>
-                أنظمة Zivex
-            </h3>
-            <span id="enabledCount">
-                0 مفعّل
-            </span>
-        </div>
-        <div class="systems">
-            <!-- WELCOME -->
-            <div class="system">
-                <div class="system-top">
-                    <div class="system-icon">
-                        👋
+        <!-- =================================================
+             HOME
+        ================================================== -->
+        <section
+            class="section active"
+            id="section-home"
+        >
+            <div class="hero">
+                <h2>
+                    مرحبًا بك في Zivex
+                </h2>
+                <p>
+                    تحكم في أنظمة سيرفرك وإعداداته من لوحة تحكم واحدة،
+                    مع إدارة سهلة للترحيب والمستويات والتذاكر والتقديمات
+                    والحماية والسجلات.
+                </p>
+            </div>
+            {% if selected_guild or guilds %}
+            {% set overview_guild = selected_guild or guilds[0] %}
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-top">
+                        <div>
+                            <small>الأعضاء</small>
+                            <strong>
+                                {{ overview_guild.statistics.members }}
+                            </strong>
+                        </div>
+                        <div class="stat-icon">
+                            👥
+                        </div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-top">
+                        <div>
+                            <small>القنوات</small>
+                            <strong>
+                                {{ overview_guild.statistics.channels }}
+                            </strong>
+                        </div>
+                        <div class="stat-icon">
+                            💬
+                        </div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-top">
+                        <div>
+                            <small>الرتب</small>
+                            <strong>
+                                {{ overview_guild.statistics.roles }}
+                            </strong>
+                        </div>
+                        <div class="stat-icon">
+                            🏷
+                        </div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-top">
+                        <div>
+                            <small>الأنظمة المفعلة</small>
+                            <strong id="enabledCount">
+                                0
+                            </strong>
+                        </div>
+                        <div class="stat-icon">
+                            ⚡
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="grid">
+                <!-- Welcome -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon">
+                                👋
+                            </div>
+                            <strong>
+                                الترحيب
+                            </strong>
+                        </div>
+                        <button
+                            class="toggle system-toggle {% if overview_guild.systems.welcome %}on{% endif %}"
+                            data-system="welcome"
+                            type="button"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <p>
+                        إرسال رسالة ترحيب تلقائية للأعضاء الجدد.
+                    </p>
+                </div>
+                <!-- Levels -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon">
+                                📈
+                            </div>
+                            <strong>
+                                المستويات
+                            </strong>
+                        </div>
+                        <button
+                            class="toggle system-toggle {% if overview_guild.systems.levels %}on{% endif %}"
+                            data-system="levels"
+                            type="button"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <p>
+                        نظام XP ومستويات الأعضاء والتقدم.
+                    </p>
+                </div>
+                <!-- Tickets -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon">
+                                🎫
+                            </div>
+                            <strong>
+                                التذاكر
+                            </strong>
+                        </div>
+                        <button
+                            class="toggle system-toggle {% if overview_guild.systems.tickets %}on{% endif %}"
+                            data-system="tickets"
+                            type="button"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <p>
+                        نظام تذاكر الدعم والتواصل مع الإدارة.
+                    </p>
+                </div>
+                <!-- Applications -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon">
+                                📝
+                            </div>
+                            <strong>
+                                التقديمات
+                            </strong>
+                        </div>
+                        <button
+                            class="toggle system-toggle {% if overview_guild.systems.applications %}on{% endif %}"
+                            data-system="applications"
+                            type="button"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <p>
+                        إدارة نظام التقديمات واستقبال طلبات الأعضاء.
+                    </p>
+                </div>
+                <!-- Moderation -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon">
+                                🛡
+                            </div>
+                            <strong>
+                                الحماية
+                            </strong>
+                        </div>
+                        <button
+                            class="toggle system-toggle {% if overview_guild.systems.moderation %}on{% endif %}"
+                            data-system="moderation"
+                            type="button"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <p>
+                        أدوات الإدارة والحماية ومراقبة المخالفات.
+                    </p>
+                </div>
+                <!-- Logs -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon">
+                                📋
+                            </div>
+                            <strong>
+                                السجلات
+                            </strong>
+                        </div>
+                        <button
+                            class="toggle system-toggle {% if overview_guild.systems.logs %}on{% endif %}"
+                            data-system="logs"
+                            type="button"
+                        >
+                            <span></span>
+                        </button>
+                    </div>
+                    <p>
+                        تسجيل الأحداث المهمة داخل السيرفر.
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty">
+                <div class="empty-icon">
+                    🏠
+                </div>
+                <strong>
+                    لا يوجد سيرفر متاح
+                </strong>
+                <p>
+                    تأكد من أنك تملك صلاحية إدارة السيرفر.
+                </p>
+            </div>
+            {% endif %}
+        </section>
+        <!-- =================================================
+             SETTINGS
+        ================================================== -->
+        <section
+            class="section"
+            id="section-settings"
+        >
+            <div class="hero">
+                <h2>
+                    إعدادات السيرفر
+                </h2>
+                <p>
+                    تحكم سريع في أنظمة Zivex الأساسية.
+                </p>
+            </div>
+            {% if selected_guild %}
+            <div class="settings-list">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <strong>
+                            الترحيب
+                        </strong>
+                        <span>
+                            تشغيل أو إيقاف نظام الترحيب.
+                        </span>
                     </div>
                     <button
-                        type="button"
-                        class="toggle"
+                        class="toggle system-toggle {% if selected_guild.systems.welcome %}on{% endif %}"
                         data-system="welcome"
-                        onclick="toggleSystem('welcome')"
+                        type="button"
                     >
                         <span></span>
                     </button>
                 </div>
-                <h4>
-                    نظام الترحيب
-                </h4>
-                <p>
-                    إرسال رسالة ترحيبية تلقائية عند دخول عضو جديد.
-                </p>
-                <div
-                    class="status"
-                    data-status="welcome"
-                >
-                    <span class="status-dot"></span>
-                    <span class="status-text">
-                        متوقف
-                    </span>
-                </div>
-            </div>
-            <!-- LEVELS -->
-            <div class="system">
-                <div class="system-top">
-                    <div class="system-icon">
-                        ⭐
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <strong>
+                            المستويات
+                        </strong>
+                        <span>
+                            تشغيل نظام XP والمستويات.
+                        </span>
                     </div>
                     <button
-                        type="button"
-                        class="toggle"
+                        class="toggle system-toggle {% if selected_guild.systems.levels %}on{% endif %}"
                         data-system="levels"
-                        onclick="toggleSystem('levels')"
+                        type="button"
                     >
                         <span></span>
                     </button>
                 </div>
-                <h4>
-                    نظام المستويات
-                </h4>
-                <p>
-                    نظام XP ومستويات الأعضاء.
-                </p>
-                <div
-                    class="status"
-                    data-status="levels"
-                >
-                    <span class="status-dot"></span>
-                    <span class="status-text">
-                        متوقف
-                    </span>
-                </div>
-            </div>
-            <!-- TICKETS -->
-            <div class="system">
-                <div class="system-top">
-                    <div class="system-icon">
-                        🎫
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <strong>
+                            التذاكر
+                        </strong>
+                        <span>
+                            تشغيل نظام التذاكر.
+                        </span>
                     </div>
                     <button
-                        type="button"
-                        class="toggle"
+                        class="toggle system-toggle {% if selected_guild.systems.tickets %}on{% endif %}"
                         data-system="tickets"
-                        onclick="toggleSystem('tickets')"
+                        type="button"
                     >
                         <span></span>
                     </button>
                 </div>
-                <h4>
-                    نظام التذاكر
-                </h4>
-                <p>
-                    إدارة التذاكر والدعم الفني.
-                </p>
-                <div
-                    class="status"
-                    data-status="tickets"
-                >
-                    <span class="status-dot"></span>
-                    <span class="status-text">
-                        متوقف
-                    </span>
-                </div>
-            </div>
-            <!-- APPLICATIONS -->
-            <div class="system">
-                <div class="system-top">
-                    <div class="system-icon">
-                        📝
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <strong>
+                            التقديمات
+                        </strong>
+                        <span>
+                            تشغيل نظام التقديمات.
+                        </span>
                     </div>
                     <button
-                        type="button"
-                        class="toggle"
+                        class="toggle system-toggle {% if selected_guild.systems.applications %}on{% endif %}"
                         data-system="applications"
-                        onclick="toggleSystem('applications')"
+                        type="button"
                     >
                         <span></span>
                     </button>
                 </div>
-                <h4>
-                    نظام التقديمات
-                </h4>
-                <p>
-                    استقبال التقديمات وإرسالها للإدارة.
-                </p>
-                <div
-                    class="status"
-                    data-status="applications"
-                >
-                    <span class="status-dot"></span>
-                    <span class="status-text">
-                        متوقف
-                    </span>
-                </div>
-            </div>
-            <!-- MODERATION -->
-            <div class="system">
-                <div class="system-top">
-                    <div class="system-icon">
-                        🛡️
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <strong>
+                            الحماية
+                        </strong>
+                        <span>
+                            تشغيل أنظمة الحماية والإدارة.
+                        </span>
                     </div>
                     <button
-                        type="button"
-                        class="toggle"
+                        class="toggle system-toggle {% if selected_guild.systems.moderation %}on{% endif %}"
                         data-system="moderation"
-                        onclick="toggleSystem('moderation')"
+                        type="button"
                     >
                         <span></span>
                     </button>
                 </div>
-                <h4>
-                    الإشراف
-                </h4>
-                <p>
-                    أدوات الإشراف والحماية.
-                </p>
-                <div
-                    class="status"
-                    data-status="moderation"
-                >
-                    <span class="status-dot"></span>
-                    <span class="status-text">
-                        متوقف
-                    </span>
-                </div>
-            </div>
-            <!-- LOGS -->
-            <div class="system">
-                <div class="system-top">
-                    <div class="system-icon">
-                        📋
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <strong>
+                            السجلات
+                        </strong>
+                        <span>
+                            تسجيل الأحداث المهمة.
+                        </span>
                     </div>
                     <button
-                        type="button"
-                        class="toggle"
+                        class="toggle system-toggle {% if selected_guild.systems.logs %}on{% endif %}"
                         data-system="logs"
-                        onclick="toggleSystem('logs')"
+                        type="button"
                     >
                         <span></span>
                     </button>
                 </div>
-                <h4>
-                    السجلات
-                </h4>
+            </div>
+            {% else %}
+            <div class="empty">
+                <div class="empty-icon">⚙</div>
+                <strong>اختر سيرفرًا أولًا</strong>
+                <p>اختر السيرفر من القائمة الموجودة بالأعلى.</p>
+            </div>
+            {% endif %}
+        </section>
+        <!-- =================================================
+             WELCOME
+        ================================================== -->
+        <section
+            class="section"
+            id="section-welcome"
+        >
+            <div class="hero">
+                <h2>
+                    نظام الترحيب
+                </h2>
                 <p>
-                    تسجيل الأحداث المهمة داخل السيرفر.
+                    تحكم في نظام الترحيب الخاص بالسيرفر.
                 </p>
-                <div
-                    class="status"
-                    data-status="logs"
-                >
-                    <span class="status-dot"></span>
-                    <span class="status-text">
-                        متوقف
-                    </span>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon">
+                            👋
+                        </div>
+                        <strong>
+                            حالة النظام
+                        </strong>
+                    </div>
+                    {% if selected_guild %}
+                    <button
+                        class="toggle system-toggle {% if selected_guild.systems.welcome %}on{% endif %}"
+                        data-system="welcome"
+                        type="button"
+                    >
+                        <span></span>
+                    </button>
+                    {% endif %}
                 </div>
+                <p>
+                    يمكنك تفعيل أو إيقاف نظام الترحيب من الزر أعلاه.
+                </p>
             </div>
-        </div>
-    </section>
-    <!-- =========================
-         QUICK SETTINGS
-    ========================== -->
-    <section class="section" id="settings">
-        <div class="section-head">
-            <h3>
-                الإعدادات السريعة
-            </h3>
-            <span>
-                تحكم سريع
-            </span>
-        </div>
-        <div class="settings-grid">
-            <div class="setting">
-                <div class="setting-info">
-                    <strong>
-                        الترحيب
-                    </strong>
-                    <span>
-                        تشغيل أو إيقاف نظام الترحيب
-                    </span>
+        </section>
+        <!-- =================================================
+             LEVELS
+        ================================================== -->
+        <section
+            class="section"
+            id="section-levels"
+        >
+            <div class="hero">
+                <h2>
+                    نظام المستويات
+                </h2>
+                <p>
+                    إدارة نظام XP والمستويات الخاص بالأعضاء.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon">
+                            📈
+                        </div>
+                        <strong>
+                            حالة النظام
+                        </strong>
+                    </div>
+                    {% if selected_guild %}
+                    <button
+                        class="toggle system-toggle {% if selected_guild.systems.levels %}on{% endif %}"
+                        data-system="levels"
+                        type="button"
+                    >
+                        <span></span>
+                    </button>
+                    {% endif %}
                 </div>
-                <button
-                    type="button"
-                    class="toggle"
-                    data-system="welcome"
-                    onclick="toggleSystem('welcome')"
-                >
-                    <span></span>
-                </button>
+                <p>
+                    فعّل النظام من الزر للتحكم في المستويات.
+                </p>
             </div>
-            <div class="setting">
-                <div class="setting-info">
-                    <strong>
-                        المستويات
-                    </strong>
-                    <span>
-                        تشغيل أو إيقاف نظام المستويات
-                    </span>
+        </section>
+        <!-- =================================================
+             TICKETS
+        ================================================== -->
+        <section
+            class="section"
+            id="section-tickets"
+        >
+            <div class="hero">
+                <h2>
+                    نظام التذاكر
+                </h2>
+                <p>
+                    إدارة تذاكر الدعم الخاصة بالسيرفر.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon">
+                            🎫
+                        </div>
+                        <strong>
+                            حالة النظام
+                        </strong>
+                    </div>
+                    {% if selected_guild %}
+                    <button
+                        class="toggle system-toggle {% if selected_guild.systems.tickets %}on{% endif %}"
+                        data-system="tickets"
+                        type="button"
+                    >
+                        <span></span>
+                    </button>
+                    {% endif %}
                 </div>
-                <button
-                    type="button"
-                    class="toggle"
-                    data-system="levels"
-                    onclick="toggleSystem('levels')"
-                >
-                    <span></span>
-                </button>
+                <p>
+                    فعّل نظام التذاكر من هنا.
+                </p>
             </div>
-            <div class="setting">
-                <div class="setting-info">
-                    <strong>
-                        التذاكر
-                    </strong>
-                    <span>
-                        تشغيل أو إيقاف نظام التذاكر
-                    </span>
+        </section>
+        <!-- =================================================
+             APPLICATIONS
+        ================================================== -->
+        <section
+            class="section"
+            id="section-applications"
+        >
+            <div class="hero">
+                <h2>
+                    نظام التقديمات
+                </h2>
+                <p>
+                    إدارة طلبات التقديم الخاصة بالسيرفر.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon">
+                            📝
+                        </div>
+                        <strong>
+                            حالة النظام
+                        </strong>
+                    </div>
+                    {% if selected_guild %}
+                    <button
+                        class="toggle system-toggle {% if selected_guild.systems.applications %}on{% endif %}"
+                        data-system="applications"
+                        type="button"
+                    >
+                        <span></span>
+                    </button>
+                    {% endif %}
                 </div>
-                <button
-                    type="button"
-                    class="toggle"
-                    data-system="tickets"
-                    onclick="toggleSystem('tickets')"
-                >
-                    <span></span>
-                </button>
+                <p>
+                    فعّل نظام التقديمات من هنا.
+                </p>
             </div>
-            <div class="setting">
-                <div class="setting-info">
-                    <strong>
-                        التقديمات
-                    </strong>
-                    <span>
-                        تشغيل أو إيقاف نظام التقديمات
-                    </span>
+        </section>
+        <!-- =================================================
+             MODERATION
+        ================================================== -->
+        <section
+            class="section"
+            id="section-moderation"
+        >
+            <div class="hero">
+                <h2>
+                    الحماية
+                </h2>
+                <p>
+                    أدوات الإدارة والحماية الخاصة بالسيرفر.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon">
+                            🛡
+                        </div>
+                        <strong>
+                            حالة الحماية
+                        </strong>
+                    </div>
+                    {% if selected_guild %}
+                    <button
+                        class="toggle system-toggle {% if selected_guild.systems.moderation %}on{% endif %}"
+                        data-system="moderation"
+                        type="button"
+                    >
+                        <span></span>
+                    </button>
+                    {% endif %}
                 </div>
-                <button
-                    type="button"
-                    class="toggle"
-                    data-system="applications"
-                    onclick="toggleSystem('applications')"
-                >
-                    <span></span>
-                </button>
+                <p>
+                    فعّل أنظمة الحماية والإدارة.
+                </p>
             </div>
-        </div>
-    </section>
-    <!-- =========================
-         SECURITY
-    ========================== -->
-    <section class="section" id="security">
-        <div class="security">
-            <div class="security-title">
-                <span>
-                    🔒
-                </span>
-                <span>
-                    حالة الأمان
-                </span>
+        </section>
+        <!-- =================================================
+             LOGS
+        ================================================== -->
+        <section
+            class="section"
+            id="section-logs"
+        >
+            <div class="hero">
+                <h2>
+                    السجلات
+                </h2>
+                <p>
+                    إدارة وتفعيل نظام تسجيل الأحداث.
+                </p>
             </div>
-            <p>
-                لوحة التحكم تعتمد على صلاحيات Discord،
-                ولا يمكن إدارة السيرفر إلا للمستخدمين
-                الذين يملكون الصلاحيات المطلوبة.
-            </p>
-        </div>
-    </section>
-    {% endif %}
-    <footer class="footer">
-        Zivex Dashboard • Powered by Zivex
-    </footer>
-</main>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon">
+                            📋
+                        </div>
+                        <strong>
+                            حالة السجلات
+                        </strong>
+                    </div>
+                    {% if selected_guild %}
+                    <button
+                        class="toggle system-toggle {% if selected_guild.systems.logs %}on{% endif %}"
+                        data-system="logs"
+                        type="button"
+                    >
+                        <span></span>
+                    </button>
+                    {% endif %}
+                </div>
+                <p>
+                    فعّل السجلات لمتابعة الأحداث المهمة.
+                </p>
+            </div>
+        </section>
+    </main>
 </div>
-<!-- TOAST -->
+<!-- =========================================================
+     TOAST
+========================================================== -->
 <div
     class="toast"
     id="toast"
 ></div>
 <script>
-    const guildId =
-        {% if selected_guild %}
-            "{{ selected_guild.id }}"
-        {% else %}
-            null
-        {% endif %};
-    let systemState = {
-        welcome:
-            {{ 'true' if selected_guild and selected_guild.systems.welcome else 'false' }},
-        levels:
-            {{ 'true' if selected_guild and selected_guild.systems.levels else 'false' }},
-        tickets:
-            {{ 'true' if selected_guild and selected_guild.systems.tickets else 'false' }},
-        applications:
-            {{ 'true' if selected_guild and selected_guild.systems.applications else 'false' }},
-        moderation:
-            {{ 'true' if selected_guild and selected_guild.systems.moderation else 'false' }},
-        logs:
-            {{ 'true' if selected_guild and selected_guild.systems.logs else 'false' }}
+    /* =====================================================
+       Current Guild
+    ====================================================== */
+    const guildId = "{{ (selected_guild.id if selected_guild else (guilds[0].id if guilds else '')) }}";
+    /* =====================================================
+       Page Titles
+    ====================================================== */
+    const pageData = {
+        home: {
+            title: "الرئيسية",
+            description: "إدارة سيرفر Discord من مكان واحد."
+        },
+        settings: {
+            title: "الإعدادات",
+            description: "تحكم في أنظمة Zivex الأساسية."
+        },
+        welcome: {
+            title: "الترحيب",
+            description: "إدارة نظام الترحيب."
+        },
+        levels: {
+            title: "المستويات",
+            description: "إدارة نظام XP والمستويات."
+        },
+        tickets: {
+            title: "التذاكر",
+            description: "إدارة نظام تذاكر الدعم."
+        },
+        applications: {
+            title: "التقديمات",
+            description: "إدارة نظام التقديمات."
+        },
+        moderation: {
+            title: "الحماية",
+            description: "إدارة أنظمة الحماية."
+        },
+        logs: {
+            title: "السجلات",
+            description: "إدارة سجل أحداث السيرفر."
+        }
     };
-    function toggleSidebar() {
-        const sidebar =
-            document.getElementById("sidebar");
-        if (!sidebar) {
-            return;
+    /* =====================================================
+       Navigation
+    ====================================================== */
+    const navItems = document.querySelectorAll(
+        ".nav-item[data-section]"
+    );
+    const sections = document.querySelectorAll(
+        ".section"
+    );
+    const pageTitle = document.getElementById(
+        "pageTitle"
+    );
+    const pageDescription = document.getElementById(
+        "pageDescription"
+    );
+    function openSection(sectionName) {
+        if (!document.getElementById(
+            "section-" + sectionName
+        )) {
+            sectionName = "home";
         }
-        sidebar.classList.toggle("open");
+        sections.forEach(section => {
+            section.classList.toggle(
+                "active",
+                section.id === "section-" + sectionName
+            );
+        });
+        navItems.forEach(item => {
+            item.classList.toggle(
+                "active",
+                item.dataset.section === sectionName
+            );
+        });
+        const data = pageData[sectionName];
+        if (data) {
+            pageTitle.textContent = data.title;
+            pageDescription.textContent =
+                data.description;
+        }
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
     }
-    function showToast(
-        message,
-        type = "success"
-    ) {
-        const toast =
-            document.getElementById("toast");
-        if (!toast) {
-            return;
-        }
-        toast.textContent = message;
-        toast.className =
-            "toast show " + type;
-        clearTimeout(
-            window.zivexToastTimer
+    navItems.forEach(item => {
+        item.addEventListener(
+            "click",
+            () => {
+                openSection(
+                    item.dataset.section
+                );
+            }
         );
-        window.zivexToastTimer =
-            setTimeout(() => {
-                toast.className =
-                    "toast";
-            }, 2800);
+    });
+    /* =====================================================
+       Toast
+    ====================================================== */
+    let toastTimer = null;
+    function showToast(message) {
+        const toast = document.getElementById(
+            "toast"
+        );
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2500);
+    }
+    /* =====================================================
+       System Toggle
+    ====================================================== */
+    function updateEnabledCount() {
+        const toggles = document.querySelectorAll(
+            ".system-toggle"
+        );
+        const systems = new Set();
+        toggles.forEach(toggle => {
+            if (
+                toggle.classList.contains("on")
+                && toggle.dataset.system
+            ) {
+                systems.add(
+                    toggle.dataset.system
+                );
+            }
+        });
+        const count = document.getElementById(
+            "enabledCount"
+        );
+        if (count) {
+            count.textContent =
+                systems.size;
+        }
     }
     function updateSystemUI(
         system,
@@ -1435,173 +1666,202 @@
     ) {
         document
             .querySelectorAll(
-                `.toggle[data-system="${system}"]`
+                '.system-toggle[data-system="' +
+                system +
+                '"]'
             )
-            .forEach(button => {
-                button.classList.toggle(
-                    "enabled",
-                    !!enabled
-                );
-            });
-        document
-            .querySelectorAll(
-                `.status[data-status="${system}"]`
-            )
-            .forEach(status => {
-                status.classList.toggle(
+            .forEach(toggle => {
+                toggle.classList.toggle(
                     "on",
-                    !!enabled
+                    enabled
                 );
-                status.classList.toggle(
-                    "off",
-                    !enabled
-                );
-                const text =
-                    status.querySelector(
-                        ".status-text"
-                    );
-                if (text) {
-                    text.textContent =
-                        enabled
-                            ? "مفعّل"
-                            : "متوقف";
-                }
             });
-    }
-    function updateEnabledCount() {
-        const count =
-            Object.values(systemState)
-                .filter(Boolean)
-                .length;
-        const element =
-            document.getElementById(
-                "enabledCount"
-            );
-        if (element) {
-            element.textContent =
-                `${count} مفعّل`;
-        }
+        updateEnabledCount();
     }
     async function toggleSystem(
-        system
+        system,
+        clickedToggle
     ) {
         if (!guildId) {
             showToast(
-                "لم يتم اختيار سيرفر.",
-                "error"
+                "لم يتم اختيار سيرفر."
             );
             return;
         }
-        const oldValue =
-            !!systemState[system];
+        const wasEnabled =
+            clickedToggle.classList.contains("on");
         const newValue =
-            !oldValue;
+            !wasEnabled;
         /* Optimistic UI */
-        systemState[system] =
-            newValue;
         updateSystemUI(
             system,
             newValue
         );
-        updateEnabledCount();
+        clickedToggle.disabled = true;
         try {
-            const response =
-                await fetch(
-                    `/dashboard/api/${guildId}/system/${encodeURIComponent(system)}`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-                        body:
-                            JSON.stringify({
-                                enabled:
-                                    newValue
-                            })
-                    }
-                );
-            const data =
-                await response
-                    .json()
-                    .catch(() => ({}));
-            if (
-                !response.ok ||
-                !data.success
-            ) {
+            const response = await fetch(
+                "/dashboard/api/" +
+                encodeURIComponent(guildId) +
+                "/system/" +
+                encodeURIComponent(system),
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        enabled: newValue
+                    })
+                }
+            );
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (_) {
+                data = {};
+            }
+            if (!response.ok || !data.success) {
                 throw new Error(
                     data.error ||
-                    "تعذر حفظ التغيير."
+                    "تعذر حفظ الإعداد."
                 );
             }
             const finalValue =
-                typeof data.enabled === "boolean"
-                    ? data.enabled
-                    : newValue;
-            systemState[system] =
-                finalValue;
+                Boolean(data.enabled);
             updateSystemUI(
                 system,
                 finalValue
             );
-            updateEnabledCount();
             showToast(
                 finalValue
                     ? "تم تفعيل النظام بنجاح."
                     : "تم إيقاف النظام بنجاح."
             );
-        } catch (error) {
-            systemState[system] =
-                oldValue;
+        }
+        catch (error) {
+            /* Revert */
             updateSystemUI(
                 system,
-                oldValue
+                wasEnabled
             );
-            updateEnabledCount();
             showToast(
                 error.message ||
-                "حدث خطأ أثناء الحفظ.",
-                "error"
+                "حدث خطأ أثناء الحفظ."
             );
         }
+        finally {
+            document
+                .querySelectorAll(
+                    '.system-toggle[data-system="' +
+                    system +
+                    '"]'
+                )
+                .forEach(toggle => {
+                    toggle.disabled = false;
+                });
+        }
     }
-    document.addEventListener(
-        "DOMContentLoaded",
-        () => {
-            Object.entries(
-                systemState
-            ).forEach(
-                ([system, enabled]) => {
-                    updateSystemUI(
-                        system,
-                        !!enabled
+    document
+        .querySelectorAll(".system-toggle")
+        .forEach(toggle => {
+            toggle.addEventListener(
+                "click",
+                () => {
+                    toggleSystem(
+                        toggle.dataset.system,
+                        toggle
                     );
                 }
             );
-            updateEnabledCount();
-            document
-                .querySelectorAll(
-                    ".nav a"
-                )
-                .forEach(link => {
-                    link.addEventListener(
-                        "click",
-                        () => {
-                            if (
-                                window.innerWidth <= 800
-                            ) {
-                                document
-                                    .getElementById(
-                                        "sidebar"
-                                    )
-                                    ?.classList
-                                    .remove("open");
-                            }
+        });
+    /* =====================================================
+       Server Selector
+    ====================================================== */
+    const serverButton =
+        document.getElementById(
+            "serverButton"
+        );
+    const serverMenu =
+        document.getElementById(
+            "serverMenu"
+        );
+    if (serverButton && serverMenu) {
+        serverButton.addEventListener(
+            "click",
+            event => {
+                event.stopPropagation();
+                serverMenu.classList.toggle(
+                    "open"
+                );
+            }
+        );
+        document
+            .querySelectorAll(
+                ".server-option"
+            )
+            .forEach(option => {
+                option.addEventListener(
+                    "click",
+                    event => {
+                        event.stopPropagation();
+                        const url =
+                            option.dataset.guildUrl;
+                        if (url) {
+                            window.location.href =
+                                url;
                         }
+                    }
+                );
+            });
+        document.addEventListener(
+            "click",
+            () => {
+                serverMenu.classList.remove(
+                    "open"
+                );
+            }
+        );
+    }
+    /* =====================================================
+       Fix Server Images
+    ====================================================== */
+    document
+        .querySelectorAll(
+            ".server-icon img"
+        )
+        .forEach(img => {
+            img.addEventListener(
+                "error",
+                () => {
+                    img.parentElement.classList.add(
+                        "image-error"
                     );
-                });
-        }
-    );
+                }
+            );
+            /*
+             * بعض المتصفحات قد تنفذ onerror
+             * قبل تسجيل المستمع، لذلك نتحقق أيضًا
+             * من complete/naturalWidth.
+             */
+            if (
+                img.complete &&
+                img.naturalWidth === 0
+            ) {
+                img.parentElement.classList.add(
+                    "image-error"
+                );
+            }
+        });
+    /* =====================================================
+       Initial State
+    ====================================================== */
+    updateEnabledCount();
+    /*
+     * إذا كان هناك Guild محدد، نبدأ من الرئيسية.
+     */
+    openSection("home");
 </script>
 </body>
 </html>
